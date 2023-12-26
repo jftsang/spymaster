@@ -64,7 +64,9 @@ class AmericaPlayer(Player):
     """Player that adjusts its aim if it is defeated in a previous
     round.
     """
-    diff: int = field(default_factory=lambda: randint(0, 2))
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.diff: int = randint(0, 2)
 
     def pick(self, state: Situation) -> int:
         target = state.current_mission + self.diff + 1
