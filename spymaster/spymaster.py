@@ -5,6 +5,9 @@ from typing import List, Set
 
 from dataclasses_json import dataclass_json
 
+if typing.TYPE_CHECKING:
+    from .players import Player
+
 
 @dataclass_json
 @dataclass(kw_only=True)
@@ -115,7 +118,9 @@ class Spymaster:
             self.white.receive(result)
             self.black.receive(result.flipped())
 
-    def resolve(self, white_play: int, black_play: int, mission: int) -> MissionResult:
+    def resolve(
+        self, white_play: int, black_play: int, mission: int
+    ) -> MissionResult:
         """
         Resolve a mission
         @param white_play: The card that White played
@@ -159,8 +164,8 @@ class Spymaster:
 
 
 if __name__ == "__main__":
-    from .players import HumanPlayer, britain, china, france, america, timothy #, russia
+    from .players import HumanPlayer, america
 
-    game = Spymaster(white=timothy, black=timothy)
+    game = Spymaster(white=HumanPlayer("You"), black=america)
     game.play()
     game.print_score()
