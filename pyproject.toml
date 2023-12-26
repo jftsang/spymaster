@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "spymaster"
+version = "0.1.0"
+description = ""
+authors = ["J. M. F. Tsang <j.m.f.tsang@cantab.net>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+dataclasses_json = "^0.6.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
