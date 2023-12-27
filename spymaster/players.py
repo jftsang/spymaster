@@ -39,6 +39,7 @@ class HumanPlayer(Player):
 
     def receive(self, result: MissionResult) -> None:
         print(result)
+        input("Press enter to continue...")
 
 
 class RandomPlayer(Player):
@@ -143,4 +144,4 @@ britain = SimpleAimingPlayer("Britain", 4)
 america = AmericaPlayer("America")
 russia = RussiaPlayer("Russia", stabbiness=0.5, paranoia=0.5, idleness=0.33)
 
-players = [russia, america, britain, france, china]
+players = {p.name: p for p in [russia, america, britain, france, china]}

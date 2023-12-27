@@ -1,3 +1,4 @@
+import argparse
 import typing
 from dataclasses import dataclass, field
 from random import shuffle
@@ -164,8 +165,23 @@ class Spymaster:
 
 
 if __name__ == "__main__":
-    from .players import HumanPlayer, america
+    from .players import HumanPlayer, players
 
-    game = Spymaster(white=HumanPlayer("You"), black=america)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "p1", choices=[p for p in players.keys()],
+    )
+    parser.add_argument(
+        "p2", choices=[p for p in players.keys()], nargs="?"
+    )
+    args = parser.parse_args()
+    if args.p2 is None:
+        p1 = HumanPlayer("You")
+        p2 = players[args.p1]
+    else:
+        p1 = players[args.p1]
+        p2 = players[args.p2]
+
+    game = Spymaster(white=p1, black=p2)
     game.play()
     game.print_score()

@@ -3,6 +3,8 @@ import unittest
 from ..players import players
 from ..spymaster import Spymaster
 
+players = players.values()
+
 
 class TestRoundRobin(unittest.TestCase):
     def test_round_robin(self):
