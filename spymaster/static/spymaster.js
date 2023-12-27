@@ -1,16 +1,17 @@
 const youDiv = document.getElementById("youButtonsDiv");
 const youButtons = [];
 
+let row = null;
 for (let i = 0; i < 16; i++) {
   if (i % 4 === 0) {
-    const row = document.createElement("div");
-    row.className = "row";
+    row = document.createElement("div");
+    row.className = "row justify-content-center align-items-center";
     youDiv.appendChild(row);
   }
   const button = document.createElement("button");
   button.className = "btn btn-primary agentcard";
   button.innerHTML = i.toString();
-  youDiv.appendChild(button);
+  row.appendChild(button);
   youButtons.push(button);
 }
 
@@ -19,14 +20,14 @@ const oppButtons = [];
 
 for (let i = 0; i < 16; i++) {
   if (i % 4 === 0) {
-    const row = document.createElement("div");
-    row.className = "row";
+    row = document.createElement("div");
+    row.className = "row justify-content-center align-items-center";
     oppDiv.appendChild(row);
   }
   const button = document.createElement("button");
   button.className = "btn btn-danger agentcard";
   button.innerHTML = i.toString();
-  oppDiv.appendChild(button);
+  row.appendChild(button);
   oppButtons.push(button);
 }
 
