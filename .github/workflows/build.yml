@@ -27,15 +27,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Python Poetry Action
         uses: abatilo/actions-poetry@v2.3.0
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v2
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
       - name: Install dependencies
         run: poetry install
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       - name: Run tests
         run: |
           poetry run python -m unittest
