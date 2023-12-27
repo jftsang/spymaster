@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from random import choice, randint
+from dataclasses import dataclass, field
+from random import choice, randint, random
 from typing import Optional
 
 from dataclasses_json import dataclass_json
@@ -60,12 +60,12 @@ class SimpleAimingPlayer(Player):
         return aim(state.your_cards, target)
 
 
+@dataclass
 class AmericaPlayer(Player):
     """Player that adjusts its aim if it is defeated in a previous
     round.
     """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __post_init__(self):
         self.diff: int = randint(0, 2)
 
     def pick(self, state: Situation) -> int:
@@ -77,9 +77,17 @@ class AmericaPlayer(Player):
             self.diff = result.opp_played - result.you_played
 
 
+def check(probability: float) -> bool:
+    return random() < probability
+
+
+@dataclass
 class RussiaPlayer(Player):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    stabbiness: float = field(default=0.5)
+    paranoia: float = field(default=0.5)
+    idleness: float = field(default=0.33)
+
+    def __post_init__(self):
         self.diff = randint(0, 2)
 
     def pick(self, state: Situation) -> int:
@@ -106,24 +114,24 @@ class RussiaPlayer(Player):
             # If the assassin is available, play it with 50% chance
             return prefer(
                 _mx(p, p + 2),
-                0 if (0 in mine and randint(0, 1)) else None,
+                0 if (0 in mine and check(self.stabbiness)) else None,
                 _aim(randint(p + 1, p + 2)),
             )
         else:
             # For really high value missions, follow a similar strategy...
             e = prefer(
                 _mx(13, 15),
-                0 if (0 in mine and randint(0, 1)) else None,
+                0 if (0 in mine and check(self.stabbiness)) else None,
                 _aim(randint(p, 16))
             )
             # ...but if we are about to play a high-value card, then...
 
             if e > 13:
-                scared_of_assassination = 0 in theirs and randint(0, 1)
-                if scared_of_assassination:
+                paranoid = 0 in theirs and check(self.paranoia)
+                if paranoid:
                     e = chuck(mine)
 
-            if e > 13 and randint(0, 2) == 0:
+            if e > 13 and check(self.idleness):
                 e = _aim(randint(5, 7))
 
             return e
@@ -133,4 +141,6 @@ china = RandomPlayer("China")
 france = SimpleAimingPlayer("France", 2)
 britain = SimpleAimingPlayer("Britain", 4)
 america = AmericaPlayer("America")
-russia = RussiaPlayer("Russia")
+russia = RussiaPlayer("Russia", stabbiness=0.5, paranoia=0.5, idleness=0.33)
+
+players = [russia, america, britain, france, china]
