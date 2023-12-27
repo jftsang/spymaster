@@ -40,6 +40,7 @@ async def ws(websocket: WebSocket):
     game = Spymaster(white=russia, black=russia)
     situation = Situation.for_white(game)
     situation.your_cards = [1, 5, 7, 9]
+    situation.opponents_cards = [0, 4, 7, 15]
     # while True:
     await websocket.send_json(
         {"msgType": "situation", "situation": situation.to_dict()}  # type: ignore
