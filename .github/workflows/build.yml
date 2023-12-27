@@ -38,6 +38,5 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       - name: Run tests
         run: |
-          source .venv/bin/activate
           poetry run python -m unittest
 #          poetry run coverage report
