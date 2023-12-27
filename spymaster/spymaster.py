@@ -4,29 +4,21 @@ from dataclasses import dataclass, field
 from random import shuffle
 from typing import List, Set
 
-from dataclasses_json import dataclass_json
+from dataclasses_json import LetterCase, dataclass_json
 
 if typing.TYPE_CHECKING:
     from .players import Player
 
 
-@dataclass_json
+@dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass(kw_only=True)
 class Situation:
-    you: List[bool]
-    opp: List[bool]
+    your_cards: List[int]
+    opponents_cards: List[int]
     you_score: int
     opp_score: int
     current_mission: int
     remaining_missions: Set[int]  # no order
-
-    @property
-    def your_cards(self):
-        return [i for i in range(16) if self.you[i]]
-
-    @property
-    def opponents_cards(self):
-        return [i for i in range(16) if self.opp[i]]
 
     def __str__(self):
         s = [f"Your cards: {self.your_cards}",
@@ -38,16 +30,27 @@ class Situation:
 
     def flipped(self):
         return Situation(
-            you=self.opp,
-            opp=self.you,
+            your_cards=self.opponents_cards,
+            opponents_cards=self.your_cards,
             you_score=self.opp_score,
             opp_score=self.you_score,
             current_mission=self.current_mission,
             remaining_missions=self.remaining_missions,
         )
 
+    @classmethod
+    def for_white(cls, state: "Spymaster"):
+        return cls(
+            your_cards=state.white_cards,
+            opponents_cards=state.black_cards,
+            you_score=state.white_score,
+            opp_score=state.black_score,
+            current_mission=None,  # type: ignore
+            remaining_missions=set(state.missions),
+        )
 
-@dataclass_json
+
+@dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass(kw_only=True)
 class MissionResult:
     you_played: int
@@ -76,8 +79,8 @@ class MissionResult:
         )
 
 
-def card_factory() -> List[bool]:
-    return [True] * 16
+def card_factory() -> List[int]:
+    return list(range(16))
 
 
 def mission_factory() -> List[int]:
@@ -91,8 +94,8 @@ def mission_factory() -> List[int]:
 class Spymaster:
     white: "Player"
     black: "Player"
-    white_cards: List[bool] = field(default_factory=card_factory)
-    black_cards: List[bool] = field(default_factory=card_factory)
+    white_cards: List[int] = field(default_factory=card_factory)
+    black_cards: List[int] = field(default_factory=card_factory)
     white_score: int = field(default=0)
     black_score: int = field(default=0)
     missions: List[int] = field(default_factory=mission_factory)
@@ -104,15 +107,10 @@ class Spymaster:
     def play(self):
         while self.missions:
             mission = self.missions.pop()
-            white_situation = Situation(
-                you=self.white_cards,
-                opp=self.black_cards,
-                you_score=self.white_score,
-                opp_score=self.black_score,
-                current_mission=mission,
-                remaining_missions=set(self.missions),
-            )
+            white_situation = Situation.for_white(self)
+            white_situation.current_mission = mission
             black_situation = white_situation.flipped()
+
             white_play = self.white.pick(white_situation)
             black_play = self.black.pick(black_situation)
             result = self.resolve(white_play, black_play, mission)
@@ -129,14 +127,14 @@ class Spymaster:
         @param mission: The value of the mission
         @return: MissionResult from White's point of view
         """
-        if not self.white_cards[white_play]:
+        if white_play not in self.white_cards:
             raise ValueError("White card not in hand")
 
-        if not self.black_cards[black_play]:
+        if black_play not in self.black_cards:
             raise ValueError("Black card not in hand")
 
-        self.white_cards[white_play] = False
-        self.black_cards[black_play] = False
+        self.white_cards.remove(white_play)
+        self.black_cards.remove(black_play)
 
         dw = 0
         db = 0

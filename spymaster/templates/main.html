@@ -8,10 +8,6 @@
 </head>
 <body>
 <script>
-    const url = new URL(window.location.href);
-    url.protocol = 'ws:';
-    url.pathname = '/ws';
-    const ws = new WebSocket(url.toString());
 </script>
 
 <div id="rootDiv" class="container">
@@ -28,6 +24,7 @@
     </div>
     <div class="row">
         <div class="col">
+            <p id="score"></p>
             <p id="message"></p>
         </div>
     </div>
