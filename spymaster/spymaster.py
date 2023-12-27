@@ -14,15 +14,15 @@ if typing.TYPE_CHECKING:
 class Situation:
     your_cards: List[int]
     opponents_cards: List[int]
-    you_score: int
-    opp_score: int
+    your_score: int
+    opponents_score: int
     current_mission: int
     remaining_missions: Set[int]  # no order
 
     def __str__(self):
         s = [f"Your cards: {self.your_cards}",
              f"Opponent's cards: {self.opponents_cards}",
-             f"Score: {self.you_score} - {self.opp_score}",
+             f"Score: {self.your_score} - {self.opponents_score}",
              f"Mission: {self.current_mission}",
              f"Remaining missions: {self.remaining_missions}"]
         return "\n".join(s)
@@ -31,8 +31,8 @@ class Situation:
         return Situation(
             your_cards=self.opponents_cards,
             opponents_cards=self.your_cards,
-            you_score=self.opp_score,
-            opp_score=self.you_score,
+            your_score=self.opponents_score,
+            opponents_score=self.your_score,
             current_mission=self.current_mission,
             remaining_missions=self.remaining_missions,
         )
@@ -42,8 +42,8 @@ class Situation:
         return cls(
             your_cards=state.white_cards,
             opponents_cards=state.black_cards,
-            you_score=state.white_score,
-            opp_score=state.black_score,
+            your_score=state.white_score,
+            opponents_score=state.black_score,
             current_mission=None,  # type: ignore
             remaining_missions=set(state.missions),
         )
@@ -54,6 +54,7 @@ class Situation:
 class MissionResult:
     you_played: int
     opp_played: int
+    mission: int
     you_scored: int
     opp_scored: int
 
@@ -73,6 +74,7 @@ class MissionResult:
         return MissionResult(
             you_played=self.opp_played,
             opp_played=self.you_played,
+            mission=self.mission,
             you_scored=self.opp_scored,
             opp_scored=self.you_scored,
         )
@@ -156,6 +158,7 @@ class Spymaster:
         return MissionResult(
             you_played=white_play,
             opp_played=black_play,
+            mission=mission,
             you_scored=dw,
             opp_scored=db,
         )

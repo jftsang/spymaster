@@ -6,16 +6,30 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.websockets import WebSocket
+from fastapi.websockets import WebSocket, WebSocketDisconnect
 
+from .online_player import OnlinePlayer
 from .players import russia
-from .spymaster import Situation, Spymaster
+from .spymaster import Spymaster
 
 
 class GameServer:
     def __init__(self):
         self.app = FastAPI()
-        self.games: Dict[str, Spymaster]
+        self.games: Dict[str, Spymaster] = {}
+        self.online_players: Dict[str, OnlinePlayer] = {}
+
+    def connect_player(self, code: str, websocket: WebSocket) -> OnlinePlayer:
+        """If the player is already connected, update her websocket.
+        Otherwise create a new player.
+        """
+        # if code in self.online_players:
+        #     player = self.online_players[code]
+        #     player.websocket = websocket
+        # else:
+        player = OnlinePlayer(code, websocket=websocket)
+
+        return player
 
 
 gs = GameServer()
@@ -37,21 +51,15 @@ async def index_view(request: Request) -> HTMLResponse:
 @app.websocket("/ws")
 async def ws(websocket: WebSocket):
     await websocket.accept()
-    game = Spymaster(white=russia, black=russia)
-    situation = Situation.for_white(game)
-    situation.your_cards = [1, 5, 7, 9]
-    situation.opponents_cards = [0, 4, 7, 15]
-    # while True:
-    await websocket.send_json(
-        {"msgType": "situation", "situation": situation.to_dict()}  # type: ignore
-    )
-
-        # try:
-        #     message = await websocket.receive_json()
-        #     print(message)
-        # except Exception as e:
-        #     print(e)
-        #     await websocket.send_text(str(e))
+    player = gs.connect_player("1234", websocket)
+    game = gs.games.setdefault("1234", Spymaster(white=player, black=russia))
+    await game.play()
+    # situation = Situation.for_white(game)
+    # situation.your_cards = [1, 5, 7, 9]
+    # situation.opponents_cards = [0, 4, 7, 15]
+    # await websocket.send_json(
+    #     {"msgType": "situation", "situation": situation.to_dict()}  # type: ignore
+    # )
 
 
 if __name__ == "__main__":

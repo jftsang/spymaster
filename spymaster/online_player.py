@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 from fastapi.websockets import WebSocket
 
@@ -11,7 +12,30 @@ class OnlinePlayer(Player):
     websocket: WebSocket
 
     async def pick(self, state: Situation) -> int:
-        pass
+        await self.websocket.send_json(
+            {
+                "msgType": "situation",
+                "situation": state.to_dict()
+            }
+        )
+
+        accept = False
+        while not accept:
+            recv = await self.websocket.receive_json()
+            try:
+                choice: Optional[int] = recv["card"]
+            except KeyError:
+                continue
+
+            print("Choice:", choice)
+            accept = choice in state.your_cards
+
+        return choice
 
     async def receive(self, result: MissionResult) -> None:
-        pass
+        await self.websocket.send_json(
+            {
+                "msgType": "result",
+                "result": result.to_dict()
+            }
+        )
