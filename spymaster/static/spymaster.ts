@@ -3,13 +3,16 @@ const oppButtons: HTMLButtonElement[] = [];
 
 const messageP = document.getElementById("message") as HTMLParagraphElement;
 const scoreP = document.getElementById("score") as HTMLParagraphElement;
+const nextMissionBtn = document.getElementById("nextMissionBtn") as HTMLButtonElement;
 
 enum State {
   SITUATION,
+  WAITING_FOR_OPPONENT,
   RESULT,
+  GAME_OVER,
 }
 
-let state = State.SITUATION;
+let state: State = State.SITUATION;
 
 function initializeButtons() {
   const youDiv = document.getElementById("youButtonsDiv");
@@ -30,8 +33,7 @@ function initializeButtons() {
     youButtons.push(button);
 
     button.addEventListener("click", () => {
-      button.classList.add("our-selected");
-      sendCard(Number.parseInt(button.dataset["card"]))
+      chooseCard(Number.parseInt(button.dataset["card"]))
     })
   }
 
@@ -88,16 +90,29 @@ function updateUiForSituation(situation: Situation) {
   })
   document.getElementById("yourScore").innerHTML = `Score: ${situation.yourScore}`;
   document.getElementById("opponentsScore").innerHTML = `Score: ${situation.opponentsScore}`;
+
+  nextMissionBtn.hidden = true;
 }
 
 function updateUiForResult(result: MissionResult) {
   state = State.RESULT;
-  messageP.innerHTML = result.toString();
 
+  oppButtons[result.oppPlayed].classList.add("their-selected");
+
+
+  messageP.innerHTML = result.toString();
 }
 
-function sendCard(card) {
+function chooseCard(card: number) {
+  if (state !== State.SITUATION) {
+    messageP.innerHTML = "Please wait...";
+  }
+  const button = youButtons[card];
+  button.classList.add("our-selected");
+
   ws.send(JSON.stringify({"msgType": "card", "card": card}))
+
+  state = State.WAITING_FOR_OPPONENT;
 }
 
 initializeButtons();
@@ -113,12 +128,22 @@ ws.addEventListener("message", (event) => {
   console.log(data);
 
   if (data["msgType"] === "situation") {
+    // about to make a play
     const situation = data["situation"] as Situation;
     console.log(situation);
-    updateUiForSituation(situation);
+    nextMissionBtn.hidden = false;
+    nextMissionBtn.addEventListener("click", () => {
+      updateUiForSituation(situation);
+    });
   } else if (data["msgType"] === "result") {
+    // both sides have made a play, let's see the result
     const result = new MissionResult(data["result"]);
     console.log(result);
     updateUiForResult(result);
   }
+})
+
+ws.addEventListener("close", (event) => {
+  console.log(event);
+  // alert("Disconnected");
 })

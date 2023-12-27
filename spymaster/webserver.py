@@ -53,7 +53,10 @@ async def ws(websocket: WebSocket):
     await websocket.accept()
     player = gs.connect_player("1234", websocket)
     game = gs.games.setdefault("1234", Spymaster(white=player, black=russia))
-    await game.play()
+    try:
+        await game.play()
+    except WebSocketDisconnect:
+        pass
     # situation = Situation.for_white(game)
     # situation.your_cards = [1, 5, 7, 9]
     # situation.opponents_cards = [0, 4, 7, 15]
