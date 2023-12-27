@@ -5,7 +5,7 @@ from typing import Optional
 
 from dataclasses_json import dataclass_json
 
-from .aim import aim
+from .aim import aim, chuck, mx, prefer
 from .spymaster import MissionResult, Situation
 
 
@@ -78,12 +78,59 @@ class AmericaPlayer(Player):
 
 
 class RussiaPlayer(Player):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.diff = randint(0, 2)
+
+    def pick(self, state: Situation) -> int:
+        # This is broken in the original game (as of 2023-12-27); the
+        # Russia AI calculates its options and then throws it away, and
+        # just does the America AI's action instead!
+        p = state.current_mission
+        mine = state.your_cards
+        theirs = state.opponents_cards
+
+        def _mx(l, h):
+            return mx(mine, theirs, l, h)
+
+        def _aim(t):
+            return aim(mine, t)
+
+        if p < 5:
+            # Try to win in the range if we can, otherwise discard
+            return prefer(_mx(p, p + 4), chuck(mine))
+        elif p < 9:
+            # Try to win in the range if we can, otherwise aim just above
+            return prefer(_mx(p, p + 3), _aim(randint(p + 1, p + 3)))
+        elif p < 13:
+            # If the assassin is available, play it with 50% chance
+            return prefer(
+                _mx(p, p + 2),
+                0 if (0 in mine and randint(0, 1)) else None,
+                _aim(randint(p + 1, p + 2)),
+            )
+        else:
+            # For really high value missions, follow a similar strategy...
+            e = prefer(
+                _mx(13, 15),
+                0 if (0 in mine and randint(0, 1)) else None,
+                _aim(randint(p, 16))
+            )
+            # ...but if we are about to play a high-value card, then...
+
+            if e > 13:
+                scared_of_assassination = 0 in theirs and randint(0, 1)
+                if scared_of_assassination:
+                    e = chuck(mine)
+
+            if e > 13 and randint(0, 2) == 0:
+                e = _aim(randint(5, 7))
+
+            return e
 
 
 china = RandomPlayer("China")
 france = SimpleAimingPlayer("France", 2)
 britain = SimpleAimingPlayer("Britain", 4)
 america = AmericaPlayer("America")
-# russia = RussiaPlayer()
+russia = RussiaPlayer("Russia")
