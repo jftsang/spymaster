@@ -1,3 +1,4 @@
+import asyncio
 import unittest
 
 from ..players import players
@@ -12,6 +13,6 @@ class TestRoundRobin(unittest.TestCase):
             for j in players:
                 with self.subTest(f"{i.name} vs {j.name}"):
                     game = Spymaster(white=i, black=j)
-                    game.play()
+                    asyncio.run(game.play())
                     game.print_score()
                     print("---")

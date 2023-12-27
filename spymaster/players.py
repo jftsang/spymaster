@@ -15,10 +15,10 @@ class Player(ABC):
     name: str
 
     @abstractmethod
-    def pick(self, state: Situation) -> int:
+    async def pick(self, state: Situation) -> int:
         pass
 
-    def receive(self, result: MissionResult) -> None:
+    async def receive(self, result: MissionResult) -> None:
         """Do something with the result from a round."""
         pass
 
@@ -31,20 +31,20 @@ def tryint(x: str) -> Optional[int]:
 
 
 class HumanPlayer(Player):
-    def pick(self, state: Situation) -> int:
+    async def pick(self, state: Situation) -> int:
         print(state)
         while (x := tryint(input("Choose a card: "))) not in state.your_cards:
             print(f"{x} is not a valid card")
         return x
 
-    def receive(self, result: MissionResult) -> None:
+    async def receive(self, result: MissionResult) -> None:
         print(result)
         input("Press enter to continue...")
 
 
 class RandomPlayer(Player):
     """Naive player that just plays cards at random."""
-    def pick(self, state: Situation) -> int:
+    async def pick(self, state: Situation) -> int:
         return choice(state.your_cards)
 
 
@@ -56,7 +56,7 @@ class SimpleAimingPlayer(Player):
         super().__init__(name)
         self.variance = variance
 
-    def pick(self, state: Situation) -> int:
+    async def pick(self, state: Situation) -> int:
         target = state.current_mission + randint(1, self.variance)
         return aim(state.your_cards, target)
 
@@ -69,11 +69,11 @@ class AmericaPlayer(Player):
     def __post_init__(self):
         self.diff: int = randint(0, 2)
 
-    def pick(self, state: Situation) -> int:
+    async def pick(self, state: Situation) -> int:
         target = state.current_mission + self.diff + 1
         return aim(state.your_cards, target)
 
-    def receive(self, result: MissionResult) -> None:
+    async def receive(self, result: MissionResult) -> None:
         if result.opp_played >= result.you_played:
             self.diff = result.opp_played - result.you_played
 
@@ -91,7 +91,7 @@ class RussiaPlayer(Player):
     def __post_init__(self):
         self.diff = randint(0, 2)
 
-    def pick(self, state: Situation) -> int:
+    async def pick(self, state: Situation) -> int:
         # This is broken in the original game (as of 2023-12-27); the
         # Russia AI calculates its options and then throws it away, and
         # just does the America AI's action instead!

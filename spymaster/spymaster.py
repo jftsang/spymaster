@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import typing
 from dataclasses import dataclass, field
 from random import shuffle
@@ -104,18 +105,18 @@ class Spymaster:
         print(f"{self.white.name} (White): {self.white_score}")
         print(f"{self.black.name} (Black): {self.black_score}")
 
-    def play(self):
+    async def play(self):
         while self.missions:
             mission = self.missions.pop()
             white_situation = Situation.for_white(self)
             white_situation.current_mission = mission
             black_situation = white_situation.flipped()
 
-            white_play = self.white.pick(white_situation)
-            black_play = self.black.pick(black_situation)
+            white_play = await self.white.pick(white_situation)
+            black_play = await self.black.pick(black_situation)
             result = self.resolve(white_play, black_play, mission)
-            self.white.receive(result)
-            self.black.receive(result.flipped())
+            await self.white.receive(result)
+            await self.black.receive(result.flipped())
 
     def resolve(
         self, white_play: int, black_play: int, mission: int
@@ -162,7 +163,7 @@ class Spymaster:
         )
 
 
-if __name__ == "__main__":
+async def main():
     from .players import HumanPlayer, players
 
     parser = argparse.ArgumentParser()
@@ -181,5 +182,9 @@ if __name__ == "__main__":
         p2 = players[args.p2]
 
     game = Spymaster(white=p1, black=p2)
-    game.play()
+    await game.play()
     game.print_score()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
