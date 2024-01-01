@@ -56,6 +56,8 @@ function initializeButtons() {
 }
 
 class GameState {
+  white: string;
+  black: string;
   whiteCards: number[];
   blackCards: number[];
   whiteScore: number;
@@ -64,8 +66,8 @@ class GameState {
   remainingMissions: number[];
 
   constructor(public obj : {
-    // white: Player,
-    // black: Player,
+    white: string,
+    black: string,
     whiteCards: number[],
     blackCards: number[],
     whiteScore: number,
@@ -73,6 +75,8 @@ class GameState {
     currentMission: number,
     remainingMissions: number[]
   }) {
+    this.white = obj.white;
+    this.black = obj.black;
     this.whiteCards = obj.whiteCards;
     this.blackCards = obj.blackCards;
     this.whiteScore = obj.whiteScore;
@@ -109,15 +113,6 @@ class MissionResult {
     this.oppScored = obj.oppScored;
     this.gameOver = obj.gameOver;
   }
-
-  toString(): string {
-    if (this.youScored > 0)
-      return `You scored ${this.youScored}`;
-    else if (this.oppScored > 0)
-      return `Opponent scored ${this.oppScored}`;
-    else
-      return "Drawn round";
-  }
 }
 
 function repaintUiForSituation() {
@@ -136,18 +131,25 @@ function repaintUiForSituation() {
 function updateUiForResult(result: MissionResult) {
   state = State.RESULT;
 
-  situation.whiteScore += result.youScored;
-  situation.blackScore += result.oppScored;
   repaintUiForSituation();
 
   oppButtons[result.oppPlayed].classList.add("their-selected");
-  messageP.innerHTML = result.toString();
+
+  let scoreMessage;
+  if (result.youScored > 0)
+    scoreMessage = `You scored ${result.youScored}`;
+  else if (result.oppScored > 0)
+    scoreMessage = `${situation.black} scored ${result.oppScored}`;
+  else
+    scoreMessage = "Drawn round...";
+
+  messageP.innerHTML = scoreMessage;
 
   if (result.gameOver) {
     if (situation.whiteScore > situation.blackScore)
       scoreP.innerHTML = "You won!";
     else if (situation.whiteScore < situation.blackScore)
-      scoreP.innerHTML = "You lost!";
+      scoreP.innerHTML = `${situation.black} won!`;
     else
       scoreP.innerHTML = "Draw!";
   }
@@ -202,6 +204,7 @@ ws.addEventListener("message", (event) => {
 
   } else if (data["msgType"] === "result") {
     // both sides have made a play, let's see the result
+    situation = new GameState(data["situation"]);
     const result = new MissionResult(data["result"]);
     console.log(result);
     updateUiForResult(result);

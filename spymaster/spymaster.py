@@ -87,16 +87,18 @@ class Spymaster:
             self.current_mission = self.remaining_missions.pop()
             self.remaining_missions.sort()
 
-            white_play = await self.white.pick(self)
-            black_play = await self.black.pick(self.flipped())
-            result = self.resolve(white_play, black_play)
+            white_play = self.white.pick(self)
+            black_play = self.black.pick(self.flipped())
+            result = self.resolve(await white_play, await black_play)
 
             if not self.white_cards:
                 assert not self.black_cards
                 result.game_over = True
 
-            await self.white.receive(self, result)
-            await self.black.receive(self, result.flipped())
+            wr = self.white.receive(self, result)
+            br = self.black.receive(self, result.flipped())
+            await wr
+            await br
 
     def resolve(
         self, white_play: int, black_play: int
