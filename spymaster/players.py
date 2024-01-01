@@ -6,19 +6,18 @@ from typing import Optional
 from dataclasses_json import dataclass_json
 
 from .aim import aim, chuck, mx, prefer
-from .spymaster import MissionResult, Situation
+from .spymaster import MissionResult, Spymaster
 
 
-@dataclass_json
 @dataclass
 class Player(ABC):
     name: str
 
     @abstractmethod
-    async def pick(self, state: Situation) -> int:
+    async def pick(self, state: Spymaster) -> int:
         pass
 
-    async def receive(self, result: MissionResult) -> None:
+    async def receive(self, state: Spymaster, result: MissionResult) -> None:
         """Do something with the result from a round."""
         pass
 
@@ -31,21 +30,30 @@ def tryint(x: str) -> Optional[int]:
 
 
 class HumanPlayer(Player):
-    async def pick(self, state: Situation) -> int:
-        print(state)
-        while (x := tryint(input("Choose a card: "))) not in state.your_cards:
+    @staticmethod
+    def display_situation(situation: Spymaster):
+        s = [f"Your cards: {situation.white_cards}",
+             f"Opponent's cards: {situation.black_cards}",
+             f"Score: {situation.white_score} - {situation.black_score}",
+             f"Mission: {situation.current_mission}",
+             f"Remaining missions: {situation.remaining_missions}"]
+        print("\n".join(s))
+
+    async def pick(self, state: Spymaster) -> int:
+        self.display_situation(state)
+        while (x := tryint(input("Choose a card: "))) not in state.white_cards:
             print(f"{x} is not a valid card")
         return x
 
-    async def receive(self, result: MissionResult) -> None:
+    async def receive(self, state, result: MissionResult) -> None:
         print(result)
         input("Press enter to continue...")
 
 
 class RandomPlayer(Player):
     """Naive player that just plays cards at random."""
-    async def pick(self, state: Situation) -> int:
-        return choice(state.your_cards)
+    async def pick(self, state: Spymaster) -> int:
+        return choice(state.white_cards)
 
 
 class SimpleAimingPlayer(Player):
@@ -56,9 +64,9 @@ class SimpleAimingPlayer(Player):
         super().__init__(name)
         self.variance = variance
 
-    async def pick(self, state: Situation) -> int:
+    async def pick(self, state: Spymaster) -> int:
         target = state.current_mission + randint(1, self.variance)
-        return aim(state.your_cards, target)
+        return aim(state.white_cards, target)
 
 
 @dataclass
@@ -69,11 +77,11 @@ class AmericaPlayer(Player):
     def __post_init__(self):
         self.diff: int = randint(0, 2)
 
-    async def pick(self, state: Situation) -> int:
+    async def pick(self, state: Spymaster) -> int:
         target = state.current_mission + self.diff + 1
-        return aim(state.your_cards, target)
+        return aim(state.white_cards, target)
 
-    async def receive(self, result: MissionResult) -> None:
+    async def receive(self, state, result: MissionResult) -> None:
         if result.opp_played >= result.you_played:
             self.diff = result.opp_played - result.you_played
 
@@ -91,13 +99,13 @@ class RussiaPlayer(Player):
     def __post_init__(self):
         self.diff = randint(0, 2)
 
-    async def pick(self, state: Situation) -> int:
+    async def pick(self, state: Spymaster) -> int:
         # This is broken in the original game (as of 2023-12-27); the
         # Russia AI calculates its options and then throws it away, and
         # just does the America AI's action instead!
         p = state.current_mission
-        mine = state.your_cards
-        theirs = state.opponents_cards
+        mine = state.white_cards
+        theirs = state.black_cards
 
         def _mx(l, h):
             return mx(mine, theirs, l, h)

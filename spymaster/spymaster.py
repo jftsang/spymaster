@@ -3,50 +3,10 @@ from dataclasses import dataclass, field
 from random import shuffle
 from typing import List, Set
 
-from dataclasses_json import LetterCase, dataclass_json
+from dataclasses_json import LetterCase, dataclass_json, config, Exclude
 
 if typing.TYPE_CHECKING:
     from .players import Player
-
-
-@dataclass_json(letter_case=LetterCase.CAMEL)
-@dataclass(kw_only=True)
-class Situation:
-    your_cards: List[int]
-    opponents_cards: List[int]
-    your_score: int
-    opponents_score: int
-    current_mission: int
-    remaining_missions: Set[int]  # no order
-
-    def __str__(self):
-        s = [f"Your cards: {self.your_cards}",
-             f"Opponent's cards: {self.opponents_cards}",
-             f"Score: {self.your_score} - {self.opponents_score}",
-             f"Mission: {self.current_mission}",
-             f"Remaining missions: {self.remaining_missions}"]
-        return "\n".join(s)
-
-    def flipped(self):
-        return Situation(
-            your_cards=self.opponents_cards,
-            opponents_cards=self.your_cards,
-            your_score=self.opponents_score,
-            opponents_score=self.your_score,
-            current_mission=self.current_mission,
-            remaining_missions=self.remaining_missions,
-        )
-
-    @classmethod
-    def for_white(cls, state: "Spymaster"):
-        return cls(
-            your_cards=state.white_cards,
-            opponents_cards=state.black_cards,
-            your_score=state.white_score,
-            opponents_score=state.black_score,
-            current_mission=None,  # type: ignore
-            remaining_missions=set(state.missions),
-        )
 
 
 @dataclass_json(letter_case=LetterCase.CAMEL)
@@ -86,52 +46,65 @@ def card_factory() -> List[int]:
 
 
 def mission_factory() -> List[int]:
-    missions = list(range(1, 17))
-    shuffle(missions)
-    return missions
+    return list(range(1, 17))
 
 
-@dataclass_json
+def playerencoder(player: "Player") -> str:
+    return player.name
+
+
+@dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass(kw_only=True)
 class Spymaster:
-    white: "Player"
-    black: "Player"
+    white: "Player" = field(metadata=config(encoder=playerencoder))
+    black: "Player" = field(metadata=config(encoder=playerencoder))
     white_cards: List[int] = field(default_factory=card_factory)
     black_cards: List[int] = field(default_factory=card_factory)
     white_score: int = field(default=0)
     black_score: int = field(default=0)
-    missions: List[int] = field(default_factory=mission_factory)
+    current_mission: int = field(default=None)  # type: ignore
+    remaining_missions: List[int] = field(default_factory=mission_factory)
 
     def print_score(self):
         print(f"{self.white.name} (White): {self.white_score}")
         print(f"{self.black.name} (Black): {self.black_score}")
 
-    async def play(self):
-        while self.missions:
-            mission = self.missions.pop()
-            white_situation = Situation.for_white(self)
-            white_situation.current_mission = mission
-            black_situation = white_situation.flipped()
+    def flipped(self):
+        return Spymaster(
+            white=self.black,
+            black=self.white,
+            white_cards=self.black_cards,
+            black_cards=self.white_cards,
+            white_score=self.black_score,
+            black_score=self.white_score,
+            current_mission=self.current_mission,
+            remaining_missions=self.remaining_missions,
+        )
 
-            white_play = await self.white.pick(white_situation)
-            black_play = await self.black.pick(black_situation)
-            result = self.resolve(white_play, black_play, mission)
+    async def play(self):
+        while self.remaining_missions:
+            shuffle(self.remaining_missions)
+            self.current_mission = self.remaining_missions.pop()
+            self.remaining_missions.sort()
+
+            white_play = await self.white.pick(self)
+            black_play = await self.black.pick(self.flipped())
+            result = self.resolve(white_play, black_play)
 
             if not self.white_cards:
                 assert not self.black_cards
                 result.game_over = True
 
-            await self.white.receive(result)
-            await self.black.receive(result.flipped())
+            await self.white.receive(self, result)
+            await self.black.receive(self, result.flipped())
 
     def resolve(
-        self, white_play: int, black_play: int, mission: int
+        self, white_play: int, black_play: int
     ) -> MissionResult:
         """
         Resolve a mission
         @param white_play: The card that White played
         @param black_play: The card that Black played
-        @param mission: The value of the mission
         @return: MissionResult from White's point of view
         """
         if white_play not in self.white_cards:
@@ -152,9 +125,9 @@ class Spymaster:
         elif black_play == 0:
             db = white_play
         elif white_play > black_play:
-            dw = mission
+            dw = self.current_mission
         elif white_play < black_play:
-            db = mission
+            db = self.current_mission
         else:
             raise RuntimeError
 
@@ -164,7 +137,7 @@ class Spymaster:
         return MissionResult(
             you_played=white_play,
             opp_played=black_play,
-            mission=mission,
+            mission=self.current_mission,
             you_scored=dw,
             opp_scored=db,
         )

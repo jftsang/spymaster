@@ -55,26 +55,28 @@ function initializeButtons() {
   }
 }
 
-class Situation {
-  yourCards: number[];
-  opponentsCards: number[];
-  yourScore: number;
-  opponentsScore: number;
+class GameState {
+  whiteCards: number[];
+  blackCards: number[];
+  whiteScore: number;
+  blackScore: number;
   currentMission: number;
-  remainingMissions: Set<number>;
+  remainingMissions: number[];
 
-  constructor(public obj: {
-    yourCards: number[],
-    opponentsCards: number[],
-    yourScore: number,
-    opponentsScore: number,
+  constructor(public obj : {
+    // white: Player,
+    // black: Player,
+    whiteCards: number[],
+    blackCards: number[],
+    whiteScore: number,
+    blackScore: number,
     currentMission: number,
-    remainingMissions: Set<number>
+    remainingMissions: number[]
   }) {
-    this.yourCards = obj.yourCards;
-    this.opponentsCards = obj.opponentsCards;
-    this.yourScore = obj.yourScore;
-    this.opponentsScore = obj.opponentsScore;
+    this.whiteCards = obj.whiteCards;
+    this.blackCards = obj.blackCards;
+    this.whiteScore = obj.whiteScore;
+    this.blackScore = obj.blackScore;
     this.currentMission = obj.currentMission;
     this.remainingMissions = obj.remainingMissions;
   }
@@ -120,13 +122,13 @@ class MissionResult {
 
 function repaintUiForSituation() {
   youButtons.forEach((btn, idx) => {
-    btn.disabled = (!(situation.yourCards.includes(idx)));
+    btn.disabled = (!(situation.whiteCards.includes(idx)));
   })
   oppButtons.forEach((btn, idx) => {
-    btn.disabled = (!(situation.opponentsCards.includes(idx)));
+    btn.disabled = (!(situation.blackCards.includes(idx)));
   })
-  document.getElementById("yourScore").innerHTML = `Score: ${situation.yourScore}`;
-  document.getElementById("opponentsScore").innerHTML = `Score: ${situation.opponentsScore}`;
+  document.getElementById("yourScore").innerHTML = `Score: ${situation.whiteScore}`;
+  document.getElementById("opponentsScore").innerHTML = `Score: ${situation.blackScore}`;
 
   missionInfoP.innerHTML = situation.toString();
 }
@@ -134,17 +136,17 @@ function repaintUiForSituation() {
 function updateUiForResult(result: MissionResult) {
   state = State.RESULT;
 
-  situation.yourScore += result.youScored;
-  situation.opponentsScore += result.oppScored;
+  situation.whiteScore += result.youScored;
+  situation.blackScore += result.oppScored;
   repaintUiForSituation();
 
   oppButtons[result.oppPlayed].classList.add("their-selected");
   messageP.innerHTML = result.toString();
 
   if (result.gameOver) {
-    if (situation.yourScore > situation.opponentsScore)
+    if (situation.whiteScore > situation.blackScore)
       scoreP.innerHTML = "You won!";
-    else if (situation.yourScore < situation.opponentsScore)
+    else if (situation.whiteScore < situation.blackScore)
       scoreP.innerHTML = "You lost!";
     else
       scoreP.innerHTML = "Draw!";
@@ -165,7 +167,7 @@ function chooseCard(card: number) {
 
 initializeButtons();
 
-let situation: Situation = null;
+let situation: GameState = null;
 
 const url = new URL(window.location.href);
 url.protocol = 'ws:';
@@ -180,10 +182,10 @@ ws.addEventListener("message", (event) => {
 
   if (data["msgType"] === "situation") {
     // about to make a play
-    situation = new Situation(data["situation"]);
+    situation = new GameState(data["situation"]);
     nextMissionBtn.hidden = false;
 
-    if (situation.yourCards.length === 16) {
+    if (situation.whiteCards.length === 16) {
       nextMissionBtn.classList.add("btn-warning");
       nextMissionBtn.innerText = "Start Game";
     } else {
