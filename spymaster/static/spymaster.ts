@@ -170,6 +170,8 @@ let situation: Situation = null;
 const url = new URL(window.location.href);
 url.protocol = 'ws:';
 url.pathname = '/ws';
+url.searchParams.set('whoami', 'Joanna');
+url.searchParams.set('white', 'yes');
 const ws = new WebSocket(url.toString());
 
 ws.addEventListener("message", (event) => {
@@ -206,7 +208,7 @@ ws.addEventListener("message", (event) => {
 
 ws.addEventListener("close", (event) => {
   console.log(event);
-  // alert("Disconnected");
+  alert("You have been disconnected from the game");
 })
 
 document.addEventListener("keypress", (event) => {

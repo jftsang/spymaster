@@ -51,18 +51,11 @@ async def index_view(request: Request) -> HTMLResponse:
 @app.websocket("/ws")
 async def ws(websocket: WebSocket):
     await websocket.accept()
-    player = gs.connect_player("1234", websocket)
-    game = gs.games.setdefault("1234", Spymaster(white=player, black=russia))
+    player = gs.connect_player(websocket)
     try:
-        await game.play()
-    except WebSocketDisconnect:
-        pass
-    # situation = Situation.for_white(game)
-    # situation.your_cards = [1, 5, 7, 9]
-    # situation.opponents_cards = [0, 4, 7, 15]
-    # await websocket.send_json(
-    #     {"msgType": "situation", "situation": situation.to_dict()}  # type: ignore
-    # )
+        await player.game.play()
+    except WebSocketDisconnect as exc:
+        print("disconnected", exc.code, exc.reason)
 
 
 if __name__ == "__main__":

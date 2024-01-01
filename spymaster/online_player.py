@@ -4,12 +4,13 @@ from typing import Optional
 from fastapi.websockets import WebSocket
 
 from .players import Player
-from .spymaster import MissionResult, Situation
+from .spymaster import MissionResult, Situation, Spymaster
 
 
 @dataclass(kw_only=True)
 class OnlinePlayer(Player):
     websocket: WebSocket
+    game: Spymaster
 
     async def pick(self, state: Situation) -> int:
         await self.websocket.send_json(
@@ -39,3 +40,6 @@ class OnlinePlayer(Player):
                 "result": result.to_dict()
             }
         )
+
+        if result.game_over:
+            await self.websocket.close()
