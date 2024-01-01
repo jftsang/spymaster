@@ -53,9 +53,6 @@ function initializeButtons() {
     row.appendChild(button);
     oppButtons.push(button);
   }
-
-  nextMissionBtn.classList.add("btn-warning");
-  nextMissionBtn.innerText = "Start Game";
 }
 
 class Situation {
@@ -93,19 +90,22 @@ class MissionResult {
   mission: number;
   youScored: number;
   oppScored: number;
+  gameOver: boolean;
 
   constructor(public obj: {
     youPlayed: number,
     oppPlayed: number,
     mission: number,
     youScored: number,
-    oppScored: number
+    oppScored: number,
+    gameOver: boolean
   }) {
     this.youPlayed = obj.youPlayed;
     this.oppPlayed = obj.oppPlayed;
     this.mission = obj.mission;
     this.youScored = obj.youScored;
     this.oppScored = obj.oppScored;
+    this.gameOver = obj.gameOver;
   }
 
   toString(): string {
@@ -118,8 +118,7 @@ class MissionResult {
   }
 }
 
-function updateUiForSituation(situation: Situation) {
-  state = State.SITUATION;
+function repaintUiForSituation() {
   youButtons.forEach((btn, idx) => {
     btn.disabled = (!(situation.yourCards.includes(idx)));
   })
@@ -130,16 +129,26 @@ function updateUiForSituation(situation: Situation) {
   document.getElementById("opponentsScore").innerHTML = `Score: ${situation.opponentsScore}`;
 
   missionInfoP.innerHTML = situation.toString();
-  messageP.innerHTML = "Select an agent...";
-  nextMissionBtn.hidden = true;
 }
 
 function updateUiForResult(result: MissionResult) {
   state = State.RESULT;
+
+  situation.yourScore += result.youScored;
+  situation.opponentsScore += result.oppScored;
+  repaintUiForSituation();
+
   oppButtons[result.oppPlayed].classList.add("their-selected");
   messageP.innerHTML = result.toString();
 
-
+  if (result.gameOver) {
+    if (situation.yourScore > situation.opponentsScore)
+      scoreP.innerHTML = "You won!";
+    else if (situation.yourScore < situation.opponentsScore)
+      scoreP.innerHTML = "You lost!";
+    else
+      scoreP.innerHTML = "Draw!";
+  }
 }
 
 function chooseCard(card: number) {
@@ -156,6 +165,7 @@ function chooseCard(card: number) {
 
 initializeButtons();
 
+let situation: Situation = null;
 
 const url = new URL(window.location.href);
 url.protocol = 'ws:';
@@ -168,15 +178,24 @@ ws.addEventListener("message", (event) => {
 
   if (data["msgType"] === "situation") {
     // about to make a play
-    const situation = new Situation(data["situation"]);
-    console.log(situation);
+    situation = new Situation(data["situation"]);
     nextMissionBtn.hidden = false;
-    nextMissionBtn.innerText = "Next Mission";
-    nextMissionBtn.classList.remove("btn-warning");
+
+    if (situation.yourCards.length === 16) {
+      nextMissionBtn.classList.add("btn-warning");
+      nextMissionBtn.innerText = "Start Game";
+    } else {
+      nextMissionBtn.innerText = "Next Mission";
+      nextMissionBtn.classList.remove("btn-warning");
+    }
 
     nextMissionBtn.addEventListener("click", () => {
-      updateUiForSituation(situation);
+      state = State.SITUATION;
+      repaintUiForSituation();
+      messageP.innerHTML = "Select an agent...";
+      nextMissionBtn.hidden = true;
     });
+
   } else if (data["msgType"] === "result") {
     // both sides have made a play, let's see the result
     const result = new MissionResult(data["result"]);
@@ -188,4 +207,13 @@ ws.addEventListener("message", (event) => {
 ws.addEventListener("close", (event) => {
   console.log(event);
   // alert("Disconnected");
+})
+
+document.addEventListener("keypress", (event) => {
+  if (nextMissionBtn.hidden) {
+    return;
+  }
+  if (event.key === "Enter") {
+    nextMissionBtn.click();
+  }
 })

@@ -57,6 +57,7 @@ class MissionResult:
     mission: int
     you_scored: int
     opp_scored: int
+    game_over: bool = field(default=False)
 
     def __str__(self):
         s = [f"You played {self.you_played}, They played {self.opp_played}"]
@@ -115,6 +116,11 @@ class Spymaster:
             white_play = await self.white.pick(white_situation)
             black_play = await self.black.pick(black_situation)
             result = self.resolve(white_play, black_play, mission)
+
+            if not self.white_cards:
+                assert not self.black_cards
+                result.game_over = True
+
             await self.white.receive(result)
             await self.black.receive(result.flipped())
 
