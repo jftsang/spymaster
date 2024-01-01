@@ -9,9 +9,9 @@ button.agentcard {
 }
 
 button.our-selected {
-    border: 4px solid #002eff;
+    border: 4px solid silver;
 }
 
 button.their-selected {
-    border: 4px solid black;
+    border: 4px solid gold;
 }
