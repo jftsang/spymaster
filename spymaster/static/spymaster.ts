@@ -1,6 +1,7 @@
 const youButtons: HTMLButtonElement[] = [];
 const oppButtons: HTMLButtonElement[] = [];
 
+const missionInfoP = document.getElementById("missionInfo") as HTMLParagraphElement;
 const messageP = document.getElementById("message") as HTMLParagraphElement;
 const scoreP = document.getElementById("score") as HTMLParagraphElement;
 const nextMissionBtn = document.getElementById("nextMissionBtn") as HTMLButtonElement;
@@ -12,7 +13,7 @@ enum State {
   GAME_OVER,
 }
 
-let state: State = State.SITUATION;
+let state: State = State.RESULT;
 
 function initializeButtons() {
   const youDiv = document.getElementById("youButtonsDiv");
@@ -33,6 +34,9 @@ function initializeButtons() {
     youButtons.push(button);
 
     button.addEventListener("click", () => {
+      if (state !== State.SITUATION) {
+        return;
+      }
       chooseCard(Number.parseInt(button.dataset["card"]))
     })
   }
@@ -49,6 +53,9 @@ function initializeButtons() {
     row.appendChild(button);
     oppButtons.push(button);
   }
+
+  nextMissionBtn.classList.add("btn-warning");
+  nextMissionBtn.innerText = "Start Game";
 }
 
 class Situation {
@@ -58,6 +65,26 @@ class Situation {
   opponentsScore: number;
   currentMission: number;
   remainingMissions: Set<number>;
+
+  constructor(public obj: {
+    yourCards: number[],
+    opponentsCards: number[],
+    yourScore: number,
+    opponentsScore: number,
+    currentMission: number,
+    remainingMissions: Set<number>
+  }) {
+    this.yourCards = obj.yourCards;
+    this.opponentsCards = obj.opponentsCards;
+    this.yourScore = obj.yourScore;
+    this.opponentsScore = obj.opponentsScore;
+    this.currentMission = obj.currentMission;
+    this.remainingMissions = obj.remainingMissions;
+  }
+
+  toString() {
+    return `Mission value: ${this.currentMission}`;
+  }
 }
 
 class MissionResult {
@@ -67,7 +94,13 @@ class MissionResult {
   youScored: number;
   oppScored: number;
 
-  constructor(public obj : {youPlayed: number, oppPlayed: number, mission: number, youScored: number, oppScored: number}) {
+  constructor(public obj: {
+    youPlayed: number,
+    oppPlayed: number,
+    mission: number,
+    youScored: number,
+    oppScored: number
+  }) {
     this.youPlayed = obj.youPlayed;
     this.oppPlayed = obj.oppPlayed;
     this.mission = obj.mission;
@@ -76,7 +109,12 @@ class MissionResult {
   }
 
   toString(): string {
-    return `You played ${this.youPlayed}, Opponent played ${this.oppPlayed}, mission ${this.mission}, you scored ${this.youScored}, opponent scored ${this.oppScored}`
+    if (this.youScored > 0)
+      return `You scored ${this.youScored}`;
+    else if (this.oppScored > 0)
+      return `Opponent scored ${this.oppScored}`;
+    else
+      return "Drawn round";
   }
 }
 
@@ -91,16 +129,17 @@ function updateUiForSituation(situation: Situation) {
   document.getElementById("yourScore").innerHTML = `Score: ${situation.yourScore}`;
   document.getElementById("opponentsScore").innerHTML = `Score: ${situation.opponentsScore}`;
 
+  missionInfoP.innerHTML = situation.toString();
+  messageP.innerHTML = "Select an agent...";
   nextMissionBtn.hidden = true;
 }
 
 function updateUiForResult(result: MissionResult) {
   state = State.RESULT;
-
   oppButtons[result.oppPlayed].classList.add("their-selected");
-
-
   messageP.innerHTML = result.toString();
+
+
 }
 
 function chooseCard(card: number) {
@@ -129,9 +168,12 @@ ws.addEventListener("message", (event) => {
 
   if (data["msgType"] === "situation") {
     // about to make a play
-    const situation = data["situation"] as Situation;
+    const situation = new Situation(data["situation"]);
     console.log(situation);
     nextMissionBtn.hidden = false;
+    nextMissionBtn.innerText = "Next Mission";
+    nextMissionBtn.classList.remove("btn-warning");
+
     nextMissionBtn.addEventListener("click", () => {
       updateUiForSituation(situation);
     });
