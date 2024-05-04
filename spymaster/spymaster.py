@@ -104,7 +104,10 @@ class Spymaster:
         self, white_play: int, black_play: int
     ) -> MissionResult:
         """
-        Resolve a mission
+        Resolve a mission. Remove the cards that were played, update the
+        scores, and then emit a MissionResult from White's point of
+        view.
+
         @param white_play: The card that White played
         @param black_play: The card that Black played
         @return: MissionResult from White's point of view
