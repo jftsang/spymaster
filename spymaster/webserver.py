@@ -8,8 +8,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.websockets import WebSocket, WebSocketDisconnect
 
-from .online_player import OnlinePlayer
-from .players import russia
+from spymaster.players.online_player import OnlinePlayer
+from spymaster.players.__init__ import russia
 from .spymaster import Spymaster
 
 

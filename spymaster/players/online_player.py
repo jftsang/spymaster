@@ -3,8 +3,8 @@ from typing import Optional
 
 from fastapi.websockets import WebSocket
 
-from .players import Player
-from .spymaster import MissionResult, Spymaster
+from spymaster.players import Player
+from spymaster.spymaster import MissionResult, Situation
 
 
 @dataclass(kw_only=True)

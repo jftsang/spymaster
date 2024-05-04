@@ -5,7 +5,7 @@ from .spymaster import Spymaster
 
 
 async def main():
-    from .players import HumanPlayer, players
+    from spymaster.players import HumanPlayer, players
 
     parser = argparse.ArgumentParser()
     parser.add_argument(

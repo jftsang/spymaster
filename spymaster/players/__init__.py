@@ -3,10 +3,8 @@ from dataclasses import dataclass, field
 from random import choice, randint, random
 from typing import Optional
 
-from dataclasses_json import dataclass_json
-
+from spymaster.spymaster import MissionResult, Spymaster
 from .aim import aim, chuck, mx, prefer
-from .spymaster import MissionResult, Spymaster
 
 
 @dataclass

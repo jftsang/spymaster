@@ -1,12 +1,12 @@
 import typing
 from dataclasses import dataclass, field
 from random import shuffle
-from typing import List, Set
+from typing import List
 
-from dataclasses_json import LetterCase, dataclass_json, config, Exclude
+from dataclasses_json import LetterCase, config, dataclass_json
 
 if typing.TYPE_CHECKING:
-    from .players import Player
+    from spymaster.players import Player
 
 
 @dataclass_json(letter_case=LetterCase.CAMEL)
