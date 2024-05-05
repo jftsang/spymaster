@@ -1,7 +1,7 @@
 import asyncio
 import unittest
 
-from spymaster.players.__init__ import players
+from spymaster.players import players
 from ..spymaster import Spymaster
 
 players = players.values()
