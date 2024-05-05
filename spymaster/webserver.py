@@ -8,8 +8,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.websockets import WebSocket, WebSocketDisconnect
 
+from spymaster.players import russia
 from spymaster.players.online_player import OnlinePlayer
-from spymaster.players.__init__ import russia
 from .spymaster import Spymaster
 
 
@@ -27,7 +27,10 @@ class GameServer:
         #     player = self.online_players[code]
         #     player.websocket = websocket
         # else:
-        player = OnlinePlayer(code, websocket=websocket)
+        player = OnlinePlayer(name=code, websocket=websocket, game=None)
+        game = Spymaster(white=player, black=russia)
+        player.game = game
+        self.games[code] = game
 
         return player
 
@@ -51,7 +54,7 @@ async def index_view(request: Request) -> HTMLResponse:
 @app.websocket("/ws")
 async def ws(websocket: WebSocket):
     await websocket.accept()
-    player = gs.connect_player(websocket)
+    player = gs.connect_player("QWERTY", websocket)
     try:
         await player.game.play()
     except WebSocketDisconnect as exc:

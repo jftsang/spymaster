@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi.websockets import WebSocket
 
 from spymaster.players import Player
-from spymaster.spymaster import MissionResult, Situation
+from spymaster.spymaster import MissionResult, Spymaster
 
 
 @dataclass(kw_only=True)
