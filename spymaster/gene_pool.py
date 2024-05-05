@@ -2,6 +2,7 @@ import asyncio
 from typing import List, Optional
 
 import numpy as np
+from tqdm import tqdm
 
 from spymaster.players.evolutionary_players import (
     EvolutionaryPlayer,
@@ -46,6 +47,8 @@ class GenePool:
                     continue
 
                 game = games[i * self.n_players + j]
+                # scores[i] += game.white_score
+                # scores[j] += game.black_score
                 if game.white_score > game.black_score:
                     scores[i] += 1
                 elif game.black_score > game.white_score:
@@ -71,7 +74,7 @@ class GenePool:
         self.players[-self.n_replace:] = children
 
     async def simulate(self, n_iterations):
-        for t in range(n_iterations):
+        for t in tqdm(range(n_iterations)):
             scores = await self.calculate_fitnesses()
             print(
                 f"{t}: max score = {max(scores)}, "
@@ -86,6 +89,6 @@ class GenePool:
 
 if __name__ == "__main__":
     np.random.seed(0)
-    pool = GenePool(n_players=100, n_replace=10, mutation_rate=1)
-    asyncio.run(pool.simulate(n_iterations=100))
+    pool = GenePool(n_players=32, n_replace=4, mutation_rate=0.05)
+    asyncio.run(pool.simulate(n_iterations=1000))
     print(pool.best_player)
