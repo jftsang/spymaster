@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Dict
 
+from commonmark import commonmark
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
@@ -38,6 +39,7 @@ class GameServer:
 gs = GameServer()
 app = gs.app
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
+templates.env.filters["markdown"] = commonmark
 
 app.mount(
     "/static",
@@ -59,6 +61,12 @@ async def ws(websocket: WebSocket):
         await player.game.play()
     except WebSocketDisconnect as exc:
         print("disconnected", exc.code, exc.reason)
+
+
+@app.get("/help")
+async def help_view(request: Request) -> HTMLResponse:
+    content =    (Path(__file__).parent.parent / "HowToPlay.md").read_text()
+    return templates.TemplateResponse("help.html", {"request": request, "content": content})
 
 
 if __name__ == "__main__":
