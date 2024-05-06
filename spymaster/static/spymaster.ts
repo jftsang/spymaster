@@ -14,6 +14,11 @@ enum State {
   GAME_OVER,
 }
 
+enum Player {
+  YOU,
+  THEY,
+}
+
 let state: State = State.RESULT;
 
 function missionButton(value: number, disabled: boolean = false) {
@@ -22,6 +27,21 @@ function missionButton(value: number, disabled: boolean = false) {
   button.dataset["mission"] = value.toString();
   button.innerHTML = value.toString();
   button.disabled = disabled;
+  return button
+}
+
+function agentCard(value: number, player: Player) {
+  const button = document.createElement("button");
+  button.className = "btn agentcard";
+  if (player === Player.YOU) {
+    button.className += " btn-primary";
+  } else {
+    button.className += " btn-danger";
+  }
+
+  button.dataset["player"] = player.toString();
+  button.dataset["card"] = value.toString();
+  button.innerHTML = value.toString();
   return button
 }
 
@@ -36,10 +56,7 @@ function initializeButtons() {
       row.className = "row justify-content-center align-items-center";
       youDiv.appendChild(row);
     }
-    const button = document.createElement("button");
-    button.className = "btn btn-primary agentcard";
-    button.dataset["card"] = i.toString();
-    button.innerHTML = i.toString();
+    const button = agentCard(i, Player.YOU);
     row.appendChild(button);
     youButtons.push(button);
 
@@ -57,9 +74,7 @@ function initializeButtons() {
       row.className = "row justify-content-center align-items-center";
       oppDiv.appendChild(row);
     }
-    const button = document.createElement("button");
-    button.className = "btn btn-danger agentcard";
-    button.innerHTML = i.toString();
+    const button = agentCard(i, Player.THEY);
     row.appendChild(button);
     oppButtons.push(button);
   }
@@ -160,6 +175,14 @@ function updateUiForResult(result: MissionResult) {
   else
     scoreMessage = "Drawn round...";
 
+  const youPlayedDiv = document.getElementById("youPlayedDiv") as HTMLDivElement;
+  youPlayedDiv.innerHTML = "";
+  youPlayedDiv.appendChild(agentCard(result.youPlayed, Player.YOU));
+
+  const oppPlayedDiv = document.getElementById("oppPlayedDiv") as HTMLDivElement;
+  oppPlayedDiv.innerHTML = "";
+  oppPlayedDiv.appendChild(agentCard(result.oppPlayed, Player.THEY));
+
   messageP.innerHTML = scoreMessage;
 
   if (result.gameOver) {
@@ -234,6 +257,14 @@ ws.addEventListener("close", (event) => {
 })
 
 document.addEventListener("keypress", (event) => {
+  const shortcuts = "0123456789qwert";
+  if (state === State.SITUATION) {
+    if (shortcuts.includes(event.key)) {
+      const idx = shortcuts.indexOf(event.key);
+      youButtons[idx].click();
+    }
+  }
+
   if (nextMissionBtn.hidden) {
     return;
   }
