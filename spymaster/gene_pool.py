@@ -1,9 +1,11 @@
+import abc
 import asyncio
 from typing import List, Optional
 
 import numpy as np
 from tqdm import tqdm
 
+from spymaster.players import Player, russia
 from spymaster.players.evolutionary_players import (
     EvolutionaryPlayer,
     SingleLayerPerceptronPlayer,
@@ -11,42 +13,43 @@ from spymaster.players.evolutionary_players import (
 from spymaster import Spymaster
 
 
-class GenePool:
-    def __init__(self, n_players: int = 100, n_replace: int = 20, mutation_rate: float = 0.1):
-        self.n_players = n_players
-        self.players: List[EvolutionaryPlayer] = [
-            SingleLayerPerceptronPlayer.randomized() for _ in range(n_players)
-        ]
-        self.n_replace = n_replace
-        self.mutation_rate = mutation_rate
+class Tournament(abc.ABC):
+    @abc.abstractmethod
+    async def play(self, players: List[Player]) -> List[float]:
+        pass
 
-    async def calculate_fitnesses(self):
-        scores = [0] * self.n_players
 
-        games: List[Optional[Spymaster]] = [None] * self.n_players * self.n_players
+class RoundRobinTournament(Tournament):
+    async def play(self, players: List[Player]):
+        """Round-robin tournament between all pairs of players. Each
+        pair plays two games.
+        """
+        n_players = len(players)
+        scores = [0] * n_players
+
+        games: List[Optional[Spymaster]] = [None] * n_players * n_players
         awaitables = []
 
-        # Each pair of players plays two games against each other
-        for i in range(self.n_players):
-            for j in range(self.n_players):
+        for i in range(n_players):
+            for j in range(n_players):
                 if i == j:
                     continue
                 # print(i, j)
-                white = self.players[i]
-                black = self.players[j]
+                white = players[i]
+                black = players[j]
                 game = Spymaster(white=white, black=black)
-                games[i * self.n_players + j] = game
+                games[i * n_players + j] = game
                 awaitables.append(game.play())
 
         # Wait for all games to finish
         done, pending = await asyncio.wait(awaitables)
 
-        for i in range(self.n_players):
-            for j in range(self.n_players):
+        for i in range(n_players):
+            for j in range(n_players):
                 if i == j:
                     continue
 
-                game = games[i * self.n_players + j]
+                game = games[i * n_players + j]
                 # scores[i] += game.white_score
                 # scores[j] += game.black_score
                 if game.white_score > game.black_score:
@@ -57,6 +60,75 @@ class GenePool:
                     scores[i] += 0.5
                     scores[j] += 0.5
         return scores
+
+
+class PlayAgainstChallengerTournament(Tournament):
+    def __init__(self, challenger: Player = russia):
+        self.challenger = challenger
+
+    async def play(self, players: List[Player]) -> List[float]:
+        n_players = len(players)
+        scores = [0] * n_players
+
+        for i in range(n_players):
+            white = players[i]
+            black = self.challenger
+            games = [Spymaster(white=white, black=black) for _ in range(30)]
+            awaitables = [game.play() for game in games]
+            done, pending = await asyncio.wait(awaitables)
+
+            for game in games:
+                scores[i] += game.white_score
+                scores[i] -= game.black_score
+
+        return scores
+
+
+class FitnessEvaluator:
+    async def evaluate_population(self, gene_pool: "GenePool") -> float:
+
+        """Evaluate the population fitness by how well they play against
+        the reference player.
+        """
+        fitness = 0
+        games = []
+        awaitables = []
+        for i in range(gene_pool.n_players):
+            white = gene_pool.players[i]
+            black = russia
+            game = Spymaster(white=white, black=black)
+            games.append(game)
+            awaitables.append(game.play())
+
+        done, pending = await asyncio.wait(awaitables)
+
+        for game in games:
+            if game.white_score > game.black_score:
+                fitness += 1
+            elif game.white_score == game.black_score:
+                fitness += 0.5
+
+        return fitness
+
+
+class GenePool:
+    def __init__(
+        self,
+        n_players: int,
+        tournament: Tournament,
+        reference_player: Player = russia,
+        n_replace: int = 20,
+        mutation_rate: float = 0.1
+    ):
+        self.n_players = n_players
+        self.reference_player = reference_player
+        self.players: List[EvolutionaryPlayer] = [
+            SingleLayerPerceptronPlayer.randomized() for _ in range(n_players)
+        ]
+        self.tournament = tournament
+        self.fitness_evaluator = FitnessEvaluator()
+        self.n_replace = n_replace
+        self.mutation_rate = mutation_rate
 
     def replacement(self, scores):
         # Rank the players from worst to best
@@ -75,11 +147,14 @@ class GenePool:
 
     async def simulate(self, n_iterations):
         for t in tqdm(range(n_iterations)):
-            scores = await self.calculate_fitnesses()
+            scores = await self.tournament.play(self.players)
+            fitness = await self.fitness_evaluator.evaluate_population(self)
             print(
                 f"{t}: max score = {max(scores)}, "
-                f"min score = {min(scores)}"
+                f"min score = {min(scores)}, "
+                f"fitness = {fitness}"
             )
+
             self.replacement(scores)
 
     @property
@@ -89,6 +164,6 @@ class GenePool:
 
 if __name__ == "__main__":
     np.random.seed(0)
-    pool = GenePool(n_players=32, n_replace=4, mutation_rate=0.05)
+    pool = GenePool(n_players=32, tournament=PlayAgainstChallengerTournament(russia), n_replace=8, mutation_rate=0.1)
     asyncio.run(pool.simulate(n_iterations=1000))
     print(pool.best_player)

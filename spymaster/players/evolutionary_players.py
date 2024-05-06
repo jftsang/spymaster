@@ -44,8 +44,9 @@ class SingleLayerPerceptronPlayer(EvolutionaryPlayer):
 )"""
 
 
-    def create_offspring(self, mutation_rate=0.1) -> "SingleLayerPerceptronPlayer":
+    def create_offspring(self, scale_rate=1.1, mutation_rate=0.1) -> "SingleLayerPerceptronPlayer":
         new_weights = self.weights_matrix.copy()
+        new_weights *= scale_rate
         new_weights += np.random.normal(0, mutation_rate, self.weights_matrix.shape)
         return SingleLayerPerceptronPlayer(name=self.name, weights_matrix=new_weights)
 
