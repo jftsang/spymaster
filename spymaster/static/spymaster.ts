@@ -1,7 +1,8 @@
 const youButtons: HTMLButtonElement[] = [];
 const oppButtons: HTMLButtonElement[] = [];
+const missionButtons: HTMLButtonElement[] = [];
 
-const missionInfoP = document.getElementById("missionInfo") as HTMLParagraphElement;
+const missionInfoP = document.getElementById("currentMissionInfoP") as HTMLParagraphElement;
 const messageP = document.getElementById("message") as HTMLParagraphElement;
 const scoreP = document.getElementById("score") as HTMLParagraphElement;
 const nextMissionBtn = document.getElementById("nextMissionBtn") as HTMLButtonElement;
@@ -14,6 +15,15 @@ enum State {
 }
 
 let state: State = State.RESULT;
+
+function missionButton(value: number, disabled: boolean = false) {
+  const button = document.createElement("button");
+  button.className = "btn btn-warning mission";
+  button.dataset["mission"] = value.toString();
+  button.innerHTML = value.toString();
+  button.disabled = disabled;
+  return button
+}
 
 function initializeButtons() {
   const youDiv = document.getElementById("youButtonsDiv");
@@ -53,6 +63,14 @@ function initializeButtons() {
     row.appendChild(button);
     oppButtons.push(button);
   }
+
+  const remainingMissionsDiv = document.getElementById("remainingMissionsDiv") as HTMLDivElement;
+  for (let i = 1; i <= 16; i++) {
+    const btn = missionButton(i, false);
+    missionButtons.push(btn);
+    remainingMissionsDiv.appendChild(btn);
+  }
+
 }
 
 class GameState {
@@ -85,9 +103,6 @@ class GameState {
     this.remainingMissions = obj.remainingMissions;
   }
 
-  toString() {
-    return `Mission value: ${this.currentMission}`;
-  }
 }
 
 class MissionResult {
@@ -125,7 +140,9 @@ function repaintUiForSituation() {
   document.getElementById("yourScore").innerHTML = `Score: ${situation.whiteScore}`;
   document.getElementById("opponentsScore").innerHTML = `Score: ${situation.blackScore}`;
 
-  missionInfoP.innerHTML = situation.toString();
+  missionButtons[situation.currentMission - 1].disabled = true;
+  missionInfoP.innerHTML = "Current mission: ";
+  missionInfoP.appendChild(missionButton(situation.currentMission, false));
 }
 
 function updateUiForResult(result: MissionResult) {
