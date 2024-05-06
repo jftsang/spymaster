@@ -6,6 +6,8 @@ const missionInfoP = document.getElementById("currentMissionInfoP") as HTMLParag
 const messageP = document.getElementById("message") as HTMLParagraphElement;
 const scoreP = document.getElementById("score") as HTMLParagraphElement;
 const nextMissionBtn = document.getElementById("nextMissionBtn") as HTMLButtonElement;
+const youPlayedDiv = document.getElementById("youPlayedDiv") as HTMLDivElement;
+const oppPlayedDiv = document.getElementById("oppPlayedDiv") as HTMLDivElement;
 
 enum State {
   SITUATION,
@@ -41,7 +43,10 @@ function agentCard(value: number, player: Player) {
 
   button.dataset["player"] = player.toString();
   button.dataset["card"] = value.toString();
-  button.innerHTML = value.toString();
+  if (value > 0)
+    button.innerHTML = value.toString();
+  else
+    button.innerHTML = "💣";
   return button
 }
 
@@ -175,11 +180,9 @@ function updateUiForResult(result: MissionResult) {
   else
     scoreMessage = "Drawn round...";
 
-  const youPlayedDiv = document.getElementById("youPlayedDiv") as HTMLDivElement;
   youPlayedDiv.innerHTML = "";
   youPlayedDiv.appendChild(agentCard(result.youPlayed, Player.YOU));
 
-  const oppPlayedDiv = document.getElementById("oppPlayedDiv") as HTMLDivElement;
   oppPlayedDiv.innerHTML = "";
   oppPlayedDiv.appendChild(agentCard(result.oppPlayed, Player.THEY));
 
@@ -238,6 +241,8 @@ ws.addEventListener("message", (event) => {
     nextMissionBtn.addEventListener("click", () => {
       state = State.SITUATION;
       repaintUiForSituation();
+      youPlayedDiv.innerHTML = "";
+      oppPlayedDiv.innerHTML = "";
       messageP.innerHTML = "Select an agent...";
       nextMissionBtn.hidden = true;
     });
@@ -257,7 +262,7 @@ ws.addEventListener("close", (event) => {
 })
 
 document.addEventListener("keypress", (event) => {
-  const shortcuts = "0123456789qwert";
+  const shortcuts = "0123456789abcdef";
   if (state === State.SITUATION) {
     if (shortcuts.includes(event.key)) {
       const idx = shortcuts.indexOf(event.key);

@@ -87,8 +87,8 @@ class Spymaster:
             self.current_mission = self.remaining_missions.pop()
             self.remaining_missions.sort()
 
-            white_play = self.white.pick(self)
-            black_play = self.black.pick(self.flipped())
+            white_play = self.choose_and_validate(self.white)
+            black_play = self.flipped().choose_and_validate(self.black)
             result = self.resolve(await white_play, await black_play)
 
             if not self.white_cards:
@@ -146,3 +146,13 @@ class Spymaster:
             you_scored=dw,
             opp_scored=db,
         )
+
+    async def choose_and_validate(self, player: "Player") -> int:
+        picked = None
+        while picked not in self.white_cards:
+            picked = await player.pick(self)
+            if picked in self.white_cards:
+                return picked
+            else:
+                print(f"{player.name} chose an illegal card: {picked}")
+                await player.warn_illegal_choice(self, picked)

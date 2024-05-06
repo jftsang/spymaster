@@ -19,6 +19,13 @@ class Player(ABC):
         """Do something with the result from a round."""
         pass
 
+    async def warn_illegal_choice(self, situation: Spymaster, picked):
+        """Warn the player that she picked an illegal card. For AI
+        players this should raise an exception; for online players it
+        should display a warning message.
+        """
+        raise ValueError("Illegal choice")
+
 
 def tryint(x: str) -> Optional[int]:
     try:
