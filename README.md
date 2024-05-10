@@ -16,19 +16,18 @@ It's my attempt at writing a multiplayer browser game.
 
 ## Usage
 
-At the moment only the backend (with a TUI) is ready.
+![Screenshot of the frontend](FrontendScreenshot.png)
 
 ```bash
-# Play against the computer
+# Start a webserver
+python -m spymaster.webserver
+# then go to http://localhost:8000
+```
+```bash
+# Play against a computer player
 python -m spymaster Russia
-
+```
+```bash
 # Play two AIs against each other
 python -m spymaster Russia America
-```
-
-The frontend is looking a little bare...
-![img.png](FrontendScreenshot.png)
-...but eventually a webserver can be started with
-```bash
-python -m spymaster.webserver
 ```
