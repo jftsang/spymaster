@@ -109,4 +109,4 @@ britain = SimpleAimingPlayer("Britain", 4)
 america = AmericaPlayer("America")
 russia = RussiaPlayer("Russia", stabbiness=0.5, paranoia=0.5, idleness=0.33)
 
-players = {p.name: p for p in [russia, america, britain, france, china]}
+computer_players = {p.name: p for p in [russia, america, britain, france, china]}
