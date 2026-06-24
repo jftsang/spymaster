@@ -64,11 +64,11 @@ class RussiaPlayer(Player):
         mine = state.white_cards
         theirs = state.black_cards
 
-        def _mx(l, h):
-            return mx(mine, theirs, l, h)
+        def _mx(low, high):
+            return mx(mine, theirs, low, high)
 
-        def _aim(t):
-            return aim(mine, t)
+        def _aim(target):
+            return aim(mine, target)
 
         if p < 5:
             # Try to win in the range if we can, otherwise discard
