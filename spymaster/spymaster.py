@@ -3,21 +3,24 @@ from dataclasses import dataclass, field
 from random import shuffle
 from typing import List
 
-from dataclasses_json import LetterCase, config, dataclass_json
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
+from pydantic.alias_generators import to_camel
 
 if typing.TYPE_CHECKING:
     from spymaster.players import Player
 
 
-@dataclass_json(letter_case=LetterCase.CAMEL)
-@dataclass(kw_only=True)
-class MissionResult:
+class MissionResult(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
     you_played: int
     opp_played: int
     mission: int
     you_scored: int
     opp_scored: int
-    game_over: bool = field(default=False)
+    game_over: bool = Field(default=False)
 
     def __str__(self):
         s = [f"You played {self.you_played}, They played {self.opp_played}"]
@@ -53,11 +56,10 @@ def playerencoder(player: "Player") -> str:
     return player.name
 
 
-@dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass(kw_only=True)
 class Spymaster:
-    white: "Player" = field(metadata=config(encoder=playerencoder))
-    black: "Player" = field(metadata=config(encoder=playerencoder))
+    white: "Player"
+    black: "Player"
     white_cards: List[int] = field(default_factory=card_factory)
     black_cards: List[int] = field(default_factory=card_factory)
     white_score: int = field(default=0)
@@ -154,3 +156,25 @@ class Spymaster:
             else:
                 print(f"{player.name} chose an illegal card: {picked}")
                 await player.warn_illegal_choice(self, picked)
+
+    def to_dto(self) -> GameStateDTO:
+        return GameStateDTO(
+            white=self.white.name,
+            black=self.black.name,
+            white_cards=self.white_cards,
+            black_cards=self.black_cards,
+            white_score=self.white_score,
+            black_score=self.black_score,
+            current_mission=self.current_mission,
+            remaining_missions=self.remaining_missions,
+        )
+
+class GameStateDTO(BaseModel):
+    white: str  # player's name
+    black: str  # player's name
+    white_cards: list[int] = Field(default_factory=card_factory)
+    black_cards: list[int] = Field(default_factory=card_factory)
+    white_score: int = Field(default=0)
+    black_score: int = Field(default=0)
+    current_mission: int = Field(default=None)  # type: ignore
+    remaining_missions: list[int] = Field(default_factory=mission_factory)

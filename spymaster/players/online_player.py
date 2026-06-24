@@ -15,7 +15,7 @@ class WsComm:
         await self.ws.send_json(
             {
                 "msgType": "situation",
-                "situation": state.to_dict(),  # type: ignore
+                "situation": state.to_dto().model_dump(),
                 "message": message,
             }
         )
@@ -28,8 +28,8 @@ class WsComm:
         await self.ws.send_json(
             {
                 "msgType": "result",
-                "situation": state.to_dict(),  # type: ignore
-                "result": result.to_dict(),  # type: ignore
+                "situation": state.to_dto().model_dump(),
+                "result": result.model_dump(),
             }
         )
 
