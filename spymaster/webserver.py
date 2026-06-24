@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.websockets import WebSocket, WebSocketDisconnect
 
-from spymaster.players import russia
+from spymaster.players.computer_players import russia
 from spymaster.players.online_player import OnlinePlayer
 from .spymaster import Spymaster
 

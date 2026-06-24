@@ -4,7 +4,7 @@ from typing import Collection, Optional
 
 def prefer(*options: Optional[int]) -> Optional[int]:
     """Given a list of options, return the first one that isn't None.
-    Return None if they are all None.
+    Return None if they are all None (or if no options are provided).
 
     We're using 0 for the assassin and None to denote that no option is
     available. A test like "if x" can't tell between them, so we have to
@@ -35,8 +35,7 @@ def aim_low(options: Collection[int], target: int) -> Optional[int]:
 
 
 def aim(options: Collection[int], target: int, cutoff=6) -> int:
-    """Try to play the card that is as close as possible to the
-    target.
+    """Try to play the card that is as close as possible to the target.
 
     If an exact match is not possible, then for a high-value target, try
     to play, in this order:
