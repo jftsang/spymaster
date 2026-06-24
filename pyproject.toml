@@ -1,22 +1,29 @@
-[tool.poetry]
+[project]
 name = "spymaster"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
-authors = ["J. M. F. Tsang <j.m.f.tsang@cantab.net>"]
+authors = [{ name = "J. M. F. Tsang", email = "j.m.f.tsang@cantab.net" }]
 readme = "README.md"
+requires-python = ">=3.12"
 
-[tool.poetry.dependencies]
-python = "^3.10"
-dataclasses_json = "^0.6.3"
-fastapi = "^0.108.0"
-uvicorn = "^0.25.0"
-jinja2 = "^3.1.2"
-flake8 = "^6.1.0"
-websockets = "^12.0"
-numpy = "^1.26.4"
-tqdm = "^4.66.4"
-commonmark = "^0.9.1"
+dependencies = [
+    "dataclasses_json>=0.6.3",
+    "fastapi>=0.108.0",
+    "uvicorn>=0.25.0",
+    "jinja2>=3.1.6",
+    "flake8>=6.1.0",
+    "websockets>=12.0",
+    "numpy>=1.26.4",
+    "tqdm>=4.66.4",
+    "commonmark>=0.9.1",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.19",
+    "ty>=0.0.53",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"

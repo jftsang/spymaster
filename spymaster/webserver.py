@@ -42,15 +42,13 @@ templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 templates.env.filters["markdown"] = commonmark
 
 app.mount(
-    "/static",
-    StaticFiles(directory=Path(__file__).parent / "static"),
-    name="static"
+    "/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static"
 )
 
 
 @app.get("/")
 async def index_view(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("main.html", {"request": request})
+    return templates.TemplateResponse(request, "main.html")
 
 
 @app.websocket("/ws")
@@ -65,8 +63,8 @@ async def ws(websocket: WebSocket):
 
 @app.get("/help")
 async def help_view(request: Request) -> HTMLResponse:
-    content =    (Path(__file__).parent.parent / "HowToPlay.md").read_text()
-    return templates.TemplateResponse("help.html", {"request": request, "content": content})
+    content = (Path(__file__).parent.parent / "HowToPlay.md").read_text()
+    return templates.TemplateResponse(request, "help.html", {"content": content})
 
 
 if __name__ == "__main__":
