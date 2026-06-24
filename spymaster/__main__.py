@@ -10,11 +10,10 @@ async def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "p1", choices=[p for p in players.keys()],
+        "p1",
+        choices=[p for p in players.keys()],
     )
-    parser.add_argument(
-        "p2", choices=[p for p in players.keys()], nargs="?"
-    )
+    parser.add_argument("p2", choices=[p for p in players.keys()], nargs="?")
     args = parser.parse_args()
     if args.p2 is None:
         p1 = HumanPlayer("You")

@@ -9,6 +9,7 @@ from .aim import aim, chuck, mx, prefer
 
 class RandomPlayer(Player):
     """Naive player that just plays cards at random."""
+
     async def pick(self, state: Spymaster) -> int:
         return choice(state.white_cards)
 
@@ -17,6 +18,7 @@ class SimpleAimingPlayer(Player):
     """Player that tries to aim for a few points above the value of each
     mission.
     """
+
     def __init__(self, name, variance=2):
         super().__init__(name)
         self.variance = variance
@@ -31,6 +33,7 @@ class AmericaPlayer(Player):
     """Player that adjusts its aim if it is defeated in a previous
     round.
     """
+
     def __post_init__(self):
         self.diff: int = randint(0, 2)
 
@@ -88,7 +91,7 @@ class RussiaPlayer(Player):
             e = prefer(
                 _mx(13, 15),
                 0 if (0 in mine and check(self.stabbiness)) else None,
-                _aim(randint(p, 16))
+                _aim(randint(p, 16)),
             )
             # ...but if we are about to play a high-value card, then...
 

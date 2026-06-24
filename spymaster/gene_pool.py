@@ -86,7 +86,6 @@ class PlayAgainstChallengerTournament(Tournament):
 
 class FitnessEvaluator:
     async def evaluate_population(self, gene_pool: "GenePool") -> float:
-
         """Evaluate the population fitness by how well they play against
         the reference player.
         """
@@ -118,7 +117,7 @@ class GenePool:
         tournament: Tournament,
         reference_player: Player = russia,
         n_replace: int = 20,
-        mutation_rate: float = 0.1
+        mutation_rate: float = 0.1,
     ):
         self.n_players = n_players
         self.reference_player = reference_player
@@ -138,12 +137,14 @@ class GenePool:
         for i in range(self.n_replace):
             idx_to_replace = sorted_players_indices[i]
             new_parent_idx = sorted_players_indices[-i - 1]
-            self.players[idx_to_replace] = self.players[new_parent_idx].create_offspring(self.mutation_rate)
+            self.players[idx_to_replace] = self.players[
+                new_parent_idx
+            ].create_offspring(self.mutation_rate)
 
         # Replace the worst players with the offspring of the best players
-        parents = self.players[:self.n_replace]
+        parents = self.players[: self.n_replace]
         children = [parent.create_offspring(self.mutation_rate) for parent in parents]
-        self.players[-self.n_replace:] = children
+        self.players[-self.n_replace :] = children
 
     async def simulate(self, n_iterations):
         for t in tqdm(range(n_iterations)):
@@ -164,6 +165,11 @@ class GenePool:
 
 if __name__ == "__main__":
     np.random.seed(0)
-    pool = GenePool(n_players=32, tournament=PlayAgainstChallengerTournament(russia), n_replace=8, mutation_rate=0.1)
+    pool = GenePool(
+        n_players=32,
+        tournament=PlayAgainstChallengerTournament(russia),
+        n_replace=8,
+        mutation_rate=0.1,
+    )
     asyncio.run(pool.simulate(n_iterations=1000))
     print(pool.best_player)

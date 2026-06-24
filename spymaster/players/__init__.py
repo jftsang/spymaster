@@ -34,11 +34,13 @@ def tryint(x: str) -> int | None:
 class HumanPlayer(Player):
     @staticmethod
     def display_situation(situation: Spymaster):
-        s = [f"Your cards: {situation.white_cards}",
-             f"Opponent's cards: {situation.black_cards}",
-             f"Score: {situation.white_score} - {situation.black_score}",
-             f"Mission: {situation.current_mission}",
-             f"Remaining missions: {situation.remaining_missions}"]
+        s = [
+            f"Your cards: {situation.white_cards}",
+            f"Opponent's cards: {situation.black_cards}",
+            f"Score: {situation.white_score} - {situation.black_score}",
+            f"Mission: {situation.current_mission}",
+            f"Remaining missions: {situation.remaining_missions}",
+        ]
         print("\n".join(s))
 
     async def pick(self, state: Spymaster) -> int:

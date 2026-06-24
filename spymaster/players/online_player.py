@@ -29,7 +29,7 @@ class WsComm:
             {
                 "msgType": "result",
                 "situation": state.to_dict(),  # type: ignore
-                "result": result.to_dict()  # type: ignore
+                "result": result.to_dict(),  # type: ignore
             }
         )
 

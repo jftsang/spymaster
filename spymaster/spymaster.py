@@ -100,9 +100,7 @@ class Spymaster:
             await wr
             await br
 
-    def resolve(
-        self, white_play: int, black_play: int
-    ) -> MissionResult:
+    def resolve(self, white_play: int, black_play: int) -> MissionResult:
         """
         Resolve a mission. Remove the cards that were played, update the
         scores, and then emit a MissionResult from White's point of
