@@ -1,10 +1,10 @@
 import asyncio
 import unittest
 
-from spymaster.players import players
+from ..players.computer_players import computer_players
 from ..spymaster import Spymaster
 
-players = list(players.values())
+players = list(computer_players.values())
 
 
 class TestRoundRobin(unittest.TestCase):
