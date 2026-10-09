@@ -1,5 +1,10 @@
 {
     "compilerOptions": {
-        "target": "es2016"
-    }
+        "target": "es2016",
+        "outDir": "dist/frontend/static",
+        "rootDir": "src/frontend/static"
+    },
+    "include": [
+        "src/frontend/static/**/*"
+    ]
 }

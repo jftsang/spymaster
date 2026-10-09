@@ -1,12 +1,9 @@
 from pathlib import Path
 from typing import Dict
 
-from commonmark import commonmark
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+from fastapi.responses import FileResponse
 from fastapi.websockets import WebSocket, WebSocketDisconnect
 
 from spymaster.players.computer_players import russia
@@ -24,10 +21,6 @@ class GameServer:
         """If the player is already connected, update her websocket.
         Otherwise create a new player.
         """
-        # if code in self.online_players:
-        #     player = self.online_players[code]
-        #     player.websocket = websocket
-        # else:
         player = OnlinePlayer(name=code, websocket=websocket, game=None)
         game = Spymaster(white=player, black=russia)
         player.game = game
@@ -38,17 +31,14 @@ class GameServer:
 
 gs = GameServer()
 app = gs.app
-templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
-templates.env.filters["markdown"] = commonmark
 
-app.mount(
-    "/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static"
-)
+frontend_dir = Path(__file__).parent / "../../dist/frontend"
+app.frontend("/", directory=frontend_dir)
 
 
 @app.get("/")
-async def index_view(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(request, "main.html")
+async def index_view(request: Request):
+    return FileResponse(frontend_dir / "main.html")
 
 
 @app.websocket("/ws")
@@ -62,9 +52,8 @@ async def ws(websocket: WebSocket):
 
 
 @app.get("/help")
-async def help_view(request: Request) -> HTMLResponse:
-    content = (Path(__file__).parent / "../../HowToPlay.md").read_text()
-    return templates.TemplateResponse(request, "help.html", {"content": content})
+async def help_view(request: Request):
+    return FileResponse(frontend_dir / "help.html")
 
 
 if __name__ == "__main__":
