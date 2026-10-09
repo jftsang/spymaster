@@ -1,7 +1,6 @@
 from typing import Optional
 
 from fastapi.websockets import WebSocket
-from pydantic import ConfigDict
 
 from spymaster.players import Player
 from spymaster.spymaster import MissionResult, Spymaster
@@ -35,13 +34,11 @@ class WsComm:
 
 
 class OnlinePlayer(Player):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    websocket: WebSocket
-    game: Spymaster
-
-    def model_post_init(self, __context):
-        self.wscomm = WsComm(self.websocket)
+    def __init__(self, name: str, websocket: WebSocket, game: Spymaster):
+        super().__init__(name=name)
+        self.websocket = websocket
+        self.game = game
+        self.wscomm = WsComm(websocket)
 
     async def pick(self, state: Spymaster) -> int:
         await self.wscomm.send_situation(state, "Pick a card")

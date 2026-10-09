@@ -2,7 +2,6 @@ import abc
 from typing import ClassVar
 
 import numpy as np
-from pydantic import ConfigDict, field_validator
 
 from spymaster import Spymaster
 from spymaster.players import Player
@@ -15,21 +14,14 @@ class EvolutionaryPlayer(Player, metaclass=abc.ABCMeta):
 
 
 class SingleLayerPerceptronPlayer(EvolutionaryPlayer):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    weights_matrix: np.ndarray
     INPUTS_LENGTH: ClassVar[int] = 16 + 16 + 16 + 1 + 1 + 1
 
-    @field_validator("weights_matrix")
-    @classmethod
-    def validate_weights(cls, v):
-        v = v.astype(np.float32)
-        if v.shape != (16, cls.INPUTS_LENGTH):
-            raise ValueError(f"Invalid shape: {v.shape}")
-        return v
-
-    def model_post_init(self, __context):
-        self.weights_matrix = self.weights_matrix.astype(np.float32)
+    def __init__(self, name: str, weights_matrix: np.ndarray):
+        super().__init__(name=name)
+        weights_matrix = weights_matrix.astype(np.float32)
+        if weights_matrix.shape != (16, self.INPUTS_LENGTH):
+            raise ValueError(f"Invalid shape: {weights_matrix.shape}")
+        self.weights_matrix = weights_matrix
 
     @classmethod
     def randomized(cls) -> "SingleLayerPerceptronPlayer":

@@ -62,8 +62,8 @@ def playerencoder(player: "Player") -> str:
 class Spymaster(BaseModel):
     model_config = {"arbitrary_types_allowed": True, "populate_by_name": True, "alias_generator": None}
 
-    white: "Player"
-    black: "Player"
+    white: Optional["Player"] = None
+    black: Optional["Player"] = None
     white_cards: List[int] = Field(default_factory=card_factory)
     black_cards: List[int] = Field(default_factory=card_factory)
     white_score: int = 0
@@ -72,8 +72,8 @@ class Spymaster(BaseModel):
     remaining_missions: List[int] = Field(default_factory=mission_factory)
 
     @field_serializer("white", "black")
-    def serialize_players(self, player: "Player", _info):
-        return player.name
+    def serialize_players(self, player: Optional["Player"], _info):
+        return player.name if player is not None else None
 
     def model_dump(self, **kwargs):
         return super().model_dump(by_alias=True, **kwargs)
@@ -82,6 +82,7 @@ class Spymaster(BaseModel):
         return self.model_dump()
 
     def print_score(self):
+        assert self.white is not None and self.black is not None
         print(f"{self.white.name} (White): {self.white_score}")
         print(f"{self.black.name} (Black): {self.black_score}")
 
@@ -98,6 +99,7 @@ class Spymaster(BaseModel):
         )
 
     async def play(self):
+        assert self.white is not None and self.black is not None
         while self.remaining_missions:
             shuffle(self.remaining_missions)
             self.current_mission = self.remaining_missions.pop()

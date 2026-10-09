@@ -1,14 +1,11 @@
 from abc import ABC, abstractmethod
 
-from pydantic import BaseModel
-
 from spymaster.spymaster import MissionResult, Spymaster
 
 
-class Player(BaseModel, ABC):
-    model_config = {"arbitrary_types_allowed": True}
-
-    name: str
+class Player(ABC):
+    def __init__(self, name: str):
+        self.name = name
 
     @abstractmethod
     async def pick(self, state: Spymaster) -> int:

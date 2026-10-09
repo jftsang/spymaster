@@ -1,7 +1,5 @@
 from random import choice, randint, random
 
-from pydantic import ConfigDict, Field
-
 from spymaster.players import Player
 from spymaster.spymaster import MissionResult, Spymaster
 
@@ -19,9 +17,9 @@ class SimpleAimingPlayer(Player):
     """Player that tries to aim for a few points above the value of each
     mission.
     """
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    variance: int = 2
+    def __init__(self, name: str, variance: int = 2):
+        super().__init__(name=name)
+        self.variance = variance
 
     async def pick(self, state: Spymaster) -> int:
         current = state.current_mission if state.current_mission is not None else 1
@@ -33,13 +31,9 @@ class AmericaPlayer(Player):
     """Player that adjusts its aim if it is defeated in a previous
     round.
     """
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    diff: int = Field(default_factory=lambda: randint(0, 2))
-
-    def model_post_init(self, __context):
-        if not hasattr(self, "diff"):
-            self.diff = randint(0, 2)
+    def __init__(self, name: str):
+        super().__init__(name=name)
+        self.diff = randint(0, 2)
 
     async def pick(self, state: Spymaster) -> int:
         current = state.current_mission if state.current_mission is not None else 1
@@ -56,16 +50,18 @@ def check(probability: float) -> bool:
 
 
 class RussiaPlayer(Player):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    stabbiness: float = Field(default=0.5)
-    paranoia: float = Field(default=0.5)
-    idleness: float = Field(default=0.33)
-    diff: int = Field(default_factory=lambda: randint(0, 2))
-
-    def model_post_init(self, __context):
-        if not hasattr(self, "diff"):
-            self.diff = randint(0, 2)
+    def __init__(
+        self,
+        name: str,
+        stabbiness: float = 0.5,
+        paranoia: float = 0.5,
+        idleness: float = 0.33,
+    ):
+        super().__init__(name=name)
+        self.stabbiness = stabbiness
+        self.paranoia = paranoia
+        self.idleness = idleness
+        self.diff = randint(0, 2)
 
     async def pick(self, state: Spymaster) -> int:
         # This is broken in the original game (as of 2023-12-27); the
