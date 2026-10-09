@@ -63,7 +63,7 @@ async def ws(websocket: WebSocket):
 
 @app.get("/help")
 async def help_view(request: Request) -> HTMLResponse:
-    content = (Path(__file__).parent.parent / "HowToPlay.md").read_text()
+    content = (Path(__file__).parent / "../../HowToPlay.md").read_text()
     return templates.TemplateResponse(request, "help.html", {"content": content})
 
 

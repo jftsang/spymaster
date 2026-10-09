@@ -1331,7 +1331,7 @@ source = { editable = "." }
 dependencies = [
     { name = "commonmark" },
     { name = "dataclasses-json" },
-    { name = "fastapi" },
+    { name = "fastapi", extra = ["standard"] },
     { name = "jinja2" },
     { name = "numpy" },
     { name = "tqdm" },
@@ -1350,7 +1350,7 @@ dev = [
 requires-dist = [
     { name = "commonmark", specifier = ">=0.9.2" },
     { name = "dataclasses-json", specifier = ">=0.6.7" },
-    { name = "fastapi", specifier = ">=0.143.0" },
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.143.0" },
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "numpy", specifier = ">=2.5.3" },
     { name = "tqdm", specifier = ">=4.70.1" },
