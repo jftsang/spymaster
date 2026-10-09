@@ -5,7 +5,8 @@ from typing import List, Optional
 import numpy as np
 from tqdm import tqdm
 
-from spymaster.players import Player, russia
+from spymaster.players import Player
+from spymaster.players.computer_players import russia
 from spymaster.players.evolutionary_players import (
     EvolutionaryPlayer,
     SingleLayerPerceptronPlayer,
