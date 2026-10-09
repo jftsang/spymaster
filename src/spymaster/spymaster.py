@@ -3,13 +3,14 @@ from random import shuffle
 from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_serializer
+from pydantic.alias_generators import to_camel
 
 if typing.TYPE_CHECKING:
     from spymaster.players import Player
 
 
 class MissionResult(BaseModel):
-    model_config = {"populate_by_name": True, "alias_generator": None}
+    model_config = {"populate_by_name": True, "alias_generator": to_camel}
 
     you_played: int
     opp_played: int
@@ -60,7 +61,7 @@ def playerencoder(player: "Player") -> str:
 
 
 class Spymaster(BaseModel):
-    model_config = {"arbitrary_types_allowed": True, "populate_by_name": True, "alias_generator": None}
+    model_config = {"arbitrary_types_allowed": True, "populate_by_name": True, "alias_generator": to_camel}
 
     white: Optional["Player"] = None
     black: Optional["Player"] = None
