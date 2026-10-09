@@ -19,6 +19,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "fastapi[standard]>=0.138.0",
     "ruff>=0.15.19",
     "ty>=0.0.53",
 ]
