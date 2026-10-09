@@ -3,11 +3,15 @@ import unittest
 
 from spymaster.players.computer_players import computer_players
 from spymaster.spymaster import Spymaster
+from spymaster.players import Player
 
 players = list(computer_players.values())
 
 
 class TestRoundRobin(unittest.TestCase):
+    def setUp(self):
+        Spymaster.model_rebuild(_types_namespace={'Player': Player})
+
     def test_round_robin(self):
         scores = [0] * len(players)
         for i, w in enumerate(players):

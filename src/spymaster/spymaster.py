@@ -1,23 +1,22 @@
 import typing
-from dataclasses import dataclass, field
 from random import shuffle
-from typing import List
+from typing import List, Optional
 
-from dataclasses_json import LetterCase, config, dataclass_json
+from pydantic import BaseModel, Field, field_serializer
 
 if typing.TYPE_CHECKING:
     from spymaster.players import Player
 
 
-@dataclass_json(letter_case=LetterCase.CAMEL)
-@dataclass(kw_only=True)
-class MissionResult:
+class MissionResult(BaseModel):
+    model_config = {"populate_by_name": True, "alias_generator": None}
+
     you_played: int
     opp_played: int
     mission: int
-    you_scored: int
-    opp_scored: int
-    game_over: bool = field(default=False)
+    you_scored: int = 0
+    opp_scored: int = 0
+    game_over: bool = False
 
     def __str__(self):
         s = [f"You played {self.you_played}, They played {self.opp_played}"]
@@ -38,7 +37,14 @@ class MissionResult:
             mission=self.mission,
             you_scored=self.opp_scored,
             opp_scored=self.you_scored,
+            game_over=self.game_over,
         )
+
+    def model_dump(self, **kwargs):
+        return super().model_dump(by_alias=True, **kwargs)
+
+    def to_dict(self):
+        return self.model_dump()
 
 
 def card_factory() -> List[int]:
@@ -53,17 +59,27 @@ def playerencoder(player: "Player") -> str:
     return player.name
 
 
-@dataclass_json(letter_case=LetterCase.CAMEL)
-@dataclass(kw_only=True)
-class Spymaster:
-    white: "Player" = field(metadata=config(encoder=playerencoder))
-    black: "Player" = field(metadata=config(encoder=playerencoder))
-    white_cards: List[int] = field(default_factory=card_factory)
-    black_cards: List[int] = field(default_factory=card_factory)
-    white_score: int = field(default=0)
-    black_score: int = field(default=0)
-    current_mission: int = field(default=None)  # type: ignore
-    remaining_missions: List[int] = field(default_factory=mission_factory)
+class Spymaster(BaseModel):
+    model_config = {"arbitrary_types_allowed": True, "populate_by_name": True, "alias_generator": None}
+
+    white: "Player"
+    black: "Player"
+    white_cards: List[int] = Field(default_factory=card_factory)
+    black_cards: List[int] = Field(default_factory=card_factory)
+    white_score: int = 0
+    black_score: int = 0
+    current_mission: Optional[int] = None
+    remaining_missions: List[int] = Field(default_factory=mission_factory)
+
+    @field_serializer("white", "black")
+    def serialize_players(self, player: "Player", _info):
+        return player.name
+
+    def model_dump(self, **kwargs):
+        return super().model_dump(by_alias=True, **kwargs)
+
+    def to_dict(self):
+        return self.model_dump()
 
     def print_score(self):
         print(f"{self.white.name} (White): {self.white_score}")
@@ -100,7 +116,7 @@ class Spymaster:
             await wr
             await br
 
-    def resolve(self, white_play: int, black_play: int) -> MissionResult:
+    def resolve(self, white_play: int, black_play: int) -> "MissionResult":
         """
         Resolve a mission. Remove the cards that were played, update the
         scores, and then emit a MissionResult from White's point of
@@ -127,9 +143,9 @@ class Spymaster:
             dw = black_play
         elif black_play == 0:
             db = white_play
-        elif white_play > black_play:
+        elif white_play > black_play and self.current_mission is not None:
             dw = self.current_mission
-        elif white_play < black_play:
+        elif white_play < black_play and self.current_mission is not None:
             db = self.current_mission
         else:
             raise RuntimeError
@@ -140,7 +156,7 @@ class Spymaster:
         return MissionResult(
             you_played=white_play,
             opp_played=black_play,
-            mission=self.current_mission,
+            mission=self.current_mission if self.current_mission is not None else 0,
             you_scored=dw,
             opp_scored=db,
         )
@@ -154,3 +170,4 @@ class Spymaster:
             else:
                 print(f"{player.name} chose an illegal card: {picked}")
                 await player.warn_illegal_choice(self, picked)
+        raise RuntimeError("Unreachable")

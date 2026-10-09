@@ -16,7 +16,7 @@ async def main():
     parser.add_argument("p2", choices=[p for p in players.keys()], nargs="?")
     args = parser.parse_args()
     if args.p2 is None:
-        p1 = HumanPlayer("You")
+        p1 = HumanPlayer(name="You")
         p2 = players[args.p1]
     else:
         p1 = players[args.p1]

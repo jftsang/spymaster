@@ -1,7 +1,7 @@
-from dataclasses import dataclass
 from typing import Optional
 
 from fastapi.websockets import WebSocket
+from pydantic import ConfigDict
 
 from spymaster.players import Player
 from spymaster.spymaster import MissionResult, Spymaster
@@ -15,7 +15,7 @@ class WsComm:
         await self.ws.send_json(
             {
                 "msgType": "situation",
-                "situation": state.to_dict(),  # type: ignore
+                "situation": state.to_dict(),
                 "message": message,
             }
         )
@@ -28,18 +28,19 @@ class WsComm:
         await self.ws.send_json(
             {
                 "msgType": "result",
-                "situation": state.to_dict(),  # type: ignore
-                "result": result.to_dict(),  # type: ignore
+                "situation": state.to_dict(),
+                "result": result.to_dict(),
             }
         )
 
 
-@dataclass(kw_only=True)
 class OnlinePlayer(Player):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     websocket: WebSocket
     game: Spymaster
 
-    def __post_init__(self):
+    def model_post_init(self, __context):
         self.wscomm = WsComm(self.websocket)
 
     async def pick(self, state: Spymaster) -> int:

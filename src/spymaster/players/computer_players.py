@@ -1,5 +1,6 @@
-from dataclasses import dataclass, field
 from random import choice, randint, random
+
+from pydantic import ConfigDict, Field
 
 from spymaster.players import Player
 from spymaster.spymaster import MissionResult, Spymaster
@@ -18,27 +19,31 @@ class SimpleAimingPlayer(Player):
     """Player that tries to aim for a few points above the value of each
     mission.
     """
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def __init__(self, name, variance=2):
-        super().__init__(name)
-        self.variance = variance
+    variance: int = 2
 
     async def pick(self, state: Spymaster) -> int:
-        target = state.current_mission + randint(1, self.variance)
+        current = state.current_mission if state.current_mission is not None else 1
+        target = current + randint(1, self.variance)
         return aim(state.white_cards, target)
 
 
-@dataclass
 class AmericaPlayer(Player):
     """Player that adjusts its aim if it is defeated in a previous
     round.
     """
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def __post_init__(self):
-        self.diff: int = randint(0, 2)
+    diff: int = Field(default_factory=lambda: randint(0, 2))
+
+    def model_post_init(self, __context):
+        if not hasattr(self, "diff"):
+            self.diff = randint(0, 2)
 
     async def pick(self, state: Spymaster) -> int:
-        target = state.current_mission + self.diff + 1
+        current = state.current_mission if state.current_mission is not None else 1
+        target = current + self.diff + 1
         return aim(state.white_cards, target)
 
     async def receive(self, state, result: MissionResult) -> None:
@@ -50,20 +55,23 @@ def check(probability: float) -> bool:
     return random() < probability
 
 
-@dataclass
 class RussiaPlayer(Player):
-    stabbiness: float = field(default=0.5)
-    paranoia: float = field(default=0.5)
-    idleness: float = field(default=0.33)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def __post_init__(self):
-        self.diff = randint(0, 2)
+    stabbiness: float = Field(default=0.5)
+    paranoia: float = Field(default=0.5)
+    idleness: float = Field(default=0.33)
+    diff: int = Field(default_factory=lambda: randint(0, 2))
+
+    def model_post_init(self, __context):
+        if not hasattr(self, "diff"):
+            self.diff = randint(0, 2)
 
     async def pick(self, state: Spymaster) -> int:
         # This is broken in the original game (as of 2023-12-27); the
         # Russia AI calculates its options and then throws it away, and
         # just does the America AI's action instead!
-        p = state.current_mission
+        p = state.current_mission if state.current_mission is not None else 1
         mine = state.white_cards
         theirs = state.black_cards
 
@@ -106,10 +114,10 @@ class RussiaPlayer(Player):
             return e
 
 
-china = RandomPlayer("China")
-france = SimpleAimingPlayer("France", 2)
-britain = SimpleAimingPlayer("Britain", 4)
-america = AmericaPlayer("America")
-russia = RussiaPlayer("Russia", stabbiness=0.5, paranoia=0.5, idleness=0.33)
+china = RandomPlayer(name="China")
+france = SimpleAimingPlayer(name="France", variance=2)
+britain = SimpleAimingPlayer(name="Britain", variance=4)
+america = AmericaPlayer(name="America")
+russia = RussiaPlayer(name="Russia", stabbiness=0.5, paranoia=0.5, idleness=0.33)
 
 computer_players = {p.name: p for p in [russia, america, britain, france, china]}

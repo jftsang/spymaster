@@ -21,12 +21,12 @@ class Tournament(abc.ABC):
 
 
 class RoundRobinTournament(Tournament):
-    async def play(self, players: List[Player]):
+    async def play(self, players: List[Player]) -> List[float]:
         """Round-robin tournament between all pairs of players. Each
         pair plays two games.
         """
         n_players = len(players)
-        scores = [0] * n_players
+        scores: List[float] = [0.0] * n_players
 
         games: List[Optional[Spymaster]] = [None] * n_players * n_players
         awaitables = []
@@ -35,15 +35,13 @@ class RoundRobinTournament(Tournament):
             for j in range(n_players):
                 if i == j:
                     continue
-                # print(i, j)
                 white = players[i]
                 black = players[j]
                 game = Spymaster(white=white, black=black)
                 games[i * n_players + j] = game
                 awaitables.append(game.play())
 
-        # Wait for all games to finish
-        done, pending = await asyncio.wait(awaitables)
+        await asyncio.wait(awaitables)
 
         for i in range(n_players):
             for j in range(n_players):
@@ -51,8 +49,8 @@ class RoundRobinTournament(Tournament):
                     continue
 
                 game = games[i * n_players + j]
-                # scores[i] += game.white_score
-                # scores[j] += game.black_score
+                if game is None:
+                    continue
                 if game.white_score > game.black_score:
                     scores[i] += 1
                 elif game.black_score > game.white_score:
@@ -69,7 +67,7 @@ class PlayAgainstChallengerTournament(Tournament):
 
     async def play(self, players: List[Player]) -> List[float]:
         n_players = len(players)
-        scores = [0] * n_players
+        scores: List[float] = [0.0] * n_players
 
         for i in range(n_players):
             white = players[i]
@@ -149,7 +147,7 @@ class GenePool:
 
     async def simulate(self, n_iterations):
         for t in tqdm(range(n_iterations)):
-            scores = await self.tournament.play(self.players)
+            scores = await self.tournament.play(self.players)  # type: ignore[arg-type]
             fitness = await self.fitness_evaluator.evaluate_population(self)
             print(
                 f"{t}: max score = {max(scores)}, "

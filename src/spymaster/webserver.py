@@ -21,9 +21,9 @@ class GameServer:
         """If the player is already connected, update her websocket.
         Otherwise create a new player.
         """
-        player = OnlinePlayer(name=code, websocket=websocket, game=None)
-        game = Spymaster(white=player, black=russia)
-        player.game = game
+        game = Spymaster(white=None, black=russia)  # type: ignore[call-arg]
+        player = OnlinePlayer(name=code, websocket=websocket, game=game)
+        game.white = player
         self.games[code] = game
 
         return player

@@ -1,11 +1,13 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+
+from pydantic import BaseModel
 
 from spymaster.spymaster import MissionResult, Spymaster
 
 
-@dataclass
-class Player(ABC):
+class Player(BaseModel, ABC):
+    model_config = {"arbitrary_types_allowed": True}
+
     name: str
 
     @abstractmethod

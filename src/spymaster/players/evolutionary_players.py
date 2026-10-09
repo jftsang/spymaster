@@ -1,8 +1,8 @@
 import abc
-from dataclasses import dataclass
 from typing import ClassVar
 
 import numpy as np
+from pydantic import ConfigDict, field_validator
 
 from spymaster import Spymaster
 from spymaster.players import Player
@@ -10,20 +10,26 @@ from spymaster.players import Player
 
 class EvolutionaryPlayer(Player, metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def create_offspring(self, mutation_rate: float) -> "EvolutionaryPlayer":
+    def create_offspring(self, mutation_rate: float = 0.1, scale_rate: float = 1.1) -> "EvolutionaryPlayer":
         pass
 
 
-@dataclass
 class SingleLayerPerceptronPlayer(EvolutionaryPlayer):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     weights_matrix: np.ndarray
     INPUTS_LENGTH: ClassVar[int] = 16 + 16 + 16 + 1 + 1 + 1
 
-    def __post_init__(self):
-        self.weights_matrix = self.weights_matrix.astype(np.float32)
+    @field_validator("weights_matrix")
+    @classmethod
+    def validate_weights(cls, v):
+        v = v.astype(np.float32)
+        if v.shape != (16, cls.INPUTS_LENGTH):
+            raise ValueError(f"Invalid shape: {v.shape}")
+        return v
 
-        if self.weights_matrix.shape != (16, self.INPUTS_LENGTH):
-            raise ValueError(f"Invalid shape: {self.weights_matrix.shape}")
+    def model_post_init(self, __context):
+        self.weights_matrix = self.weights_matrix.astype(np.float32)
 
     @classmethod
     def randomized(cls) -> "SingleLayerPerceptronPlayer":
@@ -47,7 +53,7 @@ class SingleLayerPerceptronPlayer(EvolutionaryPlayer):
 )"""
 
     def create_offspring(
-        self, scale_rate=1.1, mutation_rate=0.1
+        self, mutation_rate: float = 0.1, scale_rate: float = 1.1
     ) -> "SingleLayerPerceptronPlayer":
         new_weights = self.weights_matrix.copy()
         new_weights *= scale_rate
@@ -72,5 +78,5 @@ class SingleLayerPerceptronPlayer(EvolutionaryPlayer):
         vec = self.to_vector(state)
         choices_weights = self.weights_matrix @ vec
         choices_weights[vec[:16] == 0] = -np.inf
-        best_choice = np.argmax(choices_weights)
+        best_choice = int(np.argmax(choices_weights))
         return best_choice
