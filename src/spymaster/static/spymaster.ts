@@ -51,10 +51,11 @@ function agentCard(value: number, player: Player) {
 }
 
 function initializeButtons() {
-  const youDiv = document.getElementById("youButtonsDiv");
-  const oppDiv = document.getElementById("oppButtonsDiv");
+  const youDiv = document.getElementById("youButtonsDiv") as HTMLDivElement;
+  const oppDiv = document.getElementById("oppButtonsDiv") as HTMLDivElement;
 
-  let row = null;
+  // @ts-ignore
+  let row: HTMLDivElement = null;
   for (let i = 0; i < 16; i++) {
     if (i % 4 === 0) {
       row = document.createElement("div");
@@ -69,7 +70,7 @@ function initializeButtons() {
       if (state !== State.SITUATION) {
         return;
       }
-      chooseCard(Number.parseInt(button.dataset["card"]))
+      chooseCard(Number.parseInt(button.dataset["card"] as string))
     })
   }
 
@@ -103,7 +104,7 @@ class GameState {
   currentMission: number;
   remainingMissions: number[];
 
-  constructor(public obj : {
+  constructor(public obj: {
     white: string,
     black: string,
     whiteCards: number[],
@@ -157,8 +158,8 @@ function repaintUiForSituation() {
   oppButtons.forEach((btn, idx) => {
     btn.disabled = (!(situation.blackCards.includes(idx)));
   })
-  document.getElementById("yourScore").innerHTML = `Score: ${situation.whiteScore}`;
-  document.getElementById("opponentsScore").innerHTML = `Score: ${situation.blackScore}`;
+  document.getElementById("yourScore")!.innerHTML = `Score: ${situation.whiteScore}`;
+  document.getElementById("opponentsScore")!.innerHTML = `Score: ${situation.blackScore}`;
 
   missionButtons[situation.currentMission - 1].disabled = true;
   missionInfoP.innerHTML = "Current mission: ";
@@ -212,6 +213,7 @@ function chooseCard(card: number) {
 
 initializeButtons();
 
+// @ts-ignore
 let situation: GameState = null;
 
 const url = new URL(window.location.href);
