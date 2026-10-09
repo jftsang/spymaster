@@ -1,2 +1,6 @@
 __pycache__
 *.pyc
+.venv/
+.idea/
+dist/
+src/spymaster/static/spymaster.js

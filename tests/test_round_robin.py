@@ -1,8 +1,8 @@
 import asyncio
 import unittest
 
-from ..players.computer_players import computer_players
-from ..spymaster import Spymaster
+from spymaster.players.computer_players import computer_players
+from spymaster.spymaster import Spymaster
 
 players = list(computer_players.values())
 
