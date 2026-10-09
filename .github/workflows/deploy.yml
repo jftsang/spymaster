@@ -12,7 +12,7 @@ jobs:
         with:
           node-version: '20'
       - run: npm ci
-      - run: npx tsc --noEmit
+      - run: npm run build
       - run: uv run fastapi deploy
         env:
           FASTAPI_CLOUD_TOKEN: ${{ secrets.FASTAPI_CLOUD_TOKEN }}
