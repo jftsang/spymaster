@@ -26,6 +26,9 @@ class Player(BaseModel, ABC):
         raise ValueError("Illegal choice")
 
 
+Spymaster.model_rebuild()
+
+
 def tryint(x: str) -> int | None:
     try:
         return int(x)
