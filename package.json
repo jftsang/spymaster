@@ -2,14 +2,18 @@
   "name": "spymaster",
   "version": "1.0.0",
   "description": "Spymaster game frontend",
+  "source": [
+    "src/frontend/main.html",
+    "src/frontend/help.html"
+  ],
   "scripts": {
-    "build": "tsc && copyfiles -u 1 \"src/frontend/**/*\" dist",
-    "build:tsc": "tsc",
-    "build:copy": "copyfiles -u 1 \"src/frontend/**/*\" dist",
+    "build": "parcel build --dist-dir dist/frontend",
+    "watch": "parcel watch --dist-dir dist/frontend",
+    "typecheck": "tsc --noEmit",
     "clean": "rimraf dist"
   },
   "devDependencies": {
-    "copyfiles": "^2.4.1",
+    "parcel": "^2.16.4",
     "rimraf": "^5.0.5",
     "typescript": "^5.0.0"
   }

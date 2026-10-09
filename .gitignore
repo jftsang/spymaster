@@ -3,5 +3,5 @@ __pycache__
 .venv/
 .idea/
 dist/
-src/frontend/static/spymaster.js
 node_modules/
+.parcel-cache/

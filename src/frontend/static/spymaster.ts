@@ -217,7 +217,7 @@ initializeButtons();
 let situation: GameState = null;
 
 const url = new URL(window.location.href);
-url.protocol = 'wss:';
+url.protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 url.pathname = '/ws';
 url.searchParams.set('whoami', 'Joanna');
 url.searchParams.set('white', 'yes');
