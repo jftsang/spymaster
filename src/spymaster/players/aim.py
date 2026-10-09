@@ -2,9 +2,12 @@ from random import randint
 from typing import Collection, Optional
 
 
-def prefer(*options: Optional[int]) -> Optional[int]:
+class NoPossibleOptions(Exception):
+    pass
+
+def prefer(*options: int | None) -> int:
     """Given a list of options, return the first one that isn't None.
-    Return None if they are all None (or if no options are provided).
+    Raise an exception if no option is possible.
 
     We're using 0 for the assassin and None to denote that no option is
     available. A test like "if x" can't tell between them, so we have to
@@ -15,7 +18,7 @@ def prefer(*options: Optional[int]) -> Optional[int]:
     for o in options:
         if o is not None:
             return o
-    return None
+    raise NoPossibleOptions
 
 
 def aim_high(options: Collection[int], target: int) -> Optional[int]:
