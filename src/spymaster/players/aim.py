@@ -26,7 +26,7 @@ def aim_high(options: Collection[int], target: int) -> Optional[int]:
     If no such card exists, then return None.
     """
     options = [x for x in options if x > target]
-    return max(options, default=None)
+    return min(options, default=None)
 
 
 def aim_low(options: Collection[int], target: int) -> Optional[int]:

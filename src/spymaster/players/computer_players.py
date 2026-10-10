@@ -29,8 +29,8 @@ class SimpleAimingPlayer(Player):
 
 
 class AmericaPlayer(Player):
-    """Player that adjusts its aim if it is defeated in a previous
-    round.
+    """A computer player that aims just above the mission and adjusts
+    its target in response to the opponent's previous overbid.
     """
 
     def __init__(self, name: str):
@@ -43,8 +43,8 @@ class AmericaPlayer(Player):
         return aim(state.white_cards, target)
 
     async def receive(self, state, result: MissionResult) -> None:
-        if result.opp_played >= result.you_played:
-            self.diff = result.opp_played - result.you_played
+        if result.opp_played >= result.mission:
+            self.diff = result.opp_played - result.mission
 
 
 def check(probability: float) -> bool:
@@ -52,6 +52,14 @@ def check(probability: float) -> bool:
 
 
 class RussiaPlayer(Player):
+    """A computer player that adapts to different mission conditions.
+
+    @param stabbiness: willingness to use the assassin against a
+        high-value target.
+    @param paranoia: fear that the opponent will play the assassin.
+    @param idleness: likelihood of aiming low on a high-value mission.
+    """
+
     def __init__(
         self,
         name: str,
@@ -66,9 +74,6 @@ class RussiaPlayer(Player):
         self.diff = randint(0, 2)
 
     async def pick(self, state: Spymaster) -> int:
-        # This is broken in the original game (as of 2023-12-27); the
-        # Russia AI calculates its options and then throws it away, and
-        # just does the America AI's action instead!
         p = state.current_mission if state.current_mission is not None else 1
         mine = state.white_cards
         theirs = state.black_cards
@@ -94,6 +99,7 @@ class RussiaPlayer(Player):
             )
         else:
             # For really high value missions, follow a similar strategy...
+            # e is the card we intend to play
             e = prefer(
                 _mx(13, 15),
                 0 if (0 in mine and check(self.stabbiness)) else None,
@@ -101,12 +107,11 @@ class RussiaPlayer(Player):
             )
             # ...but if we are about to play a high-value card, then...
 
-            if e > 13:
-                paranoid = 0 in theirs and check(self.paranoia)
-                if paranoid:
-                    e = chuck(mine)
-
-            if e > 13 and check(self.idleness):
+            if e > 13 and 0 in theirs and check(self.paranoia):
+                # Worried the opponent will play the assassin
+                e = chuck(mine)
+            elif e > 13 and check(self.idleness):
+                # Conservatively save the high card for later
                 e = _aim(randint(5, 7))
 
             return e
