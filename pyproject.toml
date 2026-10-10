@@ -4,7 +4,7 @@ version = "0.2.0"
 description = ""
 authors = [{ name = "J. M. F. Tsang", email = "j.m.f.tsang@cantab.net" }]
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 
 dependencies = [
     "pydantic>=2.10.0",
