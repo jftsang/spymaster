@@ -5,8 +5,9 @@ from typing import Dict, Optional
 from uuid import uuid4
 
 import uvicorn
+from commonmark import commonmark
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.websockets import WebSocket, WebSocketDisconnect
 
 from spymaster.players import Player
@@ -419,6 +420,8 @@ gs = GameServer()
 app = gs.app
 
 frontend_dir = Path(__file__).parent / "../../dist/frontend"
+help_template_path = Path(__file__).parent.parent / "frontend" / "help.html"
+how_to_play_path = Path(__file__).parent / "../../HowToPlay.md"
 app.frontend("/", directory=frontend_dir)
 
 
@@ -436,8 +439,11 @@ async def ws(websocket: WebSocket):
 
 
 @app.get("/help")
-async def help_view(request: Request):
-    return FileResponse(frontend_dir / "help.html")
+async def help_view() -> HTMLResponse:
+    markdown_text = how_to_play_path.read_text(encoding="utf-8")
+    content = commonmark(markdown_text)
+    page = help_template_path.read_text(encoding="utf-8")
+    return HTMLResponse(page.replace("<!--HELP_CONTENT-->", content))
 
 
 if __name__ == "__main__":

@@ -1,8 +1,10 @@
 import asyncio
 import unittest
 
+from fastapi.testclient import TestClient
+
 from spymaster.players.computer_players import computer_players
-from spymaster.webserver import GameServer
+from spymaster.webserver import GameServer, app
 
 AI = next(iter(computer_players))
 
@@ -160,6 +162,18 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(last(aws2.sent, "loginOk"))
         self.assertTrue(any(m["msgType"] == saved["msgType"] for m in aws2.sent))
         await self.drive(alice, aws2)
+
+
+class TestHelpPage(unittest.TestCase):
+    def setUp(self):
+        self.client = TestClient(app)
+
+    def test_help_renders_markdown(self):
+        response = self.client.get("/help")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("<h1", response.text)
+        self.assertIn("Goofspiel", response.text)
+        self.assertNotIn("<!--HELP_CONTENT-->", response.text)
 
 
 if __name__ == "__main__":
