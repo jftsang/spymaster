@@ -9,7 +9,7 @@ from spymaster.players import Player
 
 class EvolutionaryPlayer(Player, metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def create_offspring(self, mutation_rate: float = 0.1, scale_rate: float = 1.1) -> "EvolutionaryPlayer":
+    def create_offspring(self, mutation_rate: float = 0.1) -> "EvolutionaryPlayer":
         pass
 
 
@@ -26,9 +26,18 @@ class SingleLayerPerceptronPlayer(EvolutionaryPlayer):
     @classmethod
     def randomized(cls) -> "SingleLayerPerceptronPlayer":
         return cls(
-            name="random",
+            name="Randomized Single Layer Perceptron Player",
             weights_matrix=np.random.normal(0, 1, (16, cls.INPUTS_LENGTH)),
         )
+
+    def save(self, path: str) -> None:
+        np.save(path, self.weights_matrix)
+
+    @classmethod
+    def load(
+        cls, path: str, name: str = "Single Layer Perceptron Player"
+    ) -> "SingleLayerPerceptronPlayer":
+        return cls(name=name, weights_matrix=np.load(path))
 
     def __str__(self):
         white_weights = self.weights_matrix[:, :16]
@@ -45,10 +54,9 @@ class SingleLayerPerceptronPlayer(EvolutionaryPlayer):
 )"""
 
     def create_offspring(
-        self, mutation_rate: float = 0.1, scale_rate: float = 1.1
+        self, mutation_rate: float = 0.1
     ) -> "SingleLayerPerceptronPlayer":
         new_weights = self.weights_matrix.copy()
-        new_weights *= scale_rate
         new_weights += np.random.normal(0, mutation_rate, self.weights_matrix.shape)
         return SingleLayerPerceptronPlayer(name=self.name, weights_matrix=new_weights)
 
@@ -59,7 +67,7 @@ class SingleLayerPerceptronPlayer(EvolutionaryPlayer):
         for i in state.black_cards:
             vec[i + 16] = 1
         for i in state.remaining_missions:
-            vec[i + 32] = 1
+            vec[i - 1 + 32] = 1
 
         vec[16 + 16 + 16] = state.current_mission
         vec[16 + 16 + 16 + 1] = state.white_score

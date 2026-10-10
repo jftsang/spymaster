@@ -1,20 +1,70 @@
 import argparse
 import asyncio
+import sys
+from pathlib import Path
 
 from .spymaster import Spymaster
 
 
-async def main():
+def build_parser() -> argparse.ArgumentParser:
+    from spymaster.players.computer_players import computer_players
+
+    player_names = list(computer_players.keys())
+
+    parser = argparse.ArgumentParser(prog="spymaster")
+    subparsers = parser.add_subparsers(dest="command")
+
+    play = subparsers.add_parser("play", help="Play a game.")
+    play.add_argument("p1", choices=player_names)
+    play.add_argument("p2", choices=player_names, nargs="?")
+
+    train = subparsers.add_parser(
+        "train",
+        help="Train SingleLayerPerceptron players against a computer player.",
+    )
+    train.add_argument(
+        "--opponent",
+        choices=player_names,
+        default="AI (Hard)",
+        help="Computer player to train against (default: AI (Hard)).",
+    )
+    train.add_argument("--iterations", type=int, default=200)
+    train.add_argument("--population", type=int, default=32)
+    train.add_argument("--n-replace", type=int, default=8)
+    train.add_argument("--mutation-rate", type=float, default=0.1)
+    train.add_argument("--seed", type=int, default=0)
+    train.add_argument(
+        "--test-games",
+        type=int,
+        default=100,
+        help="Games to play against each default computer player.",
+    )
+    train.add_argument(
+        "--output",
+        default="slp_weights.npy",
+        help="Where to save the best weights.",
+    )
+
+    benchmark = subparsers.add_parser(
+        "benchmark",
+        help="Report the trained perceptron players' performance.",
+    )
+    benchmark.add_argument("--games", type=int, default=100)
+    benchmark.add_argument("--seed", type=int, default=0)
+    benchmark.add_argument(
+        "--america", default=None, help="Path to America-trained weights."
+    )
+    benchmark.add_argument(
+        "--russia", default=None, help="Path to Russia-trained weights."
+    )
+
+    return parser
+
+
+async def play_command(args: argparse.Namespace) -> None:
     from spymaster.players import HumanPlayer
     from spymaster.players.computer_players import computer_players as players
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "p1",
-        choices=[p for p in players.keys()],
-    )
-    parser.add_argument("p2", choices=[p for p in players.keys()], nargs="?")
-    args = parser.parse_args()
     if args.p2 is None:
         p1 = HumanPlayer(name="You")
         p2 = players[args.p1]
@@ -27,5 +77,89 @@ async def main():
     game.print_score()
 
 
+async def benchmark_command(args: argparse.Namespace) -> None:
+    from spymaster.gene_pool import (
+        evaluate_against_computer_players,
+        head_to_head,
+    )
+    from spymaster.players.computer_players import (
+        AMERICA_WEIGHTS_PATH,
+        PERCEPTRON_AMERICA_NAME,
+        PERCEPTRON_RUSSIA_NAME,
+        RUSSIA_WEIGHTS_PATH,
+        default_computer_player_names,
+        load_perceptron,
+    )
+
+    import numpy as np
+
+    if args.seed is not None:
+        np.random.seed(args.seed)
+
+    america_path = Path(args.america) if args.america else AMERICA_WEIGHTS_PATH
+    russia_path = Path(args.russia) if args.russia else RUSSIA_WEIGHTS_PATH
+
+    players = {
+        PERCEPTRON_AMERICA_NAME: load_perceptron(
+            PERCEPTRON_AMERICA_NAME, america_path
+        ),
+        PERCEPTRON_RUSSIA_NAME: load_perceptron(
+            PERCEPTRON_RUSSIA_NAME, russia_path
+        ),
+    }
+
+    for name, player in players.items():
+        results = await evaluate_against_computer_players(
+            player,
+            n_games=args.games,
+            opponent_names=default_computer_player_names,
+        )
+        print(f"\n{name} vs default computer players ({args.games} games each):")
+        for opponent, (wins, draws, losses) in results.items():
+            points = wins + 0.5 * draws
+            print(
+                f"  {opponent}: {wins}W {draws}D {losses}L "
+                f"({points / args.games:.1%})"
+            )
+
+    a = players[PERCEPTRON_AMERICA_NAME]
+    b = players[PERCEPTRON_RUSSIA_NAME]
+    a_wins, draws, b_wins = await head_to_head(a, b, n_games=args.games)
+    total = 2 * args.games
+    print(f"\nHead to head ({total} games):")
+    print(f"  {PERCEPTRON_AMERICA_NAME}: {a_wins}W {draws}D {b_wins}L")
+    print(f"  {PERCEPTRON_RUSSIA_NAME}: {b_wins}W {draws}D {a_wins}L")
+
+
+def main() -> None:
+    parser = build_parser()
+
+    argv = sys.argv[1:]
+    if not argv or argv[0] not in {"play", "train", "benchmark", "-h", "--help"}:
+        argv = ["play"] + argv
+
+    args = parser.parse_args(argv)
+
+    if args.command == "benchmark":
+        asyncio.run(benchmark_command(args))
+    elif args.command == "train":
+        from spymaster.gene_pool import run_gene_pool
+
+        asyncio.run(
+            run_gene_pool(
+                opponent_name=args.opponent,
+                n_players=args.population,
+                n_iterations=args.iterations,
+                n_replace=args.n_replace,
+                mutation_rate=args.mutation_rate,
+                seed=args.seed,
+                test_games=args.test_games,
+                output=args.output,
+            )
+        )
+    else:
+        asyncio.run(play_command(args))
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

@@ -1,9 +1,33 @@
+from pathlib import Path
 from random import choice, randint, random
 
 from spymaster.players import Player
 from spymaster.spymaster import MissionResult, Spymaster
 
 from .aim import aim, chuck, mx, prefer
+
+WEIGHTS_DIR = Path(__file__).parent.parent / "weights"
+AMERICA_WEIGHTS_PATH = WEIGHTS_DIR / "slp_weights_america.npy"
+RUSSIA_WEIGHTS_PATH = WEIGHTS_DIR / "slp_weights_russia.npy"
+
+PERCEPTRON_AMERICA_NAME = "AI (Single Layer Perceptron #1)"
+PERCEPTRON_RUSSIA_NAME = "AI (Single Layer Perceptron #2)"
+
+_perceptron_cache: dict[Path, Player] = {}
+
+
+def load_perceptron(name: str, weights_path: Path) -> Player:
+    """Load a SingleLayerPerceptronPlayer from saved weights. Loaded
+    players are cached and reused; they carry no mutable state, so a
+    single instance can play many games simultaneously.
+    """
+    from spymaster.players.evolutionary_players import SingleLayerPerceptronPlayer
+
+    if weights_path not in _perceptron_cache:
+        _perceptron_cache[weights_path] = SingleLayerPerceptronPlayer.load(
+            str(weights_path), name=name
+        )
+    return _perceptron_cache[weights_path]
 
 
 class RandomPlayer(Player):
@@ -128,6 +152,12 @@ def new_computer_player(name: str) -> Player:
         "AI (Hardest)": lambda: RussiaPlayer(
             name="AI (Hardest)", stabbiness=0.5, paranoia=0.5, idleness=0.33
         ),
+        PERCEPTRON_AMERICA_NAME: lambda: load_perceptron(
+            PERCEPTRON_AMERICA_NAME, AMERICA_WEIGHTS_PATH
+        ),
+        PERCEPTRON_RUSSIA_NAME: lambda: load_perceptron(
+            PERCEPTRON_RUSSIA_NAME, RUSSIA_WEIGHTS_PATH
+        ),
     }
     try:
         return factories[name]()
@@ -141,4 +171,18 @@ britain = SimpleAimingPlayer(name="AI (Medium)", variance=4)
 america = AmericaPlayer(name="AI (Hard)")
 russia = RussiaPlayer(name="AI (Hardest)", stabbiness=0.5, paranoia=0.5, idleness=0.33)
 
-computer_players = {p.name: p for p in [china, france, britain, america, russia]}
+default_computer_players = [china, france, britain, america, russia]
+default_computer_player_names = [p.name for p in default_computer_players]
+
+computer_players: dict[str, Player] = {
+    p.name: p for p in default_computer_players
+}
+
+# Trained SingleLayerPerceptron players are registered only once their
+# weight artifacts exist, so a fresh checkout still imports cleanly.
+for _name, _path in [
+    (PERCEPTRON_AMERICA_NAME, AMERICA_WEIGHTS_PATH),
+    (PERCEPTRON_RUSSIA_NAME, RUSSIA_WEIGHTS_PATH),
+]:
+    if _path.exists():
+        computer_players[_name] = load_perceptron(_name, _path)
