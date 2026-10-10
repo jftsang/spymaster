@@ -76,9 +76,10 @@ def check(probability: float) -> bool:
 
 
 class RussiaPlayer(Player):
-    """A computer player that adapts to different mission conditions.
+    """A computer player that adapts to different mission scores, and
+    sometimes ducks on high-value missions.
 
-    @param stabbiness: willingness to use the assassin against a
+    @param bloodthirst: willingness to use the assassin against a
         high-value target.
     @param paranoia: fear that the opponent will play the assassin.
     @param idleness: likelihood of aiming low on a high-value mission.
@@ -87,15 +88,20 @@ class RussiaPlayer(Player):
     def __init__(
         self,
         name: str,
-        stabbiness: float = 0.5,
+        bloodthirst: float = 0.5,
         paranoia: float = 0.5,
         idleness: float = 0.33,
+        mission_value_thresholds: tuple[int, int, int]  = (5, 9, 13),
+        high_card: int = 13,
+        conservative_interval: tuple[int, int] = (5, 7),
     ):
         super().__init__(name=name)
-        self.stabbiness = stabbiness
+        self.bloodthirst = bloodthirst
         self.paranoia = paranoia
         self.idleness = idleness
-        self.diff = randint(0, 2)
+        self.mission_value_thresholds: tuple[int, int, int] = mission_value_thresholds
+        self.high_card = high_card
+        self.conservative_interval = conservative_interval
 
     async def pick(self, state: Spymaster) -> int:
         p = state.current_mission if state.current_mission is not None else 1
@@ -108,35 +114,37 @@ class RussiaPlayer(Player):
         def _aim(target):
             return aim(mine, target)
 
-        if p < 5:
+        th_low, th_mid, th_high = self.mission_value_thresholds
+
+        if p < th_low:
             # Try to win in the range if we can, otherwise discard
             return prefer(_mx(p, p + 4), chuck(mine))
-        elif p < 9:
+        elif p < th_mid:
             # Try to win in the range if we can, otherwise aim just above
             return prefer(_mx(p, p + 3), _aim(randint(p + 1, p + 3)))
-        elif p < 13:
-            # If the assassin is available, play it with 50% chance
+        elif p < th_high:  # Highish-value mission
+            # If the assassin is available, consider using it
             return prefer(
                 _mx(p, p + 2),
-                0 if (0 in mine and check(self.stabbiness)) else None,
+                0 if (0 in mine and check(self.bloodthirst)) else None,
                 _aim(randint(p + 1, p + 2)),
             )
-        else:
-            # For really high value missions, follow a similar strategy...
-            # e is the card we intend to play
+        else:  # Very high value mission
+            # Start by following a similar strategy...
             e = prefer(
-                _mx(13, 15),
-                0 if (0 in mine and check(self.stabbiness)) else None,
+                _mx(th_high, 15),
+                0 if (0 in mine and check(self.bloodthirst)) else None,
                 _aim(randint(p, 16)),
             )
-            # ...but if we are about to play a high-value card, then...
 
-            if e > 13 and 0 in theirs and check(self.paranoia):
+            # Check ourselves before playing a high-value card - maybe
+            # we want to duck instead.
+            if e > self.high_card and 0 in theirs and check(self.paranoia):
                 # Worried the opponent will play the assassin
                 e = chuck(mine)
-            elif e > 13 and check(self.idleness):
+            elif e > self.high_card and check(self.idleness):
                 # Conservatively save the high card for later
-                e = _aim(randint(5, 7))
+                e = _aim(randint(*self.conservative_interval))
 
             return e
 
@@ -150,7 +158,7 @@ def new_computer_player(name: str) -> Player:
         "AI (Medium)": lambda: SimpleAimingPlayer(name="AI (Medium)", variance=4),
         "AI (Hard)": lambda: AmericaPlayer(name="AI (Hard)"),
         "AI (Hardest)": lambda: RussiaPlayer(
-            name="AI (Hardest)", stabbiness=0.5, paranoia=0.5, idleness=0.33
+            name="AI (Hardest)", bloodthirst=0.5, paranoia=0.5, idleness=0.33
         ),
         PERCEPTRON_AMERICA_NAME: lambda: load_perceptron(
             PERCEPTRON_AMERICA_NAME, AMERICA_WEIGHTS_PATH
@@ -169,7 +177,7 @@ china = RandomPlayer(name="AI (Easiest)")
 france = SimpleAimingPlayer(name="AI (Easy)", variance=2)
 britain = SimpleAimingPlayer(name="AI (Medium)", variance=4)
 america = AmericaPlayer(name="AI (Hard)")
-russia = RussiaPlayer(name="AI (Hardest)", stabbiness=0.5, paranoia=0.5, idleness=0.33)
+russia = RussiaPlayer(name="AI (Hardest)", bloodthirst=0.5, paranoia=0.5, idleness=0.33)
 
 default_computer_players = [china, france, britain, america, russia]
 default_computer_player_names = [p.name for p in default_computer_players]
