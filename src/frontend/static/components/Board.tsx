@@ -28,7 +28,7 @@ const AgentCard = ({
 };
 
 const MissionButton = ({ value, disabled }: { value: number; disabled?: boolean }) => (
-  <button class="btn mission" disabled={disabled}>
+  <button class="btn btn-warning mission" disabled={disabled}>
     {String(value)}
   </button>
 );
@@ -130,7 +130,11 @@ export const Board = ({
         Remaining missions
         <div class="row d-flex justify-content-center">
           {Array.from({ length: 16 }, (_, i) => (
-            <MissionButton key={i} value={i + 1} disabled={i + 1 === missionValue} />
+            <MissionButton
+              key={i}
+              value={i + 1}
+              disabled={!situation.remainingMissions.includes(i + 1)}
+            />
           ))}
         </div>
       </div>
