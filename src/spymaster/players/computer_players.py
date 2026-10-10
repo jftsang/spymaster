@@ -20,8 +20,8 @@ LINEAR_RUSSIA_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_russia.npy"
 
 TUNED_ADAPTIVE_PARAMS_PATH = WEIGHTS_DIR / "tuned_adaptive.npy"
 
-LINEAR_AMERICA_NAME = "AI (Single Layer Perceptron #1)"
-LINEAR_RUSSIA_NAME = "AI (Single Layer Perceptron #2)"
+LINEAR_AMERICA_NAME = "AI (Single Linear Layer #1)"
+LINEAR_RUSSIA_NAME = "AI (Single Linear Layer #2)"
 
 _perceptron_cache: dict[Path, Player] = {}
 
