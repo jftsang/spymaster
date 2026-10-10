@@ -116,12 +116,12 @@ def new_computer_player(name: str) -> Player:
     """Create a fresh AI player instance. Fresh instances can play many
     games simultaneously without sharing mutable state."""
     factories = {
-        "China": lambda: RandomPlayer(name="China"),
-        "France": lambda: SimpleAimingPlayer(name="France", variance=2),
-        "Britain": lambda: SimpleAimingPlayer(name="Britain", variance=4),
-        "America": lambda: AmericaPlayer(name="America"),
-        "Russia": lambda: RussiaPlayer(
-            name="Russia", stabbiness=0.5, paranoia=0.5, idleness=0.33
+        "AI (Easiest)": lambda: RandomPlayer(name="AI (Easiest)"),
+        "AI (Easy)": lambda: SimpleAimingPlayer(name="AI (Easy)", variance=2),
+        "AI (Medium)": lambda: SimpleAimingPlayer(name="AI (Medium)", variance=4),
+        "AI (Hard)": lambda: AmericaPlayer(name="AI (Hard)"),
+        "AI (Hardest)": lambda: RussiaPlayer(
+            name="AI (Hardest)", stabbiness=0.5, paranoia=0.5, idleness=0.33
         ),
     }
     try:
@@ -130,10 +130,10 @@ def new_computer_player(name: str) -> Player:
         raise KeyError(f"Unknown computer player: {name}")
 
 
-china = RandomPlayer(name="China")
-france = SimpleAimingPlayer(name="France", variance=2)
-britain = SimpleAimingPlayer(name="Britain", variance=4)
-america = AmericaPlayer(name="America")
-russia = RussiaPlayer(name="Russia", stabbiness=0.5, paranoia=0.5, idleness=0.33)
+china = RandomPlayer(name="AI (Easiest)")
+france = SimpleAimingPlayer(name="AI (Easy)", variance=2)
+britain = SimpleAimingPlayer(name="AI (Medium)", variance=4)
+america = AmericaPlayer(name="AI (Hard)")
+russia = RussiaPlayer(name="AI (Hardest)", stabbiness=0.5, paranoia=0.5, idleness=0.33)
 
-computer_players = {p.name: p for p in [russia, america, britain, france, china]}
+computer_players = {p.name: p for p in [china, france, britain, america, russia]}
