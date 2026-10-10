@@ -105,15 +105,16 @@ class UserSession:
             while True:
                 if future.done():
                     return future.result()
-                if self.connected:
-                    await future
-                    return future.result()
-
-                now = datetime.now(timezone.utc)
-                remaining = (self.disconnected_at + GRACE_PERIOD - now).total_seconds()
-                if remaining <= 0:
-                    raise Forfeit(self.username or self.session_id, "grace")
-                step = min(GRACE_REPOLL_SECONDS, remaining)
+                if self.connected or self.disconnected_at is None:
+                    step = GRACE_REPOLL_SECONDS
+                else:
+                    now = datetime.now(timezone.utc)
+                    remaining = (
+                        self.disconnected_at + GRACE_PERIOD - now
+                    ).total_seconds()
+                    if remaining <= 0:
+                        raise Forfeit(self.username or self.session_id, "grace")
+                    step = min(GRACE_REPOLL_SECONDS, remaining)
                 try:
                     await asyncio.wait_for(asyncio.shield(future), timeout=step)
                 except asyncio.TimeoutError:

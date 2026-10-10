@@ -135,7 +135,7 @@ class GameServer:
         session = UserSession(session_id=sid)
         self.sessions[sid] = session
         cookie = f"session={sid}; Path=/; HttpOnly; SameSite=Lax"
-        return session, [("Set-Cookie", cookie)]
+        return session, [(b"Set-Cookie", cookie.encode())]
 
     async def serve(self, session: UserSession) -> None:
         ws = session.websocket
