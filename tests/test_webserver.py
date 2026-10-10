@@ -147,6 +147,22 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         await self.gs.decline_from(bob, "Alice")
         self.assertEqual(last(aws.sent, "challengeDeclined")["from"], "Bob")
 
+    async def test_withdraw_challenge(self):
+        alice, aws = await self.make_user("Alice")
+        bob, bws = await self.make_user("Bob")
+        await self.gs.challenge(alice, "Bob")
+        self.assertEqual(alice.pending_challenge_to, "Bob")
+        self.assertEqual(bob.pending_challenge_from, "Alice")
+
+        await self.gs.handle(alice, {"msgType": "cancelChallenge"})
+        self.assertIsNone(alice.pending_challenge_to)
+        self.assertIsNone(bob.pending_challenge_from)
+        self.assertEqual(last(bws.sent, "challengeWithdrawn")["from"], "Alice")
+
+        # Accepting a withdrawn challenge does nothing.
+        await self.gs.accept_from(bob, "Alice")
+        self.assertIsNone(last(bws.sent, "gameStart"))
+
     async def test_reconnect_replays_game(self):
         alice, aws = await self.make_user("Alice")
         await self.gs.challenge(alice, AI)

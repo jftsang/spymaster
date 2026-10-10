@@ -50,7 +50,8 @@ const LoginForm = () => {
 const PlayerRow = ({ player, me }: { player: PlayerStatus; me: string | null }) => {
   const isMe = player.name === me;
   const pending = pendingChallengeTo.value === player.name;
-  const disabled = isMe || player.inGame || pending;
+  const challengePending = pendingChallengeTo.value !== null;
+  const disabled = isMe || player.inGame || (challengePending && !pending);
 
   let status: JSX.Element | null = null;
   if (player.inGame) status = <span class="badge bg-warning text-dark">In game</span>;
@@ -58,7 +59,13 @@ const PlayerRow = ({ player, me }: { player: PlayerStatus; me: string | null }) 
     status = <span class="badge bg-info text-dark">Computer</span>;
 
   const challenge = () => {
+    if (pending) {
+      pendingChallengeTo.value = null;
+      sendWs({ msgType: "cancelChallenge" });
+      return;
+    }
     if (disabled) return;
+    pendingChallengeTo.value = player.name;
     sendWs({ msgType: "challenge", target: player.name });
   };
 
@@ -71,9 +78,10 @@ const PlayerRow = ({ player, me }: { player: PlayerStatus; me: string | null }) 
         <button
           class="btn btn-sm btn-success"
           disabled={disabled}
+          title={pending ? "Click to withdraw the challenge" : undefined}
           onClick={challenge}
         >
-          {pending ? "Challenging…" : "Challenge"}
+          {pending ? "Challenge sent" : "Challenge"}
         </button>
       )}
     </li>

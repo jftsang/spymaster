@@ -171,6 +171,8 @@ class GameServer:
                 await self.accept_from(session, msg.get("from"))
             elif mtype == "decline":
                 await self.decline_from(session, msg.get("from"))
+            elif mtype == "cancelChallenge":
+                await self.cancel_challenge(session)
             elif mtype == "card":
                 session.set_card(msg.get("card"))
             elif mtype == "leaveGame":
@@ -292,6 +294,23 @@ class GameServer:
             await challenger.send(
                 {"msgType": "challengeDeclined", "from": session_b.username}
             )
+
+    async def cancel_challenge(self, session: UserSession) -> None:
+        """Withdraw a challenge this session has sent."""
+        target = session.pending_challenge_to
+        if target is None:
+            return
+        session.pending_challenge_to = None
+        target_session = self.find_session(target)
+        if (
+            target_session is not None
+            and target_session.pending_challenge_from == session.username
+        ):
+            target_session.pending_challenge_from = None
+            if target_session.connected:
+                await target_session.send(
+                    {"msgType": "challengeWithdrawn", "from": session.username}
+                )
 
     async def leave_game(self, session: UserSession) -> None:
         active = session.active_game

@@ -43,6 +43,11 @@ export const handleWsMessage = (data: any) => {
       showToast(`${data.from} declined the challenge`);
       return;
 
+    case "challengeWithdrawn":
+      if (incomingChallenge.value === data.from) incomingChallenge.value = null;
+      showToast(`${data.from} withdrew the challenge`);
+      return;
+
     case "challengeRefused":
       pendingChallengeTo.value = null;
       showToast(data.reason ?? `${data.from} cannot play right now`);
