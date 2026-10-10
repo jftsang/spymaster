@@ -90,6 +90,7 @@ type BoardProps = {
   ready: boolean;
   selected: number | null;
   showResult: boolean;
+  missionRevealed: boolean;
   canContinue: boolean;
   onPick: (card: number) => void;
   onContinue: () => void;
@@ -101,12 +102,17 @@ export const Board = ({
   ready,
   selected,
   showResult,
+  missionRevealed,
   canContinue,
   onPick,
   onContinue,
 }: BoardProps) => {
   const opponent = situation.black;
-  const missionValue = situation.currentMission ?? 0;
+  // Until the player acknowledges the new turn, keep showing the mission
+  // that has just been played (nothing at all on the first mission).
+  const missionShown = missionRevealed
+    ? (situation.currentMission ?? null)
+    : (result?.mission ?? null);
   const firstMission = situation.whiteCards.length === 16;
 
   let message: string;
@@ -129,13 +135,21 @@ export const Board = ({
       <div class="row justify-content-center align-items-center mb-3">
         Remaining missions
         <div class="row d-flex justify-content-center">
-          {Array.from({ length: 16 }, (_, i) => (
-            <MissionButton
-              key={i}
-              value={i + 1}
-              disabled={!situation.remainingMissions.includes(i + 1)}
-            />
-          ))}
+          {Array.from({ length: 16 }, (_, i) => {
+            const value = i + 1;
+            const remaining = situation.remainingMissions.includes(value);
+            // Keep the drawn mission looking like it is still to come
+            // until the player acknowledges it.
+            const hiddenCurrent =
+              !missionRevealed && value === situation.currentMission;
+            return (
+              <MissionButton
+                key={i}
+                value={value}
+                disabled={!remaining && !hiddenCurrent}
+              />
+            );
+          })}
         </div>
       </div>
 
@@ -154,7 +168,11 @@ export const Board = ({
           </div>
         </div>
         <div class="col-md-2 align-self-center text-center">
-          Mission <MissionButton value={missionValue} />
+          {missionShown != null ? (
+            <>
+              Mission <MissionButton value={missionShown} />
+            </>
+          ) : null}
         </div>
         <div class="col-md-4 justify-content-center align-items-center">
           <div class="row justify-content-center">{opponent}</div>

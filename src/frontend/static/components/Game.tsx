@@ -13,6 +13,10 @@ export const GameView = () => {
   const [ready, setReady] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [revealedTurn, setRevealedTurn] = useState<number | null>(null);
+
+  // The mission card stays hidden until the player acknowledges this turn.
+  const missionRevealed = revealedTurn === turn;
 
   // A new turn from the server resets the interaction gate.
   useEffect(() => {
@@ -35,6 +39,7 @@ export const GameView = () => {
   const cont = () => {
     setShowResult(false);
     setSelected(null);
+    setRevealedTurn(turn);
     setReady(true);
   };
 
@@ -88,6 +93,7 @@ export const GameView = () => {
         ready={ready}
         selected={selected}
         showResult={showResult}
+        missionRevealed={missionRevealed}
         canContinue={canContinue}
         onPick={pick}
         onContinue={cont}
