@@ -63,8 +63,8 @@ def playerencoder(player: "Player") -> str:
 class Spymaster(BaseModel):
     model_config = {"arbitrary_types_allowed": True, "populate_by_name": True, "alias_generator": to_camel}
 
-    white: Optional["Player"] = None
-    black: Optional["Player"] = None
+    white: Player | None = None
+    black: Player | None = None
     white_cards: List[int] = Field(default_factory=card_factory)
     black_cards: List[int] = Field(default_factory=card_factory)
     white_score: int = 0

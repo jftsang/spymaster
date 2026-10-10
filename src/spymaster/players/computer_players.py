@@ -17,6 +17,7 @@ class SimpleAimingPlayer(Player):
     """Player that tries to aim for a few points above the value of each
     mission.
     """
+
     def __init__(self, name: str, variance: int = 2):
         super().__init__(name=name)
         self.variance = variance
@@ -31,6 +32,7 @@ class AmericaPlayer(Player):
     """Player that adjusts its aim if it is defeated in a previous
     round.
     """
+
     def __init__(self, name: str):
         super().__init__(name=name)
         self.diff = randint(0, 2)
@@ -108,6 +110,24 @@ class RussiaPlayer(Player):
                 e = _aim(randint(5, 7))
 
             return e
+
+
+def new_computer_player(name: str) -> Player:
+    """Create a fresh AI player instance. Fresh instances can play many
+    games simultaneously without sharing mutable state."""
+    factories = {
+        "China": lambda: RandomPlayer(name="China"),
+        "France": lambda: SimpleAimingPlayer(name="France", variance=2),
+        "Britain": lambda: SimpleAimingPlayer(name="Britain", variance=4),
+        "America": lambda: AmericaPlayer(name="America"),
+        "Russia": lambda: RussiaPlayer(
+            name="Russia", stabbiness=0.5, paranoia=0.5, idleness=0.33
+        ),
+    }
+    try:
+        return factories[name]()
+    except KeyError:
+        raise KeyError(f"Unknown computer player: {name}")
 
 
 china = RandomPlayer(name="China")

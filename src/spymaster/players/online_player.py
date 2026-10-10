@@ -1,50 +1,49 @@
 from typing import Optional
 
-from fastapi.websockets import WebSocket
-
 from spymaster.players import Player
+from spymaster.session import UserSession
 from spymaster.spymaster import MissionResult, Spymaster
 
 
 class WsComm:
-    def __init__(self, ws: WebSocket):
-        self.ws = ws
+    """Message helpers for an in-game player conversation.
+
+    All game messages are recorded as the session's
+    ``last_game_message`` so a reconnecting player can resume.
+    """
+
+    def __init__(self, session: UserSession):
+        self.session = session
 
     async def send_situation(self, state: Spymaster, message: Optional[str]):
-        await self.ws.send_json(
-            {
-                "msgType": "situation",
-                "situation": state.to_dict(),
-                "message": message,
-            }
-        )
-
-    async def receive_choice(self) -> Optional[int]:
-        recv = await self.ws.receive_json()
-        return recv.get("card")
+        msg = {
+            "msgType": "situation",
+            "situation": state.to_dict(),
+            "message": message,
+        }
+        self.session.last_game_message = msg
+        await self.session.send(msg)
 
     async def send_result(self, state: Spymaster, result: MissionResult):
-        await self.ws.send_json(
-            {
-                "msgType": "result",
-                "situation": state.to_dict(),
-                "result": result.to_dict(),
-            }
-        )
+        msg = {
+            "msgType": "result",
+            "situation": state.to_dict(),
+            "result": result.to_dict(),
+        }
+        self.session.last_game_message = msg
+        await self.session.send(msg)
 
 
 class OnlinePlayer(Player):
-    def __init__(self, name: str, websocket: WebSocket, game: Spymaster):
+    def __init__(self, name: str, session: UserSession):
         super().__init__(name=name)
-        self.websocket = websocket
-        self.game = game
-        self.wscomm = WsComm(websocket)
+        self.session = session
+        self.wscomm = WsComm(session)
 
     async def pick(self, state: Spymaster) -> int:
         await self.wscomm.send_situation(state, "Pick a card")
-        choice = None
         while True:
-            choice = await self.wscomm.receive_choice()
+            choice = await self.session.await_card()
             print("Choice:", choice)
             if choice in state.white_cards:
                 return choice
@@ -53,5 +52,3 @@ class OnlinePlayer(Player):
 
     async def receive(self, state, result: MissionResult) -> None:
         await self.wscomm.send_result(state, result)
-        if result.game_over:
-            await self.websocket.close()
