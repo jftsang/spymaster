@@ -1,3 +1,4 @@
+import asyncio
 import typing
 from random import shuffle
 from typing import List, Optional
@@ -106,9 +107,24 @@ class Spymaster(BaseModel):
             self.current_mission = self.remaining_missions.pop()
             self.remaining_missions.sort()
 
-            white_play = self.choose_and_validate(self.white)
-            black_play = self.flipped().choose_and_validate(self.black)
-            result = self.resolve(await white_play, await black_play)
+            white_pick = asyncio.ensure_future(
+                self.choose_and_validate(self.white)
+            )
+            black_pick = asyncio.ensure_future(
+                self.flipped().choose_and_validate(self.black)
+            )
+            try:
+                white_play, black_play = await asyncio.gather(
+                    white_pick, black_pick
+                )
+            except BaseException:
+                for task in (white_pick, black_pick):
+                    task.cancel()
+                await asyncio.gather(
+                    white_pick, black_pick, return_exceptions=True
+                )
+                raise
+            result = self.resolve(white_play, black_play)
 
             if not self.white_cards:
                 assert not self.black_cards
