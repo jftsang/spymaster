@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { game, gameOverAcknowledged } from "../state";
 import { sendWs } from "../ws";
-import { Board } from "./Board";
+import { Board, SHORTCUTS } from "./Board";
 
 export const GameView = () => {
   const g = game.value;
@@ -62,11 +62,10 @@ export const GameView = () => {
   useEffect(() => {
     const handler = (ev: KeyboardEvent) => {
       if (ready && situation) {
-        const shortcuts = "0123456789abcdef";
-        if (shortcuts.includes(ev.key)) {
-          pick(shortcuts.indexOf(ev.key));
+        if (SHORTCUTS.includes(ev.key)) {
+          pick(SHORTCUTS.indexOf(ev.key));
         }
-      } else if (ev.key === "Enter") {
+      } else if (ev.key === "Enter" || ev.key === " ") {
         if (canContinue) cont();
         else if (gameOverPending) acknowledgeGameOver();
       }

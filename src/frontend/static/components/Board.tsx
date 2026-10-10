@@ -1,11 +1,14 @@
 import { GameStateData, MissionResultData } from "../state";
 
+export const SHORTCUTS = "`123qwerasdfzxcv";
+
 type AgentCardProps = {
   value: number;
   kind: "you" | "opp";
   disabled?: boolean;
   selected?: boolean;
   played?: boolean;
+  shortcut?: string;
   onClick?: () => void;
 };
 
@@ -15,6 +18,7 @@ const AgentCard = ({
   disabled,
   selected,
   played,
+  shortcut,
   onClick,
 }: AgentCardProps) => {
   let cls = "btn agentcard " + (kind === "you" ? "btn-primary" : "btn-danger");
@@ -23,6 +27,7 @@ const AgentCard = ({
   return (
     <button class={cls} disabled={disabled} onClick={onClick}>
       {value > 0 ? String(value) : "💣"}
+      {shortcut ? <span class="card-shortcut">{shortcut}</span> : null}
     </button>
   );
 };
@@ -55,14 +60,16 @@ const CardGrid = ({
     const cells = [];
     for (let c = 0; c < 4; c++) {
       const card = r * 4 + c;
+      const inHand = cards.includes(card);
       cells.push(
         <AgentCard
           key={card}
           value={card}
           kind={kind}
-          disabled={disabled || !cards.includes(card)}
+          disabled={disabled || !inHand}
           selected={selected === card}
           played={played === card}
+          shortcut={kind === "you" && inHand ? SHORTCUTS[card] : undefined}
           onClick={
             kind === "you" && onPick ? () => onPick(card) : undefined
           }
