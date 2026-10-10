@@ -92,8 +92,10 @@ type BoardProps = {
   showResult: boolean;
   missionRevealed: boolean;
   canContinue: boolean;
+  gameOverPending: boolean;
   onPick: (card: number) => void;
   onContinue: () => void;
+  onGameOver: () => void;
 };
 
 export const Board = ({
@@ -104,8 +106,10 @@ export const Board = ({
   showResult,
   missionRevealed,
   canContinue,
+  gameOverPending,
   onPick,
   onContinue,
+  onGameOver,
 }: BoardProps) => {
   const opponent = situation.black;
   // Until the player acknowledges the new turn, keep showing the mission
@@ -205,14 +209,25 @@ export const Board = ({
 
       {scoreLine ? <p class="text-center">{scoreLine}</p> : null}
 
-      {canContinue ? (
+      {canContinue || gameOverPending ? (
         <div class="row justify-content-center">
           <div class="col-4">
             <button
-              class={"btn w-100 " + (firstMission ? "btn-warning" : "btn-success")}
-              onClick={onContinue}
+              class={
+                "btn w-100 " +
+                (gameOverPending
+                  ? "btn-danger"
+                  : firstMission
+                    ? "btn-warning"
+                    : "btn-success")
+              }
+              onClick={gameOverPending ? onGameOver : onContinue}
             >
-              {firstMission ? "Start Game" : "Next Mission"}
+              {gameOverPending
+                ? "Game over"
+                : firstMission
+                  ? "Start Game"
+                  : "Next Mission"}
             </button>
           </div>
         </div>

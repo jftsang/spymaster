@@ -6,6 +6,7 @@ import {
   toast,
   view,
   game,
+  gameOverAcknowledged,
   newGame,
   showToast,
   setUsername,
@@ -55,6 +56,7 @@ export const handleWsMessage = (data: any) => {
 
     case "gameStart":
       game.value = newGame(data.opponent ?? null);
+      gameOverAcknowledged.value = false;
       view.value = "game";
       toast.value = null;
       pendingChallengeTo.value = null;

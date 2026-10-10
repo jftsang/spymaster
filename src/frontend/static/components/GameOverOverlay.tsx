@@ -1,8 +1,14 @@
-import { game, username, view } from "../state";
+import { game, gameOverAcknowledged, username, view } from "../state";
 
 export const GameOverOverlay = () => {
   const g = game.value;
   if (!g || !g.over || view.value !== "game") return null;
+
+  // A naturally finished game (a final mission result) waits for the
+  // player to acknowledge it via the "Game over" button before the modal
+  // appears. Forfeits/departures show it straight away.
+  const naturalEnd = g.result?.gameOver ?? false;
+  if (naturalEnd && !gameOverAcknowledged.value) return null;
 
   const me = username.value;
   const winner = g.winner;

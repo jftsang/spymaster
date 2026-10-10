@@ -49,6 +49,7 @@ export const toast = signal<string | null>(null);
 export const view = signal<"lobby" | "game">("lobby");
 export const wsConnected = signal(false);
 export const game = signal<GameSignal | null>(null);
+export const gameOverAcknowledged = signal(false);
 
 export const showToast = (msg: string) => {
   toast.value = msg;

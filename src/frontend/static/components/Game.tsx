@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import { game } from "../state";
+import { game, gameOverAcknowledged } from "../state";
 import { sendWs } from "../ws";
 import { Board } from "./Board";
 
@@ -9,6 +9,7 @@ export const GameView = () => {
   const result = g?.result ?? null;
   const turn = g?.turn ?? 0;
   const awaitingMove = g?.awaitingMove ?? false;
+  const over = g?.over ?? false;
 
   const [ready, setReady] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
@@ -43,6 +44,10 @@ export const GameView = () => {
     setReady(true);
   };
 
+  const acknowledgeGameOver = () => {
+    gameOverAcknowledged.value = true;
+  };
+
   const leave = () => {
     if (window.confirm("Leave the game? You will forfeit.")) {
       sendWs({ msgType: "leaveGame" });
@@ -50,6 +55,9 @@ export const GameView = () => {
   };
 
   const canContinue = awaitingMove && !ready && selected === null;
+  const gameOverPending =
+    over && (result?.gameOver ?? false) && showResult &&
+    !gameOverAcknowledged.value;
 
   useEffect(() => {
     const handler = (ev: KeyboardEvent) => {
@@ -58,8 +66,9 @@ export const GameView = () => {
         if (shortcuts.includes(ev.key)) {
           pick(shortcuts.indexOf(ev.key));
         }
-      } else if (canContinue && ev.key === "Enter") {
-        cont();
+      } else if (ev.key === "Enter") {
+        if (canContinue) cont();
+        else if (gameOverPending) acknowledgeGameOver();
       }
     };
     document.addEventListener("keypress", handler);
@@ -95,8 +104,10 @@ export const GameView = () => {
         showResult={showResult}
         missionRevealed={missionRevealed}
         canContinue={canContinue}
+        gameOverPending={gameOverPending}
         onPick={pick}
         onContinue={cont}
+        onGameOver={acknowledgeGameOver}
       />
     </div>
   );
