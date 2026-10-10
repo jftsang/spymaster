@@ -58,6 +58,28 @@ def build_parser() -> argparse.ArgumentParser:
         "--russia", default=None, help="Path to Russia-trained weights."
     )
 
+    tune = subparsers.add_parser(
+        "tune",
+        help="Evolve TunedAdaptivePlayer's parameters against the benchmark players.",
+    )
+    tune.add_argument("--iterations", type=int, default=100)
+    tune.add_argument("--population", type=int, default=32)
+    tune.add_argument("--n-games", type=int, default=20)
+    tune.add_argument("--n-replace", type=int, default=8)
+    tune.add_argument("--mutation-rate", type=float, default=0.1)
+    tune.add_argument("--seed", type=int, default=0)
+    tune.add_argument(
+        "--test-games",
+        type=int,
+        default=100,
+        help="Games to play against each benchmark player.",
+    )
+    tune.add_argument(
+        "--output",
+        default=None,
+        help="Where to save the tuned parameters.",
+    )
+
     return parser
 
 
@@ -83,10 +105,10 @@ async def benchmark_command(args: argparse.Namespace) -> None:
         head_to_head,
     )
     from spymaster.players.computer_players import (
-        AMERICA_WEIGHTS_PATH,
-        PERCEPTRON_AMERICA_NAME,
-        PERCEPTRON_RUSSIA_NAME,
-        RUSSIA_WEIGHTS_PATH,
+        LINEAR_AMERICA_WEIGHTS_PATH,
+        LINEAR_AMERICA_NAME,
+        LINEAR_RUSSIA_NAME,
+        LINEAR_RUSSIA_WEIGHTS_PATH,
         default_computer_player_names,
         load_perceptron,
     )
@@ -96,15 +118,15 @@ async def benchmark_command(args: argparse.Namespace) -> None:
     if args.seed is not None:
         np.random.seed(args.seed)
 
-    america_path = Path(args.america) if args.america else AMERICA_WEIGHTS_PATH
-    russia_path = Path(args.russia) if args.russia else RUSSIA_WEIGHTS_PATH
+    america_path = Path(args.america) if args.america else LINEAR_AMERICA_WEIGHTS_PATH
+    russia_path = Path(args.russia) if args.russia else LINEAR_RUSSIA_WEIGHTS_PATH
 
     players = {
-        PERCEPTRON_AMERICA_NAME: load_perceptron(
-            PERCEPTRON_AMERICA_NAME, america_path
+        LINEAR_AMERICA_NAME: load_perceptron(
+            LINEAR_AMERICA_NAME, america_path
         ),
-        PERCEPTRON_RUSSIA_NAME: load_perceptron(
-            PERCEPTRON_RUSSIA_NAME, russia_path
+        LINEAR_RUSSIA_NAME: load_perceptron(
+            LINEAR_RUSSIA_NAME, russia_path
         ),
     }
 
@@ -122,26 +144,41 @@ async def benchmark_command(args: argparse.Namespace) -> None:
                 f"({points / args.games:.1%})"
             )
 
-    a = players[PERCEPTRON_AMERICA_NAME]
-    b = players[PERCEPTRON_RUSSIA_NAME]
+    a = players[LINEAR_AMERICA_NAME]
+    b = players[LINEAR_RUSSIA_NAME]
     a_wins, draws, b_wins = await head_to_head(a, b, n_games=args.games)
     total = 2 * args.games
     print(f"\nHead to head ({total} games):")
-    print(f"  {PERCEPTRON_AMERICA_NAME}: {a_wins}W {draws}D {b_wins}L")
-    print(f"  {PERCEPTRON_RUSSIA_NAME}: {b_wins}W {draws}D {a_wins}L")
+    print(f"  {LINEAR_AMERICA_NAME}: {a_wins}W {draws}D {b_wins}L")
+    print(f"  {LINEAR_RUSSIA_NAME}: {b_wins}W {draws}D {a_wins}L")
 
 
 def main() -> None:
     parser = build_parser()
 
     argv = sys.argv[1:]
-    if not argv or argv[0] not in {"play", "train", "benchmark", "-h", "--help"}:
+    if not argv or argv[0] not in {"play", "train", "benchmark", "tune", "-h", "--help"}:
         argv = ["play"] + argv
 
     args = parser.parse_args(argv)
 
     if args.command == "benchmark":
         asyncio.run(benchmark_command(args))
+    elif args.command == "tune":
+        from spymaster.gene_pool import run_tuning
+
+        kwargs = {
+            "n_players": args.population,
+            "n_iterations": args.iterations,
+            "n_games": args.n_games,
+            "n_replace": args.n_replace,
+            "mutation_rate": args.mutation_rate,
+            "seed": args.seed,
+            "test_games": args.test_games,
+        }
+        if args.output:
+            kwargs["output"] = args.output
+        asyncio.run(run_tuning(**kwargs))
     elif args.command == "train":
         from spymaster.gene_pool import run_gene_pool
 

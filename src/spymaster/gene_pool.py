@@ -1,6 +1,7 @@
 import abc
 import asyncio
 from pathlib import Path
+from random import choice
 from typing import Callable, List, Optional, Sequence
 
 import numpy as np
@@ -8,16 +9,20 @@ from tqdm import tqdm
 
 from spymaster.players import Player
 from spymaster.players.computer_players import (
+    TUNED_ADAPTIVE_PARAMS_PATH,
+    TunedAdaptivePlayer,
     computer_players,
+    default_computer_player_names,
     new_computer_player,
 )
 from spymaster.players.evolutionary_players import (
     EvolutionaryPlayer,
-    SingleLayerPerceptronPlayer,
+    LinearPlayer,
 )
 from spymaster import Spymaster
 
 PlayerFactory = Callable[[], Player]
+EvolutionaryPlayerFactory = Callable[[], EvolutionaryPlayer]
 
 DEFAULT_WEIGHTS_PATH = Path("slp_weights.npy")
 
@@ -76,36 +81,40 @@ class RoundRobinTournament(Tournament):
 
 
 class PlayAgainstChallengerTournament(Tournament):
-    """Play each player against a fixed challenger, using a factory so
-    that every game gets a fresh challenger instance (challengers such
+    """Play each player against one or more challengers, using factories
+    so that every game gets a fresh challenger instance (challengers such
     as AmericaPlayer keep mutable state between rounds).
+
+    When several challengers are given, each game picks one uniformly at
+    random, so the candidates face a shuffled, evenly-mixed mix of
+    opponents.
     """
 
     def __init__(
         self,
-        challenger_factory: PlayerFactory = america_factory,
+        challenger_factories: Sequence[PlayerFactory] = (america_factory,),
         n_games: int = 30,
     ):
-        self.challenger_factory = challenger_factory
+        self.challenger_factories: List[PlayerFactory] = list(challenger_factories)
         self.n_games = n_games
 
     async def play(self, players: Sequence[Player]) -> List[float]:
-        n_players = len(players)
-        scores: List[float] = [0.0] * n_players
+        per_player_games: List[List[Spymaster]] = []
+        for white in players:
+            player_games = []
+            for _ in range(self.n_games):
+                factory = choice(self.challenger_factories)
+                player_games.append(Spymaster(white=white, black=factory()))
+            per_player_games.append(player_games)
 
-        for i in range(n_players):
-            white = players[i]
-            games = [
-                Spymaster(white=white, black=self.challenger_factory())
-                for _ in range(self.n_games)
-            ]
-            await asyncio.gather(*(game.play() for game in games))
+        await asyncio.gather(
+            *(game.play() for games in per_player_games for game in games)
+        )
 
-            for game in games:
-                scores[i] += game.white_score
-                scores[i] -= game.black_score
-
-        return scores
+        return [
+            sum(game.white_score - game.black_score for game in games)
+            for games in per_player_games
+        ]
 
 
 class FitnessEvaluator:
@@ -139,6 +148,7 @@ class GenePool:
         self,
         n_players: int,
         tournament: Tournament,
+        population_factory: EvolutionaryPlayerFactory = LinearPlayer.randomized,
         reference_factory: PlayerFactory = america_factory,
         n_replace: int = 20,
         mutation_rate: float = 0.1,
@@ -146,7 +156,7 @@ class GenePool:
         self.n_players = n_players
         self.reference_factory = reference_factory
         self.players: List[EvolutionaryPlayer] = [
-            SingleLayerPerceptronPlayer.randomized() for _ in range(n_players)
+            population_factory() for _ in range(n_players)
         ]
         self.tournament = tournament
         self.fitness_evaluator = FitnessEvaluator(reference_factory)
@@ -200,7 +210,7 @@ async def train_against(
     n_replace: int = 8,
     mutation_rate: float = 0.1,
     seed: Optional[int] = 0,
-) -> SingleLayerPerceptronPlayer:
+) -> LinearPlayer:
     """Train a population of SingleLayerPerceptronPlayers against the
     named computer player and return the best player found.
     """
@@ -212,7 +222,7 @@ async def train_against(
 
     pool = GenePool(
         n_players=n_players,
-        tournament=PlayAgainstChallengerTournament(factory, n_games=n_games),
+        tournament=PlayAgainstChallengerTournament([factory], n_games=n_games),
         reference_factory=factory,
         n_replace=n_replace,
         mutation_rate=mutation_rate,
@@ -220,7 +230,49 @@ async def train_against(
     await pool.simulate(n_iterations)
 
     best = pool.best_player
-    assert isinstance(best, SingleLayerPerceptronPlayer)
+    assert isinstance(best, LinearPlayer)
+    return best
+
+
+def benchmark_player_factories(
+    names: Optional[Sequence[str]] = None,
+) -> List[PlayerFactory]:
+    """Return a fresh factory for each benchmark player named, or for
+    every default computer player when ``names`` is ``None``.
+    """
+    if names is None:
+        names = default_computer_player_names
+    return [lambda name=name: new_computer_player(name) for name in names]
+
+
+async def train_tuned_adaptive(
+    opponent_names: Optional[Sequence[str]] = None,
+    n_players: int = 32,
+    n_iterations: int = 100,
+    n_games: int = 20,
+    n_replace: int = 8,
+    mutation_rate: float = 0.1,
+    seed: Optional[int] = 0,
+) -> TunedAdaptivePlayer:
+    """Evolve a population of TunedAdaptivePlayers against the named
+    benchmark players and return the best individual found.
+    """
+    if seed is not None:
+        np.random.seed(seed)
+
+    factories = benchmark_player_factories(opponent_names)
+    pool = GenePool(
+        n_players=n_players,
+        tournament=PlayAgainstChallengerTournament(factories, n_games=n_games),
+        population_factory=TunedAdaptivePlayer.randomized,
+        reference_factory=factories[0],
+        n_replace=n_replace,
+        mutation_rate=mutation_rate,
+    )
+    await pool.simulate(n_iterations)
+
+    best = pool.best_player
+    assert isinstance(best, TunedAdaptivePlayer)
     return best
 
 
@@ -314,7 +366,7 @@ async def run_gene_pool(
     best.save(str(output))
     print(f"Saved best weights to {output.resolve()}")
 
-    optimized = SingleLayerPerceptronPlayer.load(
+    optimized = LinearPlayer.load(
         str(output), name="Optimized Single Layer Perceptron Player"
     )
     results = await evaluate_against_computer_players(
@@ -322,6 +374,53 @@ async def run_gene_pool(
     )
 
     print(f"\nOptimized player vs default computer players ({test_games} games):")
+    for name, (wins, draws, losses) in results.items():
+        points = wins + 0.5 * draws
+        print(
+            f"  {name}: {wins}W {draws}D {losses}L "
+            f"({points / test_games:.1%})"
+        )
+
+    return results
+
+
+async def run_tuning(
+    n_players: int = 32,
+    n_iterations: int = 100,
+    n_games: int = 20,
+    n_replace: int = 8,
+    mutation_rate: float = 0.1,
+    seed: Optional[int] = 0,
+    test_games: int = 100,
+    opponent_names: Optional[Sequence[str]] = None,
+    output: str | Path = TUNED_ADAPTIVE_PARAMS_PATH,
+) -> dict[str, tuple[int, int, int]]:
+    """Evolve TunedAdaptivePlayer's parameters against all five
+    benchmark players, save them to ``output``, then play ``test_games``
+    games against each benchmark player and report the results.
+    """
+    best = await train_tuned_adaptive(
+        opponent_names=opponent_names,
+        n_players=n_players,
+        n_iterations=n_iterations,
+        n_games=n_games,
+        n_replace=n_replace,
+        mutation_rate=mutation_rate,
+        seed=seed,
+    )
+
+    output = Path(output)
+    best.save(str(output))
+    print(f"Saved tuned parameters to {output.resolve()}")
+    print(best)
+
+    tuned = TunedAdaptivePlayer.load(str(output), name="Tuned Adaptive Player")
+    names = None if not opponent_names else list(opponent_names)
+    results = await evaluate_against_computer_players(
+        tuned, n_games=test_games, opponent_names=names
+    )
+
+    print(f"\nTuned player vs benchmark players ({test_games} games):")
     for name, (wins, draws, losses) in results.items():
         points = wins + 0.5 * draws
         print(

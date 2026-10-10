@@ -13,7 +13,7 @@ class EvolutionaryPlayer(Player, metaclass=abc.ABCMeta):
         pass
 
 
-class SingleLayerPerceptronPlayer(EvolutionaryPlayer):
+class LinearPlayer(EvolutionaryPlayer):
     INPUTS_LENGTH: ClassVar[int] = 16 + 16 + 16 + 1 + 1 + 1
 
     def __init__(self, name: str, weights_matrix: np.ndarray):
@@ -24,9 +24,9 @@ class SingleLayerPerceptronPlayer(EvolutionaryPlayer):
         self.weights_matrix = weights_matrix
 
     @classmethod
-    def randomized(cls) -> "SingleLayerPerceptronPlayer":
+    def randomized(cls) -> "LinearPlayer":
         return cls(
-            name="Randomized Single Layer Perceptron Player",
+            name="Randomized Single Linear Layer Player",
             weights_matrix=np.random.normal(0, 1, (16, cls.INPUTS_LENGTH)),
         )
 
@@ -36,7 +36,7 @@ class SingleLayerPerceptronPlayer(EvolutionaryPlayer):
     @classmethod
     def load(
         cls, path: str, name: str = "Single Layer Perceptron Player"
-    ) -> "SingleLayerPerceptronPlayer":
+    ) -> "LinearPlayer":
         return cls(name=name, weights_matrix=np.load(path))
 
     def __str__(self):
@@ -45,7 +45,7 @@ class SingleLayerPerceptronPlayer(EvolutionaryPlayer):
         mission_weights = self.weights_matrix[:, 32:48]
         current_mission_weight = self.weights_matrix[:, 48]
         score_weights = self.weights_matrix[:, 49:51]
-        return f"""SingleLayerPerceptronPlayer(
+        return f"""{self.__class__.__name__}(
     white_weights={white_weights},
     black_weights={black_weights},
     mission_weights={mission_weights},
@@ -55,10 +55,10 @@ class SingleLayerPerceptronPlayer(EvolutionaryPlayer):
 
     def create_offspring(
         self, mutation_rate: float = 0.1
-    ) -> "SingleLayerPerceptronPlayer":
+    ) -> "LinearPlayer":
         new_weights = self.weights_matrix.copy()
         new_weights += np.random.normal(0, mutation_rate, self.weights_matrix.shape)
-        return SingleLayerPerceptronPlayer(name=self.name, weights_matrix=new_weights)
+        return LinearPlayer(name=self.name, weights_matrix=new_weights)
 
     def to_vector(self, state: Spymaster) -> np.ndarray:
         vec = np.zeros(self.INPUTS_LENGTH, dtype=np.float32)

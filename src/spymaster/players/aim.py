@@ -87,3 +87,6 @@ def chuck(mine: Collection[int]) -> int:
         min((x for x in mine if x > 0), default=None),
         0,
     )
+
+def check(probability: float) -> bool:
+    return random() < probability
