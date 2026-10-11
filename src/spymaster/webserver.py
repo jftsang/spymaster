@@ -7,8 +7,9 @@ from uuid import uuid4
 import numpy as np
 import uvicorn
 from commonmark import commonmark
-from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.websockets import WebSocket, WebSocketDisconnect
 
 from spymaster.players import Player
@@ -440,16 +441,31 @@ gs = GameServer()
 app = gs.app
 
 frontend_dir = Path(__file__).parent / "../../dist/frontend"
+static_dir = Path(__file__).parent.parent / "frontend" / "static"
 weights_dir = Path(__file__).parent / "weights"
 help_template_path = Path(__file__).parent.parent / "frontend" / "help.html"
 privacy_path = Path(__file__).parent.parent / "frontend" / "privacy.html"
 how_to_play_path = Path(__file__).parent / "../../HowToPlay.md"
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 app.frontend("/", directory=frontend_dir)
+
+FAVICON_LINKS = "\n".join(
+    [
+        '<link rel="icon" href="/static/icon.ico" sizes="any">',
+        '<link rel="icon" type="image/png" href="/static/icon.png">',
+    ]
+)
+
+
+def _render_page(path: Path) -> str:
+    """Read a static HTML page and inject the favicon links before its title."""
+    page = path.read_text(encoding="utf-8")
+    return page.replace("<title>", FAVICON_LINKS + "\n<title>", 1)
 
 
 @app.get("/")
-async def index_view(request: Request):
-    return FileResponse(frontend_dir / "main.html")
+async def index_view() -> HTMLResponse:
+    return HTMLResponse(_render_page(frontend_dir / "main.html"))
 
 
 @app.websocket("/ws")
@@ -464,18 +480,18 @@ async def ws(websocket: WebSocket):
 async def help_view() -> HTMLResponse:
     markdown_text = how_to_play_path.read_text(encoding="utf-8")
     content = commonmark(markdown_text)
-    page = help_template_path.read_text(encoding="utf-8")
+    page = _render_page(help_template_path)
     return HTMLResponse(page.replace("<!--HELP_CONTENT-->", content))
 
 
 @app.get("/privacy")
-async def privacy_view() -> FileResponse:
-    return FileResponse(privacy_path)
+async def privacy_view() -> HTMLResponse:
+    return HTMLResponse(_render_page(privacy_path))
 
 
 @app.get("/weights")
-async def weights_view() -> FileResponse:
-    return FileResponse(frontend_dir / "weights.html")
+async def weights_view() -> HTMLResponse:
+    return HTMLResponse(_render_page(frontend_dir / "weights.html"))
 
 
 @app.get("/api/weights")
