@@ -12,6 +12,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.websockets import WebSocket, WebSocketDisconnect
 
+from spymaster.logger import logger
 from spymaster.players import Player
 from spymaster.players.computer_players import computer_players, new_computer_player
 from spymaster.players.online_player import OnlinePlayer
@@ -93,7 +94,7 @@ class ActiveGame:
             except asyncio.CancelledError:
                 return
             except Exception as exc:
-                print("game error:", type(exc).__name__, exc)
+                logger.error("game error: %s: %s", type(exc).__name__, exc)
         await self.finish(forfeiter, reason)
 
     async def finish(self, forfeiter: Optional[str], reason: str) -> None:
@@ -105,7 +106,15 @@ class ActiveGame:
         else:
             winner = self.opponent_name(forfeiter)
         msg = {"msgType": "gameOver", "winner": winner, "reason": reason}
-        print(f"game over: '{reason}' winner={winner}")
+        logger.info(
+            "game over: %s %s - %s %s (reason=%s, winner=%s)",
+            self.white.name,
+            self.game.white_score,
+            self.game.black_score,
+            self.black.name,
+            reason,
+            winner,
+        )
         for side in self.sides():
             session = side.session
             if session is None:
@@ -117,6 +126,7 @@ class ActiveGame:
             await session.send(msg)
         self.server.remove_game(self)
         await self.server.broadcast_players()
+        self.server.log("game over")
 
 
 class GameServer:
@@ -149,16 +159,27 @@ class GameServer:
         except WebSocketDisconnect:
             pass
         except Exception as exc:
-            print("websocket error:", type(exc).__name__, exc)
+            logger.error("websocket error: %s: %s", type(exc).__name__, exc)
         finally:
             await self.disconnect(session)
 
     async def disconnect(self, session: UserSession) -> None:
         session.detach()
+        who = session.username or session.session_id
+        active = session.active_game
+        if active is not None and not active.over:
+            logger.warning(
+                "connection lost: %s dropped mid-game vs %s (grace period running)",
+                who,
+                active.opponent_name(who),
+            )
+        else:
+            logger.info("connection lost: %s", who)
         await self.cancel_pending_challenges(session)
         if session.active_game is not None and not session.active_game.over:
             await self.notify_others(session, "opponentDisconnected")
         await self.broadcast_players()
+        self.log("disconnect")
 
     # -- receive-loop routing ---------------------------------------------
 
@@ -180,7 +201,7 @@ class GameServer:
             elif mtype == "leaveGame":
                 await self.leave_game(session)
         except Exception as exc:
-            print("handle error:", type(exc).__name__, exc)
+            logger.error("handle error: %s: %s", type(exc).__name__, exc)
 
     # -- lobby / matchmaking ----------------------------------------------
 
@@ -191,6 +212,7 @@ class GameServer:
             )
             return
         username = str(username).strip()
+        reconnect = session.username is not None
         if session.username is not None:
             # Existing identity wins (reconnect); ignore renames.
             username = session.username
@@ -198,25 +220,35 @@ class GameServer:
             other is not session and other.username == username
             for other in self.sessions.values()
         ):
+            logger.warning("login refused: %s is already in use", username)
             await session.send(
                 {"msgType": "loginFailed", "reason": f"{username} is already in use"}
             )
             return
         session.username = username
-        print("login:", username)
+        logger.info("login: %s%s", username, " (reconnecting)" if reconnect else "")
         await session.send({"msgType": "loginOk", "username": username})
         active = session.active_game
         if active is not None and not active.over:
+            logger.info(
+                "reconnect: %s rejoined game vs %s",
+                username,
+                active.opponent_name(username),
+            )
             await self.notify_others(session, "opponentReconnected")
         if session.last_game_message is not None:
             await session.send(session.last_game_message)
         await self.broadcast_players()
+        self.log("login")
 
     async def challenge(self, session: UserSession, target) -> None:
         me = session.username
         if me is None or not target:
             return
         if session.in_game or target == me:
+            logger.info(
+                "challenge refused: %s -> %s (cannot challenge right now)", me, target
+            )
             await session.send(
                 {
                     "msgType": "challengeRefused",
@@ -226,6 +258,7 @@ class GameServer:
             )
             return
         if session.pending_challenge_to is not None:
+            logger.info("challenge refused: %s -> %s (already challenging)", me, target)
             await session.send(
                 {
                     "msgType": "challengeRefused",
@@ -236,10 +269,12 @@ class GameServer:
             return
         if target in computer_players:
             # Computer players always accept.
+            logger.info("challenge: %s -> %s (computer, auto-accept)", me, target)
             await self._start(session, computer_name=target)
             return
         target_session = self.find_session(target)
         if target_session is None or not target_session.connected:
+            logger.info("challenge refused: %s -> %s (not online)", me, target)
             await session.send(
                 {
                     "msgType": "challengeRefused",
@@ -249,6 +284,7 @@ class GameServer:
             )
             return
         if target_session.in_game:
+            logger.info("challenge refused: %s -> %s (already in a game)", me, target)
             await session.send(
                 {
                     "msgType": "challengeRefused",
@@ -258,6 +294,11 @@ class GameServer:
             )
             return
         if target_session.pending_challenge_from is not None:
+            logger.info(
+                "challenge refused: %s -> %s (target has a pending challenge)",
+                me,
+                target,
+            )
             await session.send(
                 {
                     "msgType": "challengeRefused",
@@ -268,6 +309,7 @@ class GameServer:
             return
         session.pending_challenge_to = target
         target_session.pending_challenge_from = me
+        logger.info("challenge: %s -> %s (pending)", me, target)
         await target_session.send({"msgType": "challenge", "from": me})
 
     async def accept_from(self, session_b: UserSession, from_name) -> None:
@@ -278,9 +320,13 @@ class GameServer:
         session_b.pending_challenge_from = None
         challenger = self.find_session(from_name)
         if challenger is None or not challenger.connected:
+            logger.warning(
+                "challenge accept ignored: %s is no longer online", from_name
+            )
             return
         if challenger.pending_challenge_to == session_b.username:
             challenger.pending_challenge_to = None
+        logger.info("challenge accepted: %s accepts %s", session_b.username, from_name)
         await self._start(challenger, other_session=session_b)
 
     async def decline_from(self, session_b: UserSession, from_name) -> None:
@@ -293,6 +339,9 @@ class GameServer:
             and challenger.pending_challenge_to == session_b.username
         ):
             challenger.pending_challenge_to = None
+            logger.info(
+                "challenge declined: %s declines %s", session_b.username, from_name
+            )
             await challenger.send(
                 {"msgType": "challengeDeclined", "from": session_b.username}
             )
@@ -303,6 +352,7 @@ class GameServer:
         if target is None:
             return
         session.pending_challenge_to = None
+        logger.info("challenge withdrawn: %s -> %s", session.username, target)
         target_session = self.find_session(target)
         if (
             target_session is not None
@@ -318,6 +368,7 @@ class GameServer:
         active = session.active_game
         if active is None or active.over:
             return
+        logger.info("leave game: %s", session.username)
         if not active.end_future.done():
             active.end_future.set_result(session.username)
 
@@ -357,8 +408,9 @@ class GameServer:
             opponent = black.name if side is white else white.name
             await session.send({"msgType": "gameStart", "opponent": opponent})
         asyncio.create_task(active.run())
-        print("game started:", white.name, "vs", black.name)
+        logger.info("game started: %s (white) vs %s (black)", white.name, black.name)
         await self.broadcast_players()
+        self.log("game started")
 
     def remove_game(self, active: ActiveGame) -> None:
         for gid, game in list(self.games.items()):
@@ -373,6 +425,32 @@ class GameServer:
             if session.username == username:
                 return session
         return None
+
+    def online_summary(self) -> str:
+        """A short human-readable snapshot of who is around.
+
+        For players in a game, distinguishes those still choosing a
+        card from those already waiting on their opponent, and flags
+        any who have dropped but are still inside their grace period.
+        """
+        entries = []
+        for session in self.sessions.values():
+            if session.username is None:
+                continue
+            if not session.connected:
+                if session.in_game:
+                    entries.append(f"{session.username} (disconnected, in game)")
+                continue
+            if session.in_game:
+                status = "choosing card" if session.awaiting_card else "ready"
+            else:
+                status = "in lobby"
+            entries.append(f"{session.username} ({status})")
+        return ", ".join(entries) if entries else "nobody"
+
+    def log(self, event: str) -> None:
+        """Print an event alongside a snapshot of current connections."""
+        logger.info("%s | connected: %s", event, self.online_summary())
 
     def online_players(self):
         players = []

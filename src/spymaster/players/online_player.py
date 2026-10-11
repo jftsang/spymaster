@@ -1,5 +1,6 @@
 from typing import Optional
 
+from spymaster.logger import logger
 from spymaster.players import Player
 from spymaster.session import UserSession
 from spymaster.spymaster import MissionResult, Spymaster
@@ -41,14 +42,34 @@ class OnlinePlayer(Player):
         self.wscomm = WsComm(session)
 
     async def pick(self, state: Spymaster) -> int:
+        logger.info(
+            "awaiting card: %s to play mission %s (score %s-%s, hand %s)",
+            self.name,
+            state.current_mission,
+            state.white_score,
+            state.black_score,
+            state.white_cards,
+        )
         await self.wscomm.send_situation(state, "Pick a card")
         while True:
             choice = await self.session.await_card()
-            print("Choice:", choice)
+            logger.info("%s selected card %s", self.name, choice)
             if choice in state.white_cards:
                 return choice
             else:
+                logger.warning(
+                    "%s chose an invalid card %s; re-prompting", self.name, choice
+                )
                 await self.wscomm.send_situation(state, f"{choice} is not a valid card")
 
     async def receive(self, state, result: MissionResult) -> None:
+        logger.info(
+            "%s mission %s result: played %s, opponent played %s (score %s-%s)",
+            self.name,
+            result.mission,
+            result.you_played,
+            result.opp_played,
+            state.white_score,
+            state.black_score,
+        )
         await self.wscomm.send_result(state, result)

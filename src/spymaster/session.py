@@ -2,9 +2,14 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from fastapi.websockets import WebSocket
+
+from spymaster.logger import logger
+
+if TYPE_CHECKING:
+    from spymaster.webserver import ActiveGame
 
 GRACE_PERIOD = timedelta(minutes=5)
 GRACE_REPOLL_SECONDS = 1.0
@@ -38,7 +43,7 @@ class UserSession:
         self.connected = False
         self.disconnected_at: Optional[datetime] = None
 
-        self.active_game: Optional[object] = None
+        self.active_game: Optional["ActiveGame"] = None
         self.in_game = False
         self.pending_challenge_to: Optional[str] = None
         self.pending_challenge_from: Optional[str] = None
@@ -46,6 +51,7 @@ class UserSession:
 
         self._send_lock = asyncio.Lock()
         self._card_future: Optional[asyncio.Future] = None
+        self.awaiting_card = False
 
     # -- wiring -----------------------------------------------------------
 
@@ -54,6 +60,7 @@ class UserSession:
         self.websocket = ws
         self.connected = True
         self.disconnected_at = None
+        logger.debug("attached websocket to session %s", self.session_id)
 
     def detach(self) -> None:
         """Mark the session as disconnected. The grace period for any
@@ -61,6 +68,7 @@ class UserSession:
         self.connected = False
         self.disconnected_at = datetime.now(timezone.utc)
         self.websocket = None
+        logger.debug("detached session %s", self.session_id)
 
     # -- sending ----------------------------------------------------------
 
@@ -101,6 +109,7 @@ class UserSession:
         loop = asyncio.get_running_loop()
         future: asyncio.Future = loop.create_future()
         self._card_future = future
+        self.awaiting_card = True
         try:
             while True:
                 if future.done():
@@ -113,6 +122,10 @@ class UserSession:
                         self.disconnected_at + GRACE_PERIOD - now
                     ).total_seconds()
                     if remaining <= 0:
+                        logger.warning(
+                            "grace period expired: %s forfeits",
+                            self.username or self.session_id,
+                        )
                         raise Forfeit(self.username or self.session_id, "grace")
                     step = min(GRACE_REPOLL_SECONDS, remaining)
                 try:
@@ -120,5 +133,6 @@ class UserSession:
                 except asyncio.TimeoutError:
                     continue
         finally:
+            self.awaiting_card = False
             if self._card_future is future:
                 self._card_future = None
