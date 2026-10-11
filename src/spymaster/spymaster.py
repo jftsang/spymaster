@@ -1,12 +1,11 @@
 import asyncio
-import typing
 from random import shuffle
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from pydantic import BaseModel, Field, field_serializer
 from pydantic.alias_generators import to_camel
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from spymaster.players import Player
 
 
@@ -57,12 +56,29 @@ def mission_factory() -> List[int]:
     return list(range(1, 17))
 
 
-def playerencoder(player: "Player") -> str:
-    return player.name
+class GameHistoryStep(BaseModel):
+    mission: int
+    white_played: int
+    black_played: int
+    white_score: int
+    black_score: int
+
+    def flipped(self) -> GameHistoryStep:
+        return GameHistoryStep(
+            mission=self.mission,
+            white_played=self.black_played,
+            black_played=self.white_played,
+            white_score=self.black_score,
+            black_score=self.white_score,
+        )
 
 
 class Spymaster(BaseModel):
-    model_config = {"arbitrary_types_allowed": True, "populate_by_name": True, "alias_generator": to_camel}
+    model_config = {
+        "arbitrary_types_allowed": True,
+        "populate_by_name": True,
+        "alias_generator": to_camel,
+    }
 
     white: Player | None = None
     black: Player | None = None
@@ -70,8 +86,9 @@ class Spymaster(BaseModel):
     black_cards: List[int] = Field(default_factory=card_factory)
     white_score: int = 0
     black_score: int = 0
-    current_mission: Optional[int] = None
+    current_mission: int | None = None
     remaining_missions: List[int] = Field(default_factory=mission_factory)
+    history: list[GameHistoryStep] = Field(default_factory=list)
 
     @field_serializer("white", "black")
     def serialize_players(self, player: Optional["Player"], _info):
@@ -107,33 +124,26 @@ class Spymaster(BaseModel):
             self.current_mission = self.remaining_missions.pop()
             self.remaining_missions.sort()
 
-            white_pick = asyncio.ensure_future(
-                self.choose_and_validate(self.white)
-            )
+            white_pick = asyncio.ensure_future(self.choose_and_validate(self.white))
             black_pick = asyncio.ensure_future(
                 self.flipped().choose_and_validate(self.black)
             )
             try:
-                white_play, black_play = await asyncio.gather(
-                    white_pick, black_pick
-                )
+                white_play, black_play = await asyncio.gather(white_pick, black_pick)
             except BaseException:
                 for task in (white_pick, black_pick):
                     task.cancel()
-                await asyncio.gather(
-                    white_pick, black_pick, return_exceptions=True
-                )
+                await asyncio.gather(white_pick, black_pick, return_exceptions=True)
                 raise
-            result = self.resolve(white_play, black_play)
 
+            result = self.resolve(white_play, black_play)
             if not self.white_cards:
                 assert not self.black_cards
                 result.game_over = True
 
             wr = self.white.receive(self, result)
             br = self.black.receive(self, result.flipped())
-            await wr
-            await br
+            await asyncio.gather(wr, br)
 
     def resolve(self, white_play: int, black_play: int) -> "MissionResult":
         """
@@ -145,6 +155,8 @@ class Spymaster(BaseModel):
         @param black_play: The card that Black played
         @return: MissionResult from White's point of view
         """
+        assert self.current_mission is not None
+
         if white_play not in self.white_cards:
             raise ValueError("White card not in hand")
 
@@ -162,15 +174,25 @@ class Spymaster(BaseModel):
             dw = black_play
         elif black_play == 0:
             db = white_play
-        elif white_play > black_play and self.current_mission is not None:
+        elif white_play > black_play:
             dw = self.current_mission
-        elif white_play < black_play and self.current_mission is not None:
+        elif white_play < black_play:
             db = self.current_mission
         else:
             raise RuntimeError
 
         self.white_score += dw
         self.black_score += db
+
+        self.history.append(
+            GameHistoryStep(
+                mission=self.current_mission,
+                white_played=white_play,
+                black_played=black_play,
+                white_score=self.white_score,
+                black_score=self.black_score,
+            )
+        )
 
         return MissionResult(
             you_played=white_play,
