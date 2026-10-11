@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, Optional
 from uuid import uuid4
 
+import numpy as np
 import uvicorn
 from commonmark import commonmark
 from fastapi import FastAPI, Request
@@ -439,6 +440,7 @@ gs = GameServer()
 app = gs.app
 
 frontend_dir = Path(__file__).parent / "../../dist/frontend"
+weights_dir = Path(__file__).parent / "weights"
 help_template_path = Path(__file__).parent.parent / "frontend" / "help.html"
 how_to_play_path = Path(__file__).parent / "../../HowToPlay.md"
 app.frontend("/", directory=frontend_dir)
@@ -463,6 +465,33 @@ async def help_view() -> HTMLResponse:
     content = commonmark(markdown_text)
     page = help_template_path.read_text(encoding="utf-8")
     return HTMLResponse(page.replace("<!--HELP_CONTENT-->", content))
+
+
+@app.get("/weights")
+async def weights_view() -> FileResponse:
+    return FileResponse(frontend_dir / "weights.html")
+
+
+@app.get("/api/weights")
+async def weights_data() -> dict:
+    """Expose the trained single-linear-layer weight matrices as JSON so
+    the weight explorer page can render them.
+    """
+    from spymaster.players.evolutionary_players import LinearPlayer
+
+    players = []
+    for path in sorted(weights_dir.glob("*.npy")):
+        matrix = np.load(path)
+        if matrix.ndim != 2 or matrix.shape != (16, LinearPlayer.INPUTS_LENGTH):
+            continue
+        players.append(
+            {
+                "name": path.stem.replace("_", " ").title(),
+                "file": path.name,
+                "weights": matrix.tolist(),
+            }
+        )
+    return {"inputs": LinearPlayer.INPUTS_LENGTH, "players": players}
 
 
 if __name__ == "__main__":

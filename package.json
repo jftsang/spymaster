@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Spymaster game frontend",
   "source": [
-    "src/frontend/main.html"
+    "src/frontend/main.html",
+    "src/frontend/weights.html"
   ],
   "scripts": {
     "build": "parcel build --dist-dir dist/frontend",

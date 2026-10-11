@@ -1,0 +1,72 @@
+.weights-scroll {
+    overflow-x: auto;
+    max-width: 100%;
+    padding-bottom: 4px;
+}
+
+table.weights-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 12px;
+}
+
+table.weights-table th,
+table.weights-table td {
+    border-right: 1px solid #dee2e6;
+    border-bottom: 1px solid #dee2e6;
+    padding: 0;
+    text-align: center;
+}
+
+table.weights-table thead th {
+    border-top: 1px solid #dee2e6;
+}
+
+table.weights-table th.row-head {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #f1f3f5;
+    padding: 0 8px;
+    min-width: 2.5em;
+    font-weight: 600;
+}
+
+table.weights-table thead th.row-head {
+    z-index: 3;
+}
+
+table.weights-table td {
+    width: 30px;
+    height: 26px;
+}
+
+table.weights-table th.col-head {
+    min-width: 30px;
+    padding: 2px 4px;
+    background: #f8f9fa;
+    font-weight: 600;
+}
+
+table.weights-table th.group-head {
+    padding: 3px 6px;
+    background: #e9ecef;
+}
+
+table.weights-table th.group-head,
+table.weights-table .group-start {
+    border-left: 2px solid #adb5bd;
+}
+
+span.legend-gradient {
+    display: inline-block;
+    width: 200px;
+    height: 14px;
+    border: 1px solid #adb5bd;
+    background: linear-gradient(
+        to right,
+        rgb(45, 90, 214),
+        rgb(255, 255, 255),
+        rgb(214, 45, 45)
+    );
+}

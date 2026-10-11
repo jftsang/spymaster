@@ -192,5 +192,20 @@ class TestHelpPage(unittest.TestCase):
         self.assertNotIn("<!--HELP_CONTENT-->", response.text)
 
 
+class TestWeightsApi(unittest.TestCase):
+    def setUp(self):
+        self.client = TestClient(app)
+
+    def test_weights_matrices_exposed(self):
+        response = self.client.get("/api/weights")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["inputs"], 51)
+        self.assertTrue(data["players"])
+        for player in data["players"]:
+            self.assertEqual(len(player["weights"]), 16)
+            self.assertEqual(len(player["weights"][0]), 51)
+
+
 if __name__ == "__main__":
     unittest.main()
