@@ -15,9 +15,12 @@ of that agent instead of the value of the mission. If both players play
 the same card, then the mission is a draw and neither player wins any
 points for that round.
 
-Spymaster is a variation on the game [Goofspiel](https://en.wikipedia.org/wiki/Goofspiel)
-created by [Richard Bartle](http://mud.co.uk/richard/), who introduced a
-new strategic element in the form of the assassin. You can play the
-original game [on Dr Bartle's website](https://www.youhaventlived.com/spymaster/).
-This is a remake in Python and FastAPI allowing for multiplayer play and
-for the development of additional strategies.
+Spymaster was created by [Richard Bartle][bartle] as a variation on the
+game [Goofspiel][goofspiel]. Spymaster introduces a new strategic
+element in the form of the assassin. You can play the original game [on
+Dr Bartle's website][upstream]. This website is a remake with support
+for multiplayer and support for additional AIs.
+
+[bartle]: http://mud.co.uk/richard/
+[goofspiel]: https://en.wikipedia.org/wiki/Goofspiel
+[upstream]: https://www.youhaventlived.com/spymaster/
