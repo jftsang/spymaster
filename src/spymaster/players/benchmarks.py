@@ -126,5 +126,11 @@ britain = SimpleAimingPlayer(name="AI (Medium)", variance=4)
 america = AmericaPlayer(name="AI (Hard)")
 russia = RussiaPlayer(name="AI (Hardest)", bloodthirst=0.5, paranoia=0.5, idleness=0.33)
 
-default_computer_players = [china, france, britain, america, russia]
+default_computer_players = [
+    china,
+    france,
+    britain,
+    america,
+    russia,
+]
 default_computer_player_names = [p.name for p in default_computer_players]

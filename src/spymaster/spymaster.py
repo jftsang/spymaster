@@ -63,7 +63,7 @@ class GameHistoryStep(BaseModel):
     white_score: int
     black_score: int
 
-    def flipped(self) -> GameHistoryStep:
+    def flipped(self) -> "GameHistoryStep":
         return GameHistoryStep(
             mission=self.mission,
             white_played=self.black_played,
@@ -80,8 +80,8 @@ class Spymaster(BaseModel):
         "alias_generator": to_camel,
     }
 
-    white: Player | None = None
-    black: Player | None = None
+    white: Optional["Player"] = None
+    black: Optional["Player"] = None
     white_cards: List[int] = Field(default_factory=card_factory)
     black_cards: List[int] = Field(default_factory=card_factory)
     white_score: int = 0

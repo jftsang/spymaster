@@ -22,6 +22,7 @@ TUNED_ADAPTIVE_PARAMS_PATH = WEIGHTS_DIR / "tuned_adaptive.npy"
 
 LINEAR_AMERICA_NAME = "AI (Single Linear Layer #1)"
 LINEAR_RUSSIA_NAME = "AI (Single Linear Layer #2)"
+TUNED_ADAPTIVE_NAME = "AI (Tuned Adaptive)"
 
 _perceptron_cache: dict[Path, Player] = {}
 
@@ -38,6 +39,17 @@ def load_perceptron(name: str, weights_path: Path) -> Player:
             str(weights_path), name=name
         )
     return _perceptron_cache[weights_path]
+
+
+def load_tuned_adaptive(name: str = TUNED_ADAPTIVE_NAME) -> Player:
+    """Load a TunedAdaptivePlayer from saved parameters. Loaded players
+    are cached and reused; they carry no mutable state.
+    """
+    if TUNED_ADAPTIVE_PARAMS_PATH not in _perceptron_cache:
+        _perceptron_cache[TUNED_ADAPTIVE_PARAMS_PATH] = TunedAdaptivePlayer.load(
+            TUNED_ADAPTIVE_PARAMS_PATH, name=name
+        )
+    return _perceptron_cache[TUNED_ADAPTIVE_PARAMS_PATH]
 
 
 def _clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
@@ -131,6 +143,7 @@ def new_computer_player(name: str) -> Player:
         LINEAR_RUSSIA_NAME: lambda: load_perceptron(
             LINEAR_RUSSIA_NAME, LINEAR_RUSSIA_WEIGHTS_PATH
         ),
+        TUNED_ADAPTIVE_NAME: lambda: load_tuned_adaptive(),
     }
     try:
         return factories[name]()
@@ -148,3 +161,7 @@ for _name, _path in [
 ]:
     if _path.exists():
         computer_players[_name] = load_perceptron(_name, _path)
+
+# Tuned Adaptive player is registered if its parameter artifacts exist.
+if TUNED_ADAPTIVE_PARAMS_PATH.exists():
+    computer_players[TUNED_ADAPTIVE_NAME] = load_tuned_adaptive()
