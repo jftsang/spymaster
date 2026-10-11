@@ -8,11 +8,11 @@ import numpy as np
 from tqdm import tqdm
 
 from spymaster.players import Player
+from spymaster.players.benchmarks import default_computer_player_names
 from spymaster.players.computer_players import (
     TUNED_ADAPTIVE_PARAMS_PATH,
     TunedAdaptivePlayer,
     computer_players,
-    default_computer_player_names,
     new_computer_player,
 )
 from spymaster.players.evolutionary_players import (
@@ -415,7 +415,11 @@ async def run_tuning(
     print(best)
 
     tuned = TunedAdaptivePlayer.load(str(output), name="Tuned Adaptive Player")
-    names = None if not opponent_names else list(opponent_names)
+    names = (
+        list(opponent_names)
+        if opponent_names
+        else list(default_computer_player_names)
+    )
     results = await evaluate_against_computer_players(
         tuned, n_games=test_games, opponent_names=names
     )

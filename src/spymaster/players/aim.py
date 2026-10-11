@@ -1,4 +1,4 @@
-from random import randint
+from random import randint, random
 from typing import Collection, Optional
 
 

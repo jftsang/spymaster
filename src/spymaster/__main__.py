@@ -104,12 +104,12 @@ async def benchmark_command(args: argparse.Namespace) -> None:
         evaluate_against_computer_players,
         head_to_head,
     )
+    from spymaster.players.benchmarks import default_computer_player_names
     from spymaster.players.computer_players import (
         LINEAR_AMERICA_WEIGHTS_PATH,
         LINEAR_AMERICA_NAME,
         LINEAR_RUSSIA_NAME,
         LINEAR_RUSSIA_WEIGHTS_PATH,
-        default_computer_player_names,
         load_perceptron,
     )
 
