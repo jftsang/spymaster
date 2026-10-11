@@ -70,6 +70,15 @@ button.mission {
     margin: 1px;
 }
 
+footer.site-footer a {
+    color: #6ea8fe;
+    text-decoration: none;
+}
+
+footer.site-footer a:hover {
+    text-decoration: underline;
+}
+
 div#howToPlayDiv {
     bottom: 0;
     right: 0;

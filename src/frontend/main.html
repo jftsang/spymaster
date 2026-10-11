@@ -7,8 +7,15 @@
   <link rel="stylesheet" href="static/spymaster.css">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
-<body class="bg-dark text-light">
-  <div id="app"></div>
+<body class="bg-dark text-light d-flex flex-column min-vh-100">
+  <div id="app" class="flex-grow-1"></div>
+  <footer class="site-footer small text-center py-3">
+    <a href="https://github.com/jftsang/spymaster" target="_blank" rel="noopener noreferrer">GitHub</a>
+    <span class="mx-2">&middot;</span>
+    <a href="/help" target="_blank" rel="noopener noreferrer">Help</a>
+    <span class="mx-2">&middot;</span>
+    <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy</a>
+  </footer>
   <script type="module" src="static/index.tsx"></script>
 </body>
 </html>

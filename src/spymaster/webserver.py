@@ -442,6 +442,7 @@ app = gs.app
 frontend_dir = Path(__file__).parent / "../../dist/frontend"
 weights_dir = Path(__file__).parent / "weights"
 help_template_path = Path(__file__).parent.parent / "frontend" / "help.html"
+privacy_path = Path(__file__).parent.parent / "frontend" / "privacy.html"
 how_to_play_path = Path(__file__).parent / "../../HowToPlay.md"
 app.frontend("/", directory=frontend_dir)
 
@@ -465,6 +466,11 @@ async def help_view() -> HTMLResponse:
     content = commonmark(markdown_text)
     page = help_template_path.read_text(encoding="utf-8")
     return HTMLResponse(page.replace("<!--HELP_CONTENT-->", content))
+
+
+@app.get("/privacy")
+async def privacy_view() -> FileResponse:
+    return FileResponse(privacy_path)
 
 
 @app.get("/weights")
