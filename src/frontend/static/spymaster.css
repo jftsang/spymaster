@@ -57,14 +57,14 @@ button.their-selected {
 }
 
 button.mission {
-    --bs-btn-bg: limegreen;
-    --bs-btn-border-color: limegreen;
+    --bs-btn-bg: #25bf25;
+    --bs-btn-border-color: #25bf25;
     --bs-btn-hover-bg: limegreen;
     --bs-btn-hover-border-color: limegreen;
     --bs-btn-active-bg: limegreen;
     --bs-btn-active-border-color: limegreen;
-    --bs-btn-disabled-bg: limegreen;
-    --bs-btn-disabled-border-color: limegreen;
+    --bs-btn-disabled-bg: #487d48;
+    --bs-btn-disabled-border-color: #487d48;
     width: 2em;
     padding: 0;
     margin: 1px;
