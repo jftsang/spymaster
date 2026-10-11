@@ -17,12 +17,30 @@ from .evolutionary_players import EvolutionaryPlayer
 WEIGHTS_DIR = Path(__file__).parent.parent / "weights"
 LINEAR_AMERICA_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_america.npy"
 LINEAR_RUSSIA_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_russia.npy"
+LINEAR_CHINA_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_china.npy"
+LINEAR_FRANCE_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_france.npy"
+LINEAR_BRITAIN_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_britain.npy"
+LINEAR_BENCHMARK_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_benchmark.npy"
 
 TUNED_ADAPTIVE_PARAMS_PATH = WEIGHTS_DIR / "tuned_adaptive.npy"
 
 LINEAR_AMERICA_NAME = "AI (Single Linear Layer #1)"
 LINEAR_RUSSIA_NAME = "AI (Single Linear Layer #2)"
+LINEAR_CHINA_NAME = "AI (Single Linear Layer #3)"
+LINEAR_FRANCE_NAME = "AI (Single Linear Layer #4)"
+LINEAR_BRITAIN_NAME = "AI (Single Linear Layer #5)"
+LINEAR_BENCHMARK_NAME = "AI (Single Linear Layer #6)"
 TUNED_ADAPTIVE_NAME = "AI (Tuned Adaptive)"
+
+# Trained SingleLinearLayer players, keyed by display name.
+LINEAR_PLAYER_SPECS: list[tuple[str, Path]] = [
+    (LINEAR_AMERICA_NAME, LINEAR_AMERICA_WEIGHTS_PATH),
+    (LINEAR_RUSSIA_NAME, LINEAR_RUSSIA_WEIGHTS_PATH),
+    (LINEAR_CHINA_NAME, LINEAR_CHINA_WEIGHTS_PATH),
+    (LINEAR_FRANCE_NAME, LINEAR_FRANCE_WEIGHTS_PATH),
+    (LINEAR_BRITAIN_NAME, LINEAR_BRITAIN_WEIGHTS_PATH),
+    (LINEAR_BENCHMARK_NAME, LINEAR_BENCHMARK_WEIGHTS_PATH),
+]
 
 _perceptron_cache: dict[Path, Player] = {}
 
@@ -137,14 +155,16 @@ def new_computer_player(name: str) -> Player:
         "AI (Hardest)": lambda: RussiaPlayer(
             name="AI (Hardest)", bloodthirst=0.5, paranoia=0.5, idleness=0.33
         ),
-        LINEAR_AMERICA_NAME: lambda: load_perceptron(
-            LINEAR_AMERICA_NAME, LINEAR_AMERICA_WEIGHTS_PATH
-        ),
-        LINEAR_RUSSIA_NAME: lambda: load_perceptron(
-            LINEAR_RUSSIA_NAME, LINEAR_RUSSIA_WEIGHTS_PATH
-        ),
         TUNED_ADAPTIVE_NAME: lambda: load_tuned_adaptive(),
     }
+    factories.update(
+        {
+            player_name: (
+                lambda n=player_name, p=path: load_perceptron(n, p)
+            )
+            for player_name, path in LINEAR_PLAYER_SPECS
+        }
+    )
     try:
         return factories[name]()
     except KeyError:
@@ -155,10 +175,7 @@ computer_players: dict[str, Player] = {p.name: p for p in default_computer_playe
 
 # Trained SingleLayerPerceptron players are registered only once their
 # weight artifacts exist, so a fresh checkout still imports cleanly.
-for _name, _path in [
-    (LINEAR_AMERICA_NAME, LINEAR_AMERICA_WEIGHTS_PATH),
-    (LINEAR_RUSSIA_NAME, LINEAR_RUSSIA_WEIGHTS_PATH),
-]:
+for _name, _path in LINEAR_PLAYER_SPECS:
     if _path.exists():
         computer_players[_name] = load_perceptron(_name, _path)
 

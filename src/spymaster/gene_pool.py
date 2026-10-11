@@ -118,18 +118,20 @@ class PlayAgainstChallengerTournament(Tournament):
 
 
 class FitnessEvaluator:
-    def __init__(self, reference_factory: PlayerFactory = america_factory):
-        self.reference_factory = reference_factory
+    def __init__(
+        self,
+        reference_factories: Sequence[PlayerFactory] = (america_factory,),
+    ):
+        self.reference_factories = list(reference_factories)
 
     async def evaluate_population(self, gene_pool: "GenePool") -> float:
         """Evaluate the population fitness by how well they play against
-        the reference player.
+        the reference players. Each player faces every reference once.
         """
         games = [
-            Spymaster(
-                white=gene_pool.players[i], black=self.reference_factory()
-            )
-            for i in range(gene_pool.n_players)
+            Spymaster(white=player, black=factory())
+            for player in gene_pool.players
+            for factory in self.reference_factories
         ]
         await asyncio.gather(*(game.play() for game in games))
 
@@ -149,17 +151,17 @@ class GenePool:
         n_players: int,
         tournament: Tournament,
         population_factory: EvolutionaryPlayerFactory = LinearPlayer.randomized,
-        reference_factory: PlayerFactory = america_factory,
+        reference_factories: Sequence[PlayerFactory] = (america_factory,),
         n_replace: int = 20,
         mutation_rate: float = 0.1,
     ):
         self.n_players = n_players
-        self.reference_factory = reference_factory
+        self.reference_factories = list(reference_factories)
         self.players: List[EvolutionaryPlayer] = [
             population_factory() for _ in range(n_players)
         ]
         self.tournament = tournament
-        self.fitness_evaluator = FitnessEvaluator(reference_factory)
+        self.fitness_evaluator = FitnessEvaluator(self.reference_factories)
         self.n_replace = n_replace
         self.mutation_rate = mutation_rate
         self._best_player: Optional[EvolutionaryPlayer] = None
@@ -203,7 +205,7 @@ class GenePool:
 
 
 async def train_against(
-    opponent_name: str = "AI (Hard)",
+    opponent_names: str | Sequence[str] = "AI (Hard)",
     n_players: int = 32,
     n_iterations: int = 200,
     n_games: int = 30,
@@ -211,19 +213,24 @@ async def train_against(
     mutation_rate: float = 0.1,
     seed: Optional[int] = 0,
 ) -> LinearPlayer:
-    """Train a population of SingleLayerPerceptronPlayers against the
-    named computer player and return the best player found.
+    """Train a population of SingleLayerPerceptronPlayers against one or
+    more named computer players and return the best player found.
+
+    When several opponents are named, each game picks one uniformly at
+    random, so candidates face a shuffled, evenly-mixed set of
+    opponents.
     """
     if seed is not None:
         np.random.seed(seed)
 
-    def factory() -> Player:
-        return new_computer_player(opponent_name)
+    if isinstance(opponent_names, str):
+        opponent_names = [opponent_names]
+    factories = benchmark_player_factories(opponent_names)
 
     pool = GenePool(
         n_players=n_players,
-        tournament=PlayAgainstChallengerTournament([factory], n_games=n_games),
-        reference_factory=factory,
+        tournament=PlayAgainstChallengerTournament(factories, n_games=n_games),
+        reference_factories=factories,
         n_replace=n_replace,
         mutation_rate=mutation_rate,
     )
@@ -265,7 +272,7 @@ async def train_tuned_adaptive(
         n_players=n_players,
         tournament=PlayAgainstChallengerTournament(factories, n_games=n_games),
         population_factory=TunedAdaptivePlayer.randomized,
-        reference_factory=factories[0],
+        reference_factories=factories,
         n_replace=n_replace,
         mutation_rate=mutation_rate,
     )
@@ -338,7 +345,7 @@ async def head_to_head(
 
 
 async def run_gene_pool(
-    opponent_name: str = "AI (Hard)",
+    opponent_names: str | Sequence[str] = "AI (Hard)",
     n_players: int = 32,
     n_iterations: int = 200,
     n_games: int = 30,
@@ -348,12 +355,15 @@ async def run_gene_pool(
     test_games: int = 100,
     output: str | Path = DEFAULT_WEIGHTS_PATH,
 ) -> dict[str, tuple[int, int, int]]:
-    """Train the gene pool against ``opponent_name``, save the best
+    """Train the gene pool against the named opponent(s), save the best
     weights to ``output``, then play ``test_games`` games against each
-    default computer player and report the results.
+    named opponent and report the results.
     """
+    if isinstance(opponent_names, str):
+        opponent_names = [opponent_names]
+
     best = await train_against(
-        opponent_name=opponent_name,
+        opponent_names=opponent_names,
         n_players=n_players,
         n_iterations=n_iterations,
         n_games=n_games,
@@ -370,10 +380,10 @@ async def run_gene_pool(
         str(output), name="Optimized Single Layer Perceptron Player"
     )
     results = await evaluate_against_computer_players(
-        optimized, n_games=test_games
+        optimized, n_games=test_games, opponent_names=list(opponent_names)
     )
 
-    print(f"\nOptimized player vs default computer players ({test_games} games):")
+    print(f"\nOptimized player vs opponents ({test_games} games):")
     for name, (wins, draws, losses) in results.items():
         points = wins + 0.5 * draws
         print(

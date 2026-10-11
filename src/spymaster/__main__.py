@@ -1,7 +1,6 @@
 import argparse
 import asyncio
 import sys
-from pathlib import Path
 
 from .spymaster import Spymaster
 
@@ -25,8 +24,9 @@ def build_parser() -> argparse.ArgumentParser:
     train.add_argument(
         "--opponent",
         choices=player_names,
-        default="AI (Hard)",
-        help="Computer player to train against (default: AI (Hard)).",
+        nargs="+",
+        default=["AI (Hard)"],
+        help="Computer player(s) to train against (default: AI (Hard)).",
     )
     train.add_argument("--iterations", type=int, default=200)
     train.add_argument("--population", type=int, default=32)
@@ -51,12 +51,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     benchmark.add_argument("--games", type=int, default=100)
     benchmark.add_argument("--seed", type=int, default=0)
-    benchmark.add_argument(
-        "--america", default=None, help="Path to America-trained weights."
-    )
-    benchmark.add_argument(
-        "--russia", default=None, help="Path to Russia-trained weights."
-    )
 
     tune = subparsers.add_parser(
         "tune",
@@ -106,10 +100,7 @@ async def benchmark_command(args: argparse.Namespace) -> None:
     )
     from spymaster.players.benchmarks import default_computer_player_names
     from spymaster.players.computer_players import (
-        LINEAR_AMERICA_WEIGHTS_PATH,
-        LINEAR_AMERICA_NAME,
-        LINEAR_RUSSIA_NAME,
-        LINEAR_RUSSIA_WEIGHTS_PATH,
+        LINEAR_PLAYER_SPECS,
         load_perceptron,
     )
 
@@ -118,16 +109,10 @@ async def benchmark_command(args: argparse.Namespace) -> None:
     if args.seed is not None:
         np.random.seed(args.seed)
 
-    america_path = Path(args.america) if args.america else LINEAR_AMERICA_WEIGHTS_PATH
-    russia_path = Path(args.russia) if args.russia else LINEAR_RUSSIA_WEIGHTS_PATH
-
     players = {
-        LINEAR_AMERICA_NAME: load_perceptron(
-            LINEAR_AMERICA_NAME, america_path
-        ),
-        LINEAR_RUSSIA_NAME: load_perceptron(
-            LINEAR_RUSSIA_NAME, russia_path
-        ),
+        name: load_perceptron(name, path)
+        for name, path in LINEAR_PLAYER_SPECS
+        if path.exists()
     }
 
     for name, player in players.items():
@@ -144,13 +129,16 @@ async def benchmark_command(args: argparse.Namespace) -> None:
                 f"({points / args.games:.1%})"
             )
 
-    a = players[LINEAR_AMERICA_NAME]
-    b = players[LINEAR_RUSSIA_NAME]
-    a_wins, draws, b_wins = await head_to_head(a, b, n_games=args.games)
-    total = 2 * args.games
-    print(f"\nHead to head ({total} games):")
-    print(f"  {LINEAR_AMERICA_NAME}: {a_wins}W {draws}D {b_wins}L")
-    print(f"  {LINEAR_RUSSIA_NAME}: {b_wins}W {draws}D {a_wins}L")
+    names = list(players)
+    if len(names) >= 2:
+        a_name, b_name = names[0], names[1]
+        a_wins, draws, b_wins = await head_to_head(
+            players[a_name], players[b_name], n_games=args.games
+        )
+        total = 2 * args.games
+        print(f"\nHead to head ({total} games):")
+        print(f"  {a_name}: {a_wins}W {draws}D {b_wins}L")
+        print(f"  {b_name}: {b_wins}W {draws}D {a_wins}L")
 
 
 def main() -> None:
@@ -184,7 +172,7 @@ def main() -> None:
 
         asyncio.run(
             run_gene_pool(
-                opponent_name=args.opponent,
+                opponent_names=args.opponent,
                 n_players=args.population,
                 n_iterations=args.iterations,
                 n_replace=args.n_replace,
