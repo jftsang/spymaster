@@ -1,3 +1,11 @@
+body {
+    --bs-body-font-family: monospace;
+}
+
+.bg-dark {
+    background-color: #1c1c1c !important;
+}
+
 #you {
     border: 1px solid black;
 }
@@ -77,16 +85,4 @@ footer.site-footer a {
 
 footer.site-footer a:hover {
     text-decoration: underline;
-}
-
-div#howToPlayDiv {
-    bottom: 0;
-    right: 0;
-    position: fixed;
-    margin: 10px;
-    padding: 10px;
-    text-align: center;
-    vertical-align: center;
-    border: 1px solid black;
-    background-color: #FFFFFF;
 }
