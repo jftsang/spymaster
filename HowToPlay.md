@@ -5,9 +5,10 @@ You play a sequence of 16 missions, which are worth 1 to 16 points, in
 random order. Points are earned by winning a mission or by killing an
 enemy agent.
 
-At the start of the game, each player has 16 agents, numbered 0 to 15.
-Each round, one of the remaining missions is chosen at random, and each
-player chooses one of their remaining agents, simultaneously revealed.
+At the start of the game, each player has 16 agents (cards), numbered 0
+to 15. Each round, one of the remaining missions is chosen at random,
+and each player chooses one of their remaining agents, simultaneously
+revealed.
 
 The player who plays the higher card scores the value of that mission.
 Agent 0 is an assassin who can kill the enemy agent, and score the value
