@@ -1,4 +1,5 @@
 import { game, gameOverAcknowledged, username, view } from "../state";
+import { sendWs } from "../ws";
 
 export const GameOverOverlay = () => {
   const g = game.value;
@@ -43,6 +44,7 @@ export const GameOverOverlay = () => {
             <button
               class="btn btn-primary"
               onClick={() => {
+                sendWs({ msgType: "ackGameOver" });
                 view.value = "lobby";
               }}
             >

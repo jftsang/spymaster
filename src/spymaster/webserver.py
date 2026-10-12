@@ -200,6 +200,8 @@ class GameServer:
                 session.set_card(msg.get("card"))
             elif mtype == "leaveGame":
                 await self.leave_game(session)
+            elif mtype == "ackGameOver":
+                session.last_game_message = None
         except Exception as exc:
             logger.error("handle error: %s: %s", type(exc).__name__, exc)
 

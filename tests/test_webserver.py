@@ -179,6 +179,21 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(any(m["msgType"] == saved["msgType"] for m in aws2.sent))
         await self.drive(alice, aws2)
 
+    async def test_ack_game_over_stops_replay(self):
+        alice, aws = await self.make_user("Alice")
+        await self.gs.challenge(alice, AI)
+        await self.drive(alice, aws)
+        self.assertIsNotNone(alice.last_game_message)
+
+        await self.gs.handle(alice, {"msgType": "ackGameOver"})
+        self.assertIsNone(alice.last_game_message)
+
+        alice.detach()
+        aws2 = FakeWebSocket()
+        alice.attach(aws2)
+        await self.gs.login(alice, "Alice")
+        self.assertIsNone(last(aws2.sent, "gameOver"))
+
 
 class TestHelpPage(unittest.TestCase):
     def setUp(self):
