@@ -1,9 +1,8 @@
-from typing import Optional
 
 from spymaster.logger import logger
 from spymaster.players import Player
 from spymaster.session import UserSession
-from spymaster.spymaster import MissionResult, Spymaster
+from spymaster.spymaster import AgentCard, MissionResult, Spymaster
 
 
 class WsComm:
@@ -16,7 +15,7 @@ class WsComm:
     def __init__(self, session: UserSession):
         self.session = session
 
-    async def send_situation(self, state: Spymaster, message: Optional[str]):
+    async def send_situation(self, state: Spymaster, message: str | None):
         msg = {
             "msgType": "situation",
             "situation": state.to_dict(),
@@ -41,7 +40,7 @@ class OnlinePlayer(Player):
         self.session = session
         self.wscomm = WsComm(session)
 
-    async def pick(self, state: Spymaster) -> int:
+    async def pick(self, state: Spymaster) -> AgentCard:
         logger.info(
             "awaiting card: %s to play mission %s (score %s-%s, hand %s)",
             self.name,
@@ -52,7 +51,7 @@ class OnlinePlayer(Player):
         )
         await self.wscomm.send_situation(state, "Pick a card")
         while True:
-            choice = await self.session.await_card()
+            choice = AgentCard(await self.session.await_card())
             logger.info("%s selected card %s", self.name, choice)
             if choice in state.white_cards:
                 return choice

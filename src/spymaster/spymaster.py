@@ -1,20 +1,23 @@
 import asyncio
 from random import shuffle
-from typing import TYPE_CHECKING, List, Optional
+from typing import NewType
 
 from pydantic import BaseModel, Field, field_serializer
 from pydantic.alias_generators import to_camel
 
-if TYPE_CHECKING:
-    from spymaster.players import Player
+from spymaster.players import Player
+
+AgentCard = NewType("AgentCard", int)
+MissionCard = NewType("MissionCard", int)
+ASSASSIN = AgentCard(0)
 
 
 class MissionResult(BaseModel):
     model_config = {"populate_by_name": True, "alias_generator": to_camel}
 
-    you_played: int
-    opp_played: int
-    mission: int
+    you_played: AgentCard
+    opp_played: AgentCard
+    mission: MissionCard
     you_scored: int = 0
     opp_scored: int = 0
     game_over: bool = False
@@ -48,22 +51,22 @@ class MissionResult(BaseModel):
         return self.model_dump()
 
 
-def card_factory() -> List[int]:
-    return list(range(16))
+def card_factory() -> list[AgentCard]:
+    return [AgentCard(x) for x in range(16)]
 
 
-def mission_factory() -> List[int]:
-    return list(range(1, 17))
+def mission_factory() -> list[MissionCard]:
+    return [MissionCard(m) for m in range(1, 17)]
 
 
 class GameHistoryStep(BaseModel):
     mission: int
-    white_played: int
-    black_played: int
+    white_played: AgentCard
+    black_played: AgentCard
     white_score: int
     black_score: int
 
-    def flipped(self) -> "GameHistoryStep":
+    def flipped(self) -> GameHistoryStep:
         return GameHistoryStep(
             mission=self.mission,
             white_played=self.black_played,
@@ -80,18 +83,18 @@ class Spymaster(BaseModel):
         "alias_generator": to_camel,
     }
 
-    white: Optional["Player"] = None
-    black: Optional["Player"] = None
-    white_cards: List[int] = Field(default_factory=card_factory)
-    black_cards: List[int] = Field(default_factory=card_factory)
+    white: Player | None = None
+    black: Player | None = None
+    white_cards: list[AgentCard] = Field(default_factory=card_factory)
+    black_cards: list[AgentCard] = Field(default_factory=card_factory)
     white_score: int = 0
     black_score: int = 0
-    current_mission: int | None = None
-    remaining_missions: List[int] = Field(default_factory=mission_factory)
+    current_mission: MissionCard | None = None
+    remaining_missions: list[MissionCard] = Field(default_factory=mission_factory)
     history: list[GameHistoryStep] = Field(default_factory=list)
 
     @field_serializer("white", "black")
-    def serialize_players(self, player: Optional["Player"], _info):
+    def serialize_players(self, player: Player | None, _info):
         return player.name if player is not None else None
 
     def model_dump(self, **kwargs):
@@ -145,7 +148,7 @@ class Spymaster(BaseModel):
             br = self.black.receive(self, result.flipped())
             await asyncio.gather(wr, br)
 
-    def resolve(self, white_play: int, black_play: int) -> "MissionResult":
+    def resolve(self, white_play: AgentCard, black_play: AgentCard) -> MissionResult:
         """
         Resolve a mission. Remove the cards that were played, update the
         scores, and then emit a MissionResult from White's point of
@@ -197,12 +200,14 @@ class Spymaster(BaseModel):
         return MissionResult(
             you_played=white_play,
             opp_played=black_play,
-            mission=self.current_mission if self.current_mission is not None else 0,
+            mission=self.current_mission
+            if self.current_mission is not None
+            else MissionCard(0),
             you_scored=dw,
             opp_scored=db,
         )
 
-    async def choose_and_validate(self, player: "Player") -> int:
+    async def choose_and_validate(self, player: Player) -> AgentCard:
         picked = None
         while picked not in self.white_cards:
             picked = await player.pick(self)

@@ -5,7 +5,7 @@ import numpy as np
 
 from spymaster import Spymaster
 from spymaster.players import Player
-
+from spymaster.spymaster import AgentCard
 
 
 class EvolutionaryPlayer(Player, metaclass=abc.ABCMeta):
@@ -75,9 +75,9 @@ class LinearPlayer(EvolutionaryPlayer):
         vec[16 + 16 + 16 + 2] = state.black_score
         return vec
 
-    async def pick(self, state: Spymaster) -> int:
+    async def pick(self, state: Spymaster) -> AgentCard:
         vec = self.to_vector(state)
         choices_weights = self.weights_matrix @ vec
         choices_weights[vec[:16] == 0] = -np.inf
         best_choice = int(np.argmax(choices_weights))
-        return best_choice
+        return AgentCard(best_choice)

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from typing import cast
 
-from spymaster.spymaster import MissionResult, Spymaster
+from spymaster.spymaster import AgentCard, MissionResult, Spymaster
 
 
 class Player(ABC):
@@ -8,17 +9,25 @@ class Player(ABC):
         self.name = name
 
     @abstractmethod
-    async def pick(self, state: Spymaster) -> int:
-        pass
+    async def pick(self, state: Spymaster) -> AgentCard:
+        """Choose which card (0 up to 15) to play, given the state of
+        the game, always presented as though this player is White.
+        """
+        raise NotImplementedError
 
     async def receive(self, state: Spymaster, result: MissionResult) -> None:
-        """Do something with the result from a round."""
-        pass
+        """Do something with the result from a round. For AI players
+        this might mean updating some state. For human players this
+        means acknowledging the result.
+        """
 
-    async def warn_illegal_choice(self, situation: Spymaster, picked):
+    async def warn_illegal_choice(
+        self, situation: Spymaster, picked: AgentCard
+    ) -> None:
         """Warn the player that she picked an illegal card. For AI
-        players this should raise an exception; for online players it
-        should display a warning message.
+        players this should raise an exception; for human players it
+        should result in them being given an error message and invited
+        to try again.
         """
         raise ValueError("Illegal choice")
 
@@ -45,9 +54,9 @@ class HumanPlayer(Player):
         ]
         print("\n".join(s))
 
-    async def pick(self, state: Spymaster) -> int:
+    async def pick(self, state: Spymaster) -> AgentCard:
         self.display_situation(state)
-        while (x := tryint(input("Choose a card: "))) not in state.white_cards:
+        while (x := cast(AgentCard, tryint(input("Choose a card: ")))) not in state.white_cards:
             print(f"{x} is not a valid card")
         return x
 

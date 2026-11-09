@@ -2,7 +2,7 @@
 from random import choice, randint
 
 from spymaster.players import Player
-from spymaster.spymaster import MissionResult, Spymaster
+from spymaster.spymaster import AgentCard, ASSASSIN, ASSASSIN, MissionResult, Spymaster
 
 from .aim import aim, check, chuck, mx, prefer
 
@@ -10,7 +10,7 @@ from .aim import aim, check, chuck, mx, prefer
 class RandomPlayer(Player):
     """Naive player that just plays cards at random."""
 
-    async def pick(self, state: Spymaster) -> int:
+    async def pick(self, state: Spymaster) -> AgentCard:
         return choice(state.white_cards)
 
 
@@ -23,7 +23,7 @@ class SimpleAimingPlayer(Player):
         super().__init__(name=name)
         self.variance = variance
 
-    async def pick(self, state: Spymaster) -> int:
+    async def pick(self, state: Spymaster) -> AgentCard:
         current = state.current_mission if state.current_mission is not None else 1
         target = current + randint(1, self.variance)
         return aim(state.white_cards, target)
@@ -38,7 +38,7 @@ class AmericaPlayer(Player):
         super().__init__(name=name)
         self.diff = randint(0, 2)
 
-    async def pick(self, state: Spymaster) -> int:
+    async def pick(self, state: Spymaster) -> AgentCard:
         current = state.current_mission if state.current_mission is not None else 1
         target = current + self.diff + 1
         return aim(state.white_cards, target)
@@ -75,7 +75,7 @@ class RussiaPlayer(Player):
         self.high_card = high_card
         self.conservative_interval = conservative_interval
 
-    async def pick(self, state: Spymaster) -> int:
+    async def pick(self, state: Spymaster) -> AgentCard:
         p = state.current_mission if state.current_mission is not None else 1
         mine = state.white_cards
         theirs = state.black_cards
@@ -98,14 +98,14 @@ class RussiaPlayer(Player):
             # If the assassin is available, consider using it
             return prefer(
                 _mx(p, p + 2),
-                0 if (0 in mine and check(self.bloodthirst)) else None,
+                ASSASSIN if (ASSASSIN in mine and check(self.bloodthirst)) else None,
                 _aim(randint(p + 1, p + 2)),
             )
         else:  # Very high value mission
             # Start by following a similar strategy...
             e = prefer(
                 _mx(th_high, 15),
-                0 if (0 in mine and check(self.bloodthirst)) else None,
+                ASSASSIN if (ASSASSIN in mine and check(self.bloodthirst)) else None,
                 _aim(randint(p, 16)),
             )
 

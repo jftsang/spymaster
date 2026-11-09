@@ -1,11 +1,13 @@
 from random import randint, random
 from typing import Collection, Optional
 
+from spymaster.spymaster import AgentCard
+
 
 class NoPossibleOptions(Exception):
     pass
 
-def prefer(*options: int | None) -> int:
+def prefer(*options: AgentCard | None) -> AgentCard:
     """Given a list of options, return the first one that isn't None.
     Raise an exception if no option is possible.
 
@@ -21,7 +23,7 @@ def prefer(*options: int | None) -> int:
     raise NoPossibleOptions
 
 
-def aim_high(options: Collection[int], target: int) -> Optional[int]:
+def aim_high(options: Collection[AgentCard], target: int) -> AgentCard | None:
     """Try to play the smallest card that is higher than the target.
     If no such card exists, then return None.
     """
@@ -29,7 +31,7 @@ def aim_high(options: Collection[int], target: int) -> Optional[int]:
     return min(options, default=None)
 
 
-def aim_low(options: Collection[int], target: int) -> Optional[int]:
+def aim_low(options: Collection[AgentCard], target: int) -> AgentCard | None:
     """Try to play the smallest card (including the assassin) that is
     lower than the target. If no such card exists, then return None.
     """
@@ -37,7 +39,7 @@ def aim_low(options: Collection[int], target: int) -> Optional[int]:
     return min(options, default=None)
 
 
-def aim(options: Collection[int], target: int, cutoff=6) -> int:
+def aim(options: Collection[AgentCard], target: int, cutoff=6) -> AgentCard:
     """Try to play the card that is as close as possible to the target.
 
     If an exact match is not possible, then for a high-value target, try
@@ -56,7 +58,7 @@ def aim(options: Collection[int], target: int, cutoff=6) -> int:
         target = randint(0, 1) * 15
 
     if target in options:
-        return target
+        return AgentCard(target)
 
     if target > cutoff:
         return prefer(aim_high(options, target), aim_low(options, target))
@@ -65,8 +67,8 @@ def aim(options: Collection[int], target: int, cutoff=6) -> int:
 
 
 def mx(
-    mine: Collection[int], theirs: Collection[int], low: int, high: int
-) -> Optional[int]:
+    mine: Collection[AgentCard], theirs: Collection[AgentCard], low: int, high: int
+) -> AgentCard | None:
     """Aim to win in the range [low, high]. Play our smallest option in
     this range that beats their best option in this range. Return None
     if no such option exists.
@@ -75,7 +77,7 @@ def mx(
     return min((x for x in mine if their_best <= x <= high), default=None)
 
 
-def chuck(mine: Collection[int]) -> int:
+def chuck(mine: Collection[AgentCard]) -> AgentCard:
     """Attempt to play a low card. Prioritise playing cards above 4 (to
     have a shot of winning); if no such cards are available then play
     the absolutely lowest cards. Only play the assassin if nothing else
@@ -85,7 +87,7 @@ def chuck(mine: Collection[int]) -> int:
     return prefer(
         min((x for x in mine if x >= lower), default=None),
         min((x for x in mine if x > 0), default=None),
-        0,
+        AgentCard(0),
     )
 
 def check(probability: float) -> bool:
