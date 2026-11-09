@@ -1,7 +1,7 @@
 import asyncio
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict
 from uuid import uuid4
 
 import numpy as np
@@ -17,6 +17,7 @@ from spymaster.players import Player
 from spymaster.players.computer_players import computer_players, new_computer_player
 from spymaster.players.online_player import OnlinePlayer
 from spymaster.session import Forfeit, UserSession
+
 from .spymaster import Spymaster
 
 
@@ -26,7 +27,7 @@ class GameSide:
 
     name: str
     player: Player
-    session: Optional[UserSession]
+    session: UserSession | None
 
 
 class ActiveGame:
@@ -51,19 +52,19 @@ class ActiveGame:
     def sides(self):
         return (self.white, self.black)
 
-    def opponent_name(self, name: str) -> Optional[str]:
+    def opponent_name(self, name: str) -> str | None:
         for side in self.sides():
             if side.name != name:
                 return side.name
         return None
 
-    def other_session(self, session: UserSession) -> Optional[UserSession]:
+    def other_session(self, session: UserSession) -> UserSession | None:
         for side in self.sides():
             if side.session is not session and side.session is not None:
                 return side.session
         return None
 
-    def winner_name(self) -> Optional[str]:
+    def winner_name(self) -> str | None:
         if self.game.white_score > self.game.black_score:
             return self.white.name
         elif self.game.black_score > self.game.white_score:
@@ -75,7 +76,7 @@ class ActiveGame:
         done, _ = await asyncio.wait(
             {play_task, self.end_future}, return_when=asyncio.FIRST_COMPLETED
         )
-        forfeiter: Optional[str] = None
+        forfeiter: str | None = None
         reason = "ended"
         if self.end_future in done:
             forfeiter = self.end_future.result()
@@ -83,7 +84,7 @@ class ActiveGame:
             play_task.cancel()
             try:
                 await play_task
-            except (asyncio.CancelledError, Forfeit, Exception):
+            except asyncio.CancelledError, Forfeit, Exception:
                 pass
         else:
             try:
@@ -97,7 +98,7 @@ class ActiveGame:
                 logger.error("game error: %s: %s", type(exc).__name__, exc)
         await self.finish(forfeiter, reason)
 
-    async def finish(self, forfeiter: Optional[str], reason: str) -> None:
+    async def finish(self, forfeiter: str | None, reason: str) -> None:
         if self.over:
             return
         self.over = True
@@ -376,7 +377,7 @@ class GameServer:
 
     # -- game setup -------------------------------------------------------
 
-    def _make_side(self, session: Optional[UserSession], name: str) -> GameSide:
+    def _make_side(self, session: UserSession | None, name: str) -> GameSide:
         if session is not None:
             player = OnlinePlayer(name=name, session=session)
             session.player = player
@@ -386,8 +387,8 @@ class GameServer:
     async def _start(
         self,
         session_a: UserSession,
-        other_session: Optional[UserSession] = None,
-        computer_name: Optional[str] = None,
+        other_session: UserSession | None = None,
+        computer_name: str | None = None,
     ) -> None:
         side_a = self._make_side(session_a, session_a.username)
         if computer_name is not None:
@@ -422,7 +423,7 @@ class GameServer:
 
     # -- helpers ----------------------------------------------------------
 
-    def find_session(self, username: str) -> Optional[UserSession]:
+    def find_session(self, username: str) -> UserSession | None:
         for session in self.sessions.values():
             if session.username == username:
                 return session
