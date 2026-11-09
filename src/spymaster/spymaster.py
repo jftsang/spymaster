@@ -1,11 +1,12 @@
 import asyncio
 from random import shuffle
-from typing import NewType
+from typing import TYPE_CHECKING, NewType
 
 from pydantic import BaseModel, Field, field_serializer
 from pydantic.alias_generators import to_camel
 
-from spymaster.players import Player
+if TYPE_CHECKING:
+    from spymaster.players import Player
 
 AgentCard = NewType("AgentCard", int)
 MissionCard = NewType("MissionCard", int)
