@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Any
 
 from fastapi.websockets import WebSocket
 
@@ -38,19 +38,19 @@ class UserSession:
 
     def __init__(self, session_id: str):
         self.session_id = session_id
-        self.username: Optional[str] = None
-        self.websocket: Optional[WebSocket] = None
+        self.username: str | None = None
+        self.websocket: WebSocket | None = None
         self.connected = False
-        self.disconnected_at: Optional[datetime] = None
+        self.disconnected_at: datetime | None = None
 
-        self.active_game: Optional["ActiveGame"] = None
+        self.active_game: ActiveGame | None = None
         self.in_game = False
-        self.pending_challenge_to: Optional[str] = None
-        self.pending_challenge_from: Optional[str] = None
-        self.last_game_message: Optional[Dict[str, Any]] = None
+        self.pending_challenge_to: str | None = None
+        self.pending_challenge_from: str | None = None
+        self.last_game_message: dict[str, Any] | None = None
 
         self._send_lock = asyncio.Lock()
-        self._card_future: Optional[asyncio.Future] = None
+        self._card_future: asyncio.Future | None = None
         self.awaiting_card = False
 
     # -- wiring -----------------------------------------------------------
@@ -66,13 +66,13 @@ class UserSession:
         """Mark the session as disconnected. The grace period for any
         game the session is in runs from this moment."""
         self.connected = False
-        self.disconnected_at = datetime.now(timezone.utc)
+        self.disconnected_at = datetime.now(UTC)
         self.websocket = None
         logger.debug("detached session %s", self.session_id)
 
     # -- sending ----------------------------------------------------------
 
-    async def send(self, msg: Dict[str, Any]) -> None:
+    async def send(self, msg: dict[str, Any]) -> None:
         """Send a JSON message. May be safely called from any task.
 
         Messages sent while the session is disconnected are dropped;
@@ -117,7 +117,7 @@ class UserSession:
                 if self.connected or self.disconnected_at is None:
                     step = GRACE_REPOLL_SECONDS
                 else:
-                    now = datetime.now(timezone.utc)
+                    now = datetime.now(UTC)
                     remaining = (
                         self.disconnected_at + GRACE_PERIOD - now
                     ).total_seconds()
@@ -130,7 +130,7 @@ class UserSession:
                     step = min(GRACE_REPOLL_SECONDS, remaining)
                 try:
                     await asyncio.wait_for(asyncio.shield(future), timeout=step)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     continue
         finally:
             self.awaiting_card = False

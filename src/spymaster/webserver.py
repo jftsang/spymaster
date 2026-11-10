@@ -1,7 +1,6 @@
 import asyncio
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict
 from uuid import uuid4
 
 import numpy as np
@@ -40,7 +39,7 @@ class ActiveGame:
     """
 
     def __init__(
-        self, server: "GameServer", game: Spymaster, white: GameSide, black: GameSide
+        self, server: GameServer, game: Spymaster, white: GameSide, black: GameSide
     ):
         self.server = server
         self.game = game
@@ -133,8 +132,8 @@ class ActiveGame:
 class GameServer:
     def __init__(self):
         self.app = FastAPI()
-        self.sessions: Dict[str, UserSession] = {}
-        self.games: Dict[int, ActiveGame] = {}
+        self.sessions: dict[str, UserSession] = {}
+        self.games: dict[int, ActiveGame] = {}
         self._game_id = 0
 
     # -- session / connection management ----------------------------------
@@ -152,7 +151,7 @@ class GameServer:
         return session, [(b"Set-Cookie", cookie.encode())]
 
     async def serve(self, session: UserSession) -> None:
-        ws = session.websocket
+        assert (ws := session.websocket) is not None
         try:
             while True:
                 msg = await ws.receive_json()
@@ -184,7 +183,7 @@ class GameServer:
 
     # -- receive-loop routing ---------------------------------------------
 
-    async def handle(self, session: UserSession, msg: Dict) -> None:
+    async def handle(self, session: UserSession, msg: dict) -> None:
         mtype = msg.get("msgType")
         try:
             if mtype == "login":

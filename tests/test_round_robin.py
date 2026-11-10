@@ -1,16 +1,16 @@
 import asyncio
 import unittest
 
+from spymaster.players import Player
 from spymaster.players.computer_players import computer_players
 from spymaster.spymaster import Spymaster
-from spymaster.players import Player
 
 players = list(computer_players.values())
 
 
 class TestRoundRobin(unittest.TestCase):
     def setUp(self):
-        Spymaster.model_rebuild(_types_namespace={'Player': Player})
+        Spymaster.model_rebuild(_types_namespace={"Player": Player})
 
     def test_round_robin(self):
         scores = [0] * len(players)
@@ -23,14 +23,15 @@ class TestRoundRobin(unittest.TestCase):
                         # game.print_score()
                         if game.white_score > game.black_score:
                             scores[i] += 1
+                            scores[j] -= 1
                         elif game.black_score > game.white_score:
+                            scores[i] -= 1
                             scores[j] += 1
                         else:
-                            scores[i] += 0.5
-                            scores[j] += 0.5
+                            pass  # draw, no score change
                         # print("---")
 
         for score, player in zip(scores, players):
             print(f"{player.name} scored {score} points")
 
-        self.assertTrue(all(score >= 0 for score in scores))
+        self.assertEqual(sum(scores), 0)

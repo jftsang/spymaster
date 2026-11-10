@@ -1,11 +1,12 @@
+from collections.abc import Collection
 from random import randint, random
-from typing import Collection, Optional
 
 from spymaster.spymaster import AgentCard
 
 
 class NoPossibleOptions(Exception):
     pass
+
 
 def prefer(*options: AgentCard | None) -> AgentCard:
     """Given a list of options, return the first one that isn't None.
@@ -89,6 +90,7 @@ def chuck(mine: Collection[AgentCard]) -> AgentCard:
         min((x for x in mine if x > 0), default=None),
         AgentCard(0),
     )
+
 
 def check(probability: float) -> bool:
     return random() < probability

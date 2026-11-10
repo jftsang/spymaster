@@ -1,8 +1,9 @@
 """The players from the original Spymaster website."""
+
 from random import choice, randint
 
 from spymaster.players import Player
-from spymaster.spymaster import AgentCard, ASSASSIN, ASSASSIN, MissionResult, Spymaster
+from spymaster.spymaster import ASSASSIN, AgentCard, MissionResult, Spymaster
 
 from .aim import aim, check, chuck, mx, prefer
 
@@ -47,6 +48,7 @@ class AmericaPlayer(Player):
         if result.opp_played >= result.mission:
             self.diff = result.opp_played - result.mission
 
+
 class RussiaPlayer(Player):
     """A computer player that adapts to different mission scores, and
     sometimes ducks on high-value missions.
@@ -63,7 +65,7 @@ class RussiaPlayer(Player):
         bloodthirst: float = 0.5,
         paranoia: float = 0.5,
         idleness: float = 0.33,
-        mission_value_thresholds: tuple[int, int, int]  = (5, 9, 13),
+        mission_value_thresholds: tuple[int, int, int] = (5, 9, 13),
         high_card: int = 13,
         conservative_interval: tuple[int, int] = (5, 7),
     ):
@@ -119,6 +121,7 @@ class RussiaPlayer(Player):
                 e = _aim(randint(*self.conservative_interval))
 
             return e
+
 
 china = RandomPlayer(name="AI (Easiest)")
 france = SimpleAimingPlayer(name="AI (Easy)", variance=2)

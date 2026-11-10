@@ -10,7 +10,7 @@ from spymaster.spymaster import AgentCard
 
 class EvolutionaryPlayer(Player, metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def create_offspring(self, mutation_rate: float = 0.1) -> "EvolutionaryPlayer":
+    def create_offspring(self, mutation_rate: float = 0.1) -> EvolutionaryPlayer:
         pass
 
 
@@ -25,7 +25,7 @@ class LinearPlayer(EvolutionaryPlayer):
         self.weights_matrix = weights_matrix
 
     @classmethod
-    def randomized(cls) -> "LinearPlayer":
+    def randomized(cls) -> LinearPlayer:
         return cls(
             name="Randomized Single Linear Layer Player",
             weights_matrix=np.random.normal(0, 1, (16, cls.INPUTS_LENGTH)),
@@ -37,7 +37,7 @@ class LinearPlayer(EvolutionaryPlayer):
     @classmethod
     def load(
         cls, path: str, name: str = "Single Layer Perceptron Player"
-    ) -> "LinearPlayer":
+    ) -> LinearPlayer:
         return cls(name=name, weights_matrix=np.load(path))
 
     def __str__(self):
@@ -54,9 +54,7 @@ class LinearPlayer(EvolutionaryPlayer):
     score_weights={score_weights},
 )"""
 
-    def create_offspring(
-        self, mutation_rate: float = 0.1
-    ) -> "LinearPlayer":
+    def create_offspring(self, mutation_rate: float = 0.1) -> LinearPlayer:
         new_weights = self.weights_matrix.copy()
         new_weights += np.random.normal(0, mutation_rate, self.weights_matrix.shape)
         return LinearPlayer(name=self.name, weights_matrix=new_weights)

@@ -1,4 +1,3 @@
-
 from spymaster.logger import logger
 from spymaster.players import Player
 from spymaster.session import UserSession

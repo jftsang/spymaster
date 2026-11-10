@@ -56,7 +56,9 @@ class HumanPlayer(Player):
 
     async def pick(self, state: Spymaster) -> AgentCard:
         self.display_situation(state)
-        while (x := cast(AgentCard, tryint(input("Choose a card: ")))) not in state.white_cards:
+        while (
+            x := cast(AgentCard, tryint(input("Choose a card: ")))
+        ) not in state.white_cards:
             print(f"{x} is not a valid card")
         return x
 

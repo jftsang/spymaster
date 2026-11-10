@@ -94,6 +94,8 @@ async def play_command(args: argparse.Namespace) -> None:
 
 
 async def benchmark_command(args: argparse.Namespace) -> None:
+    import numpy as np
+
     from spymaster.gene_pool import (
         evaluate_against_computer_players,
         head_to_head,
@@ -103,8 +105,6 @@ async def benchmark_command(args: argparse.Namespace) -> None:
         LINEAR_PLAYER_SPECS,
         load_perceptron,
     )
-
-    import numpy as np
 
     if args.seed is not None:
         np.random.seed(args.seed)
@@ -125,8 +125,7 @@ async def benchmark_command(args: argparse.Namespace) -> None:
         for opponent, (wins, draws, losses) in results.items():
             points = wins + 0.5 * draws
             print(
-                f"  {opponent}: {wins}W {draws}D {losses}L "
-                f"({points / args.games:.1%})"
+                f"  {opponent}: {wins}W {draws}D {losses}L ({points / args.games:.1%})"
             )
 
     names = list(players)
@@ -145,7 +144,14 @@ def main() -> None:
     parser = build_parser()
 
     argv = sys.argv[1:]
-    if not argv or argv[0] not in {"play", "train", "benchmark", "tune", "-h", "--help"}:
+    if not argv or argv[0] not in {
+        "play",
+        "train",
+        "benchmark",
+        "tune",
+        "-h",
+        "--help",
+    }:
         argv = ["play"] + argv
 
     args = parser.parse_args(argv)

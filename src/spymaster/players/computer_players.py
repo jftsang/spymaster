@@ -98,7 +98,7 @@ class TunedAdaptivePlayer(RussiaPlayer, EvolutionaryPlayer):
         )
 
     @classmethod
-    def randomized(cls) -> "TunedAdaptivePlayer":
+    def randomized(cls) -> TunedAdaptivePlayer:
         return cls(
             name="Randomized Tuned Adaptive Player",
             bloodthirst=random(),
@@ -112,7 +112,7 @@ class TunedAdaptivePlayer(RussiaPlayer, EvolutionaryPlayer):
             [self.bloodthirst, self.paranoia, self.idleness], dtype=np.float64
         )
 
-    def create_offspring(self, mutation_rate: float = 0.1) -> "TunedAdaptivePlayer":
+    def create_offspring(self, mutation_rate: float = 0.1) -> TunedAdaptivePlayer:
         return TunedAdaptivePlayer(
             name=self.name,
             bloodthirst=_clamp(self.bloodthirst + gauss(0.0, mutation_rate)),
@@ -126,7 +126,7 @@ class TunedAdaptivePlayer(RussiaPlayer, EvolutionaryPlayer):
     @classmethod
     def load(
         cls, path: str | Path, name: str = "Tuned Adaptive Player"
-    ) -> "TunedAdaptivePlayer":
+    ) -> TunedAdaptivePlayer:
         params = np.load(path)
         return cls(
             name=name,
@@ -159,9 +159,7 @@ def new_computer_player(name: str) -> Player:
     }
     factories.update(
         {
-            player_name: (
-                lambda n=player_name, p=path: load_perceptron(n, p)
-            )
+            player_name: (lambda n=player_name, p=path: load_perceptron(n, p))
             for player_name, path in LINEAR_PLAYER_SPECS
         }
     )
