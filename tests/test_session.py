@@ -2,9 +2,9 @@ import asyncio
 import unittest
 from datetime import timedelta
 from typing import cast
+from unittest import mock
 
 from starlette.websockets import WebSocket
-from websockets import State
 
 import spymaster.session as session_module
 from spymaster.session import Forfeit, UserSession
@@ -18,25 +18,19 @@ class FakeWebSocket:
         self.sent.append(msg)
 
 
-def makefws():
-    return cast(WebSocket[State], cast(object, FakeWebSocket()))
-
-
 class TestSessionGrace(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
-        self._old_grace = session_module.GRACE_PERIOD
-        self._old_repoll = session_module.GRACE_REPOLL_SECONDS
-        session_module.GRACE_PERIOD = timedelta(seconds=0.5)
-        session_module.GRACE_REPOLL_SECONDS = 0.05
-
-    async def asyncTearDown(self):
-        session_module.GRACE_PERIOD = self._old_grace
-        session_module.GRACE_REPOLL_SECONDS = self._old_repoll
+        for p in (
+            mock.patch.object(session_module, "GRACE_PERIOD", timedelta(seconds=0.5)),
+            mock.patch.object(session_module, "GRACE_REPOLL_SECONDS", 0.05),
+        ):
+            p.start()
+            self.addCleanup(p.stop)
 
     async def test_forfeit_after_grace(self):
         session = UserSession("s1")
         session.username = "Alice"
-        session.attach(makefws())
+        session.attach(FakeWebSocket())  # ty: ignore[invalid-argument-type]
         task = asyncio.create_task(session.await_card())
         await asyncio.sleep(0.05)
         session.detach()
@@ -48,19 +42,19 @@ class TestSessionGrace(unittest.IsolatedAsyncioTestCase):
     async def test_reconnect_within_grace_resumes(self):
         session = UserSession("s2")
         session.username = "Bob"
-        session.attach(makefws())
+        session.attach(FakeWebSocket())  # ty: ignore[invalid-argument-type]
         task = asyncio.create_task(session.await_card())
         await asyncio.sleep(0.05)
         session.detach()
         await asyncio.sleep(0.1)
-        session.attach(makefws())
+        session.attach(FakeWebSocket())  # ty: ignore[invalid-argument-type]
         session.set_card(7)
         self.assertEqual(await asyncio.wait_for(task, timeout=2), 7)
 
     async def test_explicit_forfeit(self):
         session = UserSession("s3")
         session.username = "Carol"
-        session.attach(makefws())
+        session.attach(FakeWebSocket())  # ty: ignore[invalid-argument-type]
         task = asyncio.create_task(session.await_card())
         await asyncio.sleep(0.05)
         session.forfeit("left")
@@ -71,7 +65,7 @@ class TestSessionGrace(unittest.IsolatedAsyncioTestCase):
     async def test_set_card_resolves(self):
         session = UserSession("s4")
         session.username = "Dave"
-        session.attach(makefws())
+        session.attach(FakeWebSocket())  # ty: ignore[invalid-argument-type]
         task = asyncio.create_task(session.await_card())
         await asyncio.sleep(0.05)
         session.set_card(9)
@@ -81,7 +75,7 @@ class TestSessionGrace(unittest.IsolatedAsyncioTestCase):
         # The pick starts while connected, then the connection drops.
         session = UserSession("s5")
         session.username = "Erin"
-        session.attach(makefws())
+        session.attach(FakeWebSocket())  # ty: ignore[invalid-argument-type]
         task = asyncio.create_task(session.await_card())
         await asyncio.sleep(0.2)  # allow the poll loop to start
         session.detach()

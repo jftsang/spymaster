@@ -83,7 +83,7 @@ class ActiveGame:
             play_task.cancel()
             try:
                 await play_task
-            except asyncio.CancelledError, Forfeit, Exception:
+            except asyncio.CancelledError, Forfeit, Exception:  # noqa: S110, BLE001
                 pass
         else:
             try:
@@ -93,7 +93,7 @@ class ActiveGame:
                 reason = exc.reason
             except asyncio.CancelledError:
                 return
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 logger.error("game error: %s: %s", type(exc).__name__, exc)
         await self.finish(forfeiter, reason)
 
@@ -151,14 +151,15 @@ class GameServer:
         return session, [(b"Set-Cookie", cookie.encode())]
 
     async def serve(self, session: UserSession) -> None:
-        assert (ws := session.websocket) is not None
+        ws = session.websocket
+        assert ws is not None
         try:
             while True:
                 msg = await ws.receive_json()
                 await self.handle(session, msg)
         except WebSocketDisconnect:
             pass
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             logger.error("websocket error: %s: %s", type(exc).__name__, exc)
         finally:
             await self.disconnect(session)
@@ -202,7 +203,7 @@ class GameServer:
                 await self.leave_game(session)
             elif mtype == "ackGameOver":
                 session.last_game_message = None
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             logger.error("handle error: %s: %s", type(exc).__name__, exc)
 
     # -- lobby / matchmaking ----------------------------------------------
@@ -389,10 +390,13 @@ class GameServer:
         other_session: UserSession | None = None,
         computer_name: str | None = None,
     ) -> None:
+        assert session_a.username  # user is logged in
         side_a = self._make_side(session_a, session_a.username)
         if computer_name is not None:
             side_b = self._make_side(None, computer_name)
         else:
+            assert other_session is not None
+            assert other_session.username is not None
             side_b = self._make_side(other_session, other_session.username)
         await self._launch(side_a, side_b)
 
@@ -529,7 +533,7 @@ how_to_play_path = Path(__file__).parent / "../../HowToPlay.md"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 app.frontend("/", directory=frontend_dir)
 
-FAVICON_LINKS = "\n".join(
+FAVICON_LINKS = "\n".join(  # noqa: FLY002
     [
         '<link rel="icon" href="/static/icon.ico" sizes="any">',
         '<link rel="icon" type="image/png" href="/static/icon.png">',

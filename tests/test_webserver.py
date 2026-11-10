@@ -34,7 +34,7 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
 
     async def make_user(self, username):
         ws = FakeWebSocket()
-        session, _ = self.gs.get_or_create_session(ws)
+        session, _ = self.gs.get_or_create_session(ws)  # ty: ignore[invalid-argument-type]
         session.attach(ws)
         await self.gs.login(session, username)
         return session, ws
@@ -54,9 +54,9 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         await asyncio.sleep(0.05)
 
     async def test_duplicate_username_rejected(self):
-        _, a = await self.make_user("Alice")
+        _, a = await self.make_user("Alice")  # noqa: RUF059
         b = FakeWebSocket()
-        session_b, _ = self.gs.get_or_create_session(b)
+        session_b, _ = self.gs.get_or_create_session(b)  # ty: ignore[invalid-argument-type]
         session_b.attach(b)
         await self.gs.login(session_b, "Alice")
         failed = last(b.sent, "loginFailed")
@@ -65,19 +65,19 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
 
     async def test_blank_username_rejected(self):
         ws = FakeWebSocket()
-        session, _ = self.gs.get_or_create_session(ws)
+        session, _ = self.gs.get_or_create_session(ws)  # ty: ignore[invalid-argument-type]
         session.attach(ws)
         await self.gs.login(session, "   ")
         self.assertIsNotNone(last(ws.sent, "loginFailed"))
 
     async def test_cookie_reuses_session(self):
         ws = FakeWebSocket()
-        first, cookies = self.gs.get_or_create_session(ws)
+        first, cookies = self.gs.get_or_create_session(ws)  # ty: ignore[invalid-argument-type]
         self.assertIsNotNone(cookies)
         self.assertEqual(cookies[0][0], b"Set-Cookie")
 
         ws2 = FakeWebSocket(cookies={"session": first.session_id})
-        second, cookies2 = self.gs.get_or_create_session(ws2)
+        second, cookies2 = self.gs.get_or_create_session(ws2)  # ty: ignore[invalid-argument-type]
         self.assertIs(first, second)
         self.assertIsNone(cookies2)
 
@@ -142,13 +142,13 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
 
     async def test_decline(self):
         alice, aws = await self.make_user("Alice")
-        bob, bws = await self.make_user("Bob")
+        bob, bws = await self.make_user("Bob")  # noqa: RUF059
         await self.gs.challenge(alice, "Bob")
         await self.gs.decline_from(bob, "Alice")
         self.assertEqual(last(aws.sent, "challengeDeclined")["from"], "Bob")
 
     async def test_withdraw_challenge(self):
-        alice, aws = await self.make_user("Alice")
+        alice, aws = await self.make_user("Alice")  # noqa: RUF059
         bob, bws = await self.make_user("Bob")
         await self.gs.challenge(alice, "Bob")
         self.assertEqual(alice.pending_challenge_to, "Bob")
@@ -164,7 +164,7 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(last(bws.sent, "gameStart"))
 
     async def test_reconnect_replays_game(self):
-        alice, aws = await self.make_user("Alice")
+        alice, aws = await self.make_user("Alice")  # noqa: RUF059
         await self.gs.challenge(alice, AI)
         await asyncio.sleep(0.05)
         saved = alice.last_game_message

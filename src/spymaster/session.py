@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from fastapi.websockets import WebSocket
 
 from spymaster.logger import logger
+from spymaster.players import Player
 
 if TYPE_CHECKING:
     from spymaster.webserver import ActiveGame
@@ -43,6 +44,7 @@ class UserSession:
         self.connected = False
         self.disconnected_at: datetime | None = None
 
+        self.player: Player | None = None
         self.active_game: ActiveGame | None = None
         self.in_game = False
         self.pending_challenge_to: str | None = None
