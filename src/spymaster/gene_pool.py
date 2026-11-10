@@ -83,7 +83,7 @@ class RoundRobinTournament(Tournament):
 class PlayAgainstChallengerTournament(Tournament):
     """Play each player against one or more challengers, using factories
     so that every game gets a fresh challenger instance (challengers such
-    as AmericaPlayer keep mutable state between rounds).
+    as AdaptiveAimingPlayer keep mutable state between rounds).
 
     When several challengers are given, each game picks one uniformly at
     random, so the candidates face a shuffled, evenly-mixed mix of

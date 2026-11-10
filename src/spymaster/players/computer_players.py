@@ -6,7 +6,7 @@ import numpy as np
 from spymaster.players import Player
 
 from .benchmarks import (
-    AmericaPlayer,
+    AdaptiveAimingPlayer,
     RandomPlayer,
     RussiaPlayer,
     SimpleAimingPlayer,
@@ -151,7 +151,7 @@ def new_computer_player(name: str) -> Player:
         "AI (Easiest)": lambda: RandomPlayer(name="AI (Easiest)"),
         "AI (Easy)": lambda: SimpleAimingPlayer(name="AI (Easy)", variance=2),
         "AI (Medium)": lambda: SimpleAimingPlayer(name="AI (Medium)", variance=4),
-        "AI (Hard)": lambda: AmericaPlayer(name="AI (Hard)"),
+        "AI (Hard)": lambda: AdaptiveAimingPlayer(name="AI (Hard)"),
         "AI (Hardest)": lambda: RussiaPlayer(
             name="AI (Hardest)", bloodthirst=0.5, paranoia=0.5, idleness=0.33
         ),

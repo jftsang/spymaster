@@ -3,9 +3,8 @@ from typing import ClassVar
 
 import numpy as np
 
-from spymaster import Spymaster
+from spymaster import AgentCard, Spymaster
 from spymaster.players import Player
-from spymaster.spymaster import AgentCard
 
 
 class EvolutionaryPlayer(Player, metaclass=abc.ABCMeta):

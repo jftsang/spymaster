@@ -75,7 +75,7 @@ opponent is the `black` name. (This is how the existing game works via
 
 Add `new_computer_player(name) -> Player`, a factory producing a
 **fresh** instance per name (China RandomPlayer, France/Britain
-SimpleAimingPlayer, America AmericaPlayer, Russia RussiaPlayer with
+SimpleAimingPlayer, America AdaptiveAimingPlayer, Russia RussiaPlayer with
 the existing parameters). Keep the module-level singletons for the CLI
 and tests.
 

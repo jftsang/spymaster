@@ -1,7 +1,7 @@
 from collections.abc import Collection
 from random import randint, random
 
-from spymaster.spymaster import AgentCard
+from spymaster import AgentCard
 
 
 class NoPossibleOptions(Exception):

@@ -11,13 +11,12 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.websockets import WebSocket, WebSocketDisconnect
 
+from spymaster import Spymaster
 from spymaster.logger import logger
 from spymaster.players import Player
 from spymaster.players.computer_players import computer_players, new_computer_player
 from spymaster.players.online_player import OnlinePlayer
 from spymaster.session import Forfeit, UserSession
-
-from .spymaster import Spymaster
 
 
 @dataclass

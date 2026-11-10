@@ -2,10 +2,10 @@
 
 from random import choice, randint
 
+from spymaster import AgentCard, MissionResult, Spymaster
 from spymaster.players import Player
-from spymaster.spymaster import ASSASSIN, AgentCard, MissionResult, Spymaster
-
-from .aim import aim, check, chuck, mx, prefer
+from spymaster.players.aim import aim, check, chuck, mx, prefer
+from spymaster.spymaster import ASSASSIN
 
 
 class RandomPlayer(Player):
@@ -30,7 +30,7 @@ class SimpleAimingPlayer(Player):
         return aim(state.white_cards, target)
 
 
-class AmericaPlayer(Player):
+class AdaptiveAimingPlayer(Player):
     """A computer player that aims just above the mission and adjusts
     its target in response to the opponent's previous overbid.
     """
@@ -50,7 +50,7 @@ class AmericaPlayer(Player):
 
 
 class RussiaPlayer(Player):
-    """A computer player that adapts to different mission scores, and
+    """A computer player that adapts to different mission values, and
     sometimes ducks on high-value missions.
 
     @param bloodthirst: willingness to use the assassin against a
@@ -126,7 +126,7 @@ class RussiaPlayer(Player):
 china = RandomPlayer(name="AI (Easiest)")
 france = SimpleAimingPlayer(name="AI (Easy)", variance=2)
 britain = SimpleAimingPlayer(name="AI (Medium)", variance=4)
-america = AmericaPlayer(name="AI (Hard)")
+america = AdaptiveAimingPlayer(name="AI (Hard)")
 russia = RussiaPlayer(name="AI (Hardest)", bloodthirst=0.5, paranoia=0.5, idleness=0.33)
 
 default_computer_players = [
