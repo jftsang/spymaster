@@ -4,15 +4,17 @@ J. M. F. Tsang (j.m.f.tsang@cantab.net)
 
 ---
 
-This is a remake of Richard Bartle's game 
-[Spymaster](https://www.youhaventlived.com/spymaster/), rewritten with a
-Python backend. 
+Play now: https://spymaster.fastapicloud.dev/
 
-Spymaster is based on [Goofspiel](https://en.wikipedia.org/wiki/Goofspiel),
-a classic game of bluffing and double-bluffing.
+This is a remake of Richard Bartle's game [Spymaster][bartle], rewritten
+with a Python backend, a modernized frontend, and the ability to define
+custom AI players. 
 
-It's my attempt at writing a multiplayer browser game. 
+Spymaster is based on [Goofspiel][goofspiel], a classic game of bluffing
+and double-bluffing. Read [the rules](HowToPlay.md) for instructions.
 
+[bartle]: https://www.youhaventlived.com/spymaster/
+[goofspiel]: https://en.wikipedia.org/wiki/Goofspiel
 
 ## Usage
 
