@@ -2,7 +2,7 @@ import argparse
 import asyncio
 import sys
 
-from .spymaster import Spymaster
+from spymaster import Spymaster
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -78,8 +78,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 async def play_command(args: argparse.Namespace) -> None:
-    from spymaster.players import HumanPlayer
     from spymaster.players.computer_players import computer_players as players
+    from spymaster.players.human_player import HumanPlayer
 
     if args.p2 is None:
         p1 = HumanPlayer(name="You")
