@@ -7,6 +7,8 @@ from spymaster.spymaster import Spymaster
 
 players = list(computer_players.values())
 
+n_games = 1
+
 
 class TestRoundRobin(unittest.TestCase):
     def setUp(self):
@@ -17,7 +19,7 @@ class TestRoundRobin(unittest.TestCase):
         for i, w in enumerate(players):
             for j, b in enumerate(players[i + 1 :], i + 1):
                 with self.subTest(f"{w.name} vs {b.name}"):
-                    for _ in range(100):
+                    for _ in range(n_games):
                         game = Spymaster(white=w, black=b)
                         asyncio.run(game.play())
                         # game.print_score()

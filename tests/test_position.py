@@ -58,6 +58,18 @@ class TestPosition(unittest.TestCase):
             frozenset({AgentCard(0), AgentCard(1)}),
         )
 
+    def test_position_round_trips_through_spymaster(self):
+        situation = Spymaster(
+            white_cards=[AgentCard(10), AgentCard(2)],
+            black_cards=[AgentCard(5), AgentCard(1)],
+            white_score=7,
+            black_score=3,
+            current_mission=MissionCard(4),
+            remaining_missions=[MissionCard(3), MissionCard(1)],
+        )
+
+        self.assertEqual(situation.position.to_spymaster().position, situation.position)
+
     def test_position_is_hashable(self):
         self.assertIsInstance(hash(Spymaster().position), int)
 

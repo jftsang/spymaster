@@ -62,9 +62,9 @@ class CrudeEvaluator(Evaluator):
             if our_card == their_card:
                 continue
             if our_card == ASSASSIN:
-                black += their_card
+                white += their_card
             elif their_card == ASSASSIN:
-                white += our_card
+                black += our_card
             elif our_card > their_card:
                 white += mission
             else:

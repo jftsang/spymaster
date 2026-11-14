@@ -53,6 +53,33 @@ class TestCrudeEvaluator(unittest.TestCase):
 
         self.assertGreater(self.evaluator.evaluate(situation), 0.0)
 
+    def test_assassin_scores_the_opponents_card(self):
+        situation = Spymaster(
+            white_cards=[AgentCard(0)],
+            black_cards=[AgentCard(4)],
+            current_mission=MissionCard(10),
+            remaining_missions=[],
+        )
+        flipped = Spymaster(
+            white_cards=[AgentCard(4)],
+            black_cards=[AgentCard(0)],
+            current_mission=MissionCard(10),
+            remaining_missions=[],
+        )
+
+        self.assertAlmostEqual(self.evaluator.evaluate(situation), 0.4)
+        self.assertAlmostEqual(self.evaluator.evaluate(flipped), -0.4)
+
+    def test_equal_assassins_cancel(self):
+        situation = Spymaster(
+            white_cards=[AgentCard(0)],
+            black_cards=[AgentCard(0)],
+            current_mission=MissionCard(10),
+            remaining_missions=[],
+        )
+
+        self.assertEqual(self.evaluator.evaluate(situation), 0.0)
+
     def test_evaluation_is_bounded(self):
         situation = Spymaster(
             white_cards=[AgentCard(15), AgentCard(14)],

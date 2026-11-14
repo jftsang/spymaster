@@ -13,6 +13,7 @@ from .benchmarks import (
     default_computer_players,
 )
 from .evolutionary_players import EvolutionaryPlayer
+from .minimax.nash_players import NASH_PLAYER_NAME, NashPlayer
 
 WEIGHTS_DIR = Path(__file__).parent.parent / "weights"
 LINEAR_AMERICA_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_america.npy"
@@ -156,6 +157,7 @@ def new_computer_player(name: str) -> Player:
             name="AI (Hardest)", bloodthirst=0.5, paranoia=0.5, idleness=0.33
         ),
         TUNED_ADAPTIVE_NAME: lambda: load_tuned_adaptive(),
+        NASH_PLAYER_NAME: lambda: NashPlayer(name=NASH_PLAYER_NAME),
     }
     factories.update(
         {
@@ -169,7 +171,10 @@ def new_computer_player(name: str) -> Player:
         raise KeyError(f"Unknown computer player: {name}")
 
 
-computer_players: dict[str, Player] = {p.name: p for p in default_computer_players}
+computer_players: dict[str, Player] = {
+    p.name: p for p in default_computer_players
+}
+computer_players[NASH_PLAYER_NAME] = NashPlayer(name=NASH_PLAYER_NAME)
 
 # Trained SingleLayerPerceptron players are registered only once their
 # weight artifacts exist, so a fresh checkout still imports cleanly.

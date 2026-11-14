@@ -59,8 +59,8 @@ White.
 Scoring mirrors `Spymaster.resolve`:
 
 - Equal cards: nobody scores.
-- White plays the assassin: Black scores Black's card value.
-- Black plays the assassin: White scores White's card value.
+- White plays the assassin: White scores Black's card value.
+- Black plays the assassin: Black scores White's card value.
 - Otherwise the higher card scores the mission value.
 
 Let:
@@ -101,6 +101,7 @@ Thresholds:
 - `Position`: frozen dataclass with `ours`, `theirs`, `missions`,
   `current_mission`, `white_score`, and `black_score`.
 - `Position.of(game_state) -> Position`.
+- `Position.to_spymaster() -> Spymaster`, used for evaluator leaves.
 - `Spymaster.position` is a property returning `Position.of(self)`.
 - Players are presented with `Spymaster` game states, not `Position`
   objects. A player may adapt its decisions based on the game history
@@ -133,15 +134,17 @@ Thresholds:
 ### `spymaster.players.minimax.nash_players`
 
 - `NashPlayer`, registered as `AI (Nash, 1-ply)`.
-- Constructor:
-  `NashPlayer(name, evaluator=None, exact_rounds=3, defensive=False)`;
-  the evaluator defaults to `CrudeEvaluator()`.
+- Constructor: `NashPlayer(name, evaluator=None)`; the evaluator
+  defaults to `CrudeEvaluator()`.
 - Root move evaluation:
-  1. Check forced guarantee.
-  2. Otherwise build the payoff matrix over our cards versus the
-     opponent's cards for the current mission.
-  3. For each pair, recurse into the successor position.
-  4. Sample our root action from the equilibrium mixture.
+  1. Build the payoff matrix over our cards versus the opponent's cards
+     for the current mission.
+  2. For each pair, resolve the mission and evaluate the successor
+     position.
+  3. Solve the matrix game and sample our root action from the
+     equilibrium mixture.
+- The initial implementation ignores guarantee short-circuits and exact
+  endgame DP; those are added after the evaluation-only player works.
 
 ## Exact endgame
 
@@ -150,6 +153,7 @@ Use the core `spymaster.position.Position` dataclass:
 - Constructible from a `Spymaster` through the static factory method
   `Position.of(game_state) -> Position`, or through the
   `Spymaster.position` property.
+- Convertible back to an evaluator leaf state with `to_spymaster()`.
 - `ours: frozenset[AgentCard]`
 - `theirs: frozenset[AgentCard]`
 - `missions: frozenset[MissionCard]`
@@ -193,8 +197,8 @@ Optional clipping:
   and draw cases.
 - `tests/test_matrix_game.py`: known matrix games, pure strategies,
   probabilities summing to one, value bounds.
-- `tests/test_nash_players.py`: legal picks, sampling from mixtures,
-  forced-win short-circuit, deterministic seeded matches.
+- `tests/test_nash_players.py`: legal picks, child resolution, sampling
+  from mixtures, and deterministic seeded matches.
 
 ## Verification
 

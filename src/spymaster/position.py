@@ -43,3 +43,19 @@ class Position:
             white_score=game_state.white_score,
             black_score=game_state.black_score,
         )
+
+    def to_spymaster(self) -> Spymaster:
+        """Rebuild a game state suitable for leaf evaluation."""
+        from spymaster.spymaster import Spymaster
+
+        remaining = set(self.missions)
+        if self.current_mission is not None:
+            remaining.discard(self.current_mission)
+        return Spymaster(
+            white_cards=sorted(self.ours),
+            black_cards=sorted(self.theirs),
+            white_score=self.white_score,
+            black_score=self.black_score,
+            current_mission=self.current_mission,
+            remaining_missions=sorted(remaining),
+        )
