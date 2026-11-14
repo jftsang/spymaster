@@ -146,7 +146,7 @@ class Spymaster(BaseModel):
                 result.game_over = True
 
             wr = self.white.receive(self, result)
-            br = self.black.receive(self, result.flipped())
+            br = self.black.receive(self.flipped(), result.flipped())
             await asyncio.gather(wr, br)
 
     def resolve(self, white_play: AgentCard, black_play: AgentCard) -> MissionResult:

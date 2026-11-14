@@ -140,6 +140,32 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         b_over = last(bws.sent, "gameOver")
         self.assertEqual(a_over["winner"], b_over["winner"])
 
+    async def test_black_player_sees_flipped_state(self):
+        alice, aws = await self.make_user("Alice")
+        bob, bws = await self.make_user("Bob")
+
+        await self.gs.challenge(alice, "Bob")
+        await self.gs.accept_from(bob, "Alice")
+
+        await asyncio.gather(
+            self.drive(alice, aws),
+            self.drive(bob, bws),
+        )
+
+        # Alice sits in the white seat, Bob in the black seat. Each must
+        # see the board from their own point of view, especially the
+        # final state shown when the game ends.
+        a_final = last(aws.sent, "result")["situation"]
+        b_final = last(bws.sent, "result")["situation"]
+        self.assertEqual(a_final["white"], "Alice")
+        self.assertEqual(a_final["black"], "Bob")
+        self.assertEqual(b_final["white"], "Bob")
+        self.assertEqual(b_final["black"], "Alice")
+        self.assertEqual(b_final["whiteScore"], a_final["blackScore"])
+        self.assertEqual(b_final["blackScore"], a_final["whiteScore"])
+        self.assertEqual(b_final["whiteCards"], a_final["blackCards"])
+        self.assertEqual(b_final["blackCards"], a_final["whiteCards"])
+
     async def test_decline(self):
         alice, aws = await self.make_user("Alice")
         bob, bws = await self.make_user("Bob")  # noqa: RUF059

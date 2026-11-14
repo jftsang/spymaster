@@ -100,11 +100,12 @@ class ActiveGame:
         if self.over:
             return
         self.over = True
-        if forfeiter is None:
-            winner = self.winner_name()
-        else:
+
+        if forfeiter is not None:
             winner = self.opponent_name(forfeiter)
-        msg = {"msgType": "gameOver", "winner": winner, "reason": reason}
+        else:
+            winner = self.winner_name()
+
         logger.info(
             "game over: %s %s - %s %s (reason=%s, winner=%s)",
             self.white.name,
@@ -121,6 +122,7 @@ class ActiveGame:
             session.in_game = False
             session.active_game = None
             session.player = None
+            msg = {"msgType": "gameOver", "winner": winner, "reason": reason}
             session.last_game_message = msg
             await session.send(msg)
         self.server.remove_game(self)
