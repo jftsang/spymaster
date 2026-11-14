@@ -26,7 +26,7 @@ const CONTEXT_LABELS = ["Mission", "My score", "Opp score"];
 const POSITIVE: [number, number, number] = [214, 45, 45];
 const NEGATIVE: [number, number, number] = [45, 90, 214];
 
-const cardName = (card: number) => (card === 0 ? "the assassin (💣)" : String(card));
+const cardName = (card: number) => (card === 0 ? "the assassin (👻)" : String(card));
 
 const columnTitle = (index: number): string => {
   if (index < 16) return `while I still hold card ${cardName(index)}`;
@@ -36,8 +36,8 @@ const columnTitle = (index: number): string => {
 };
 
 const columnLabel = (index: number): string => {
-  if (index < 16) return index === 0 ? "💣" : String(index);
-  if (index < 32) return index - 16 === 0 ? "💣" : String(index - 16);
+  if (index < 16) return index === 0 ? "👻" : String(index);
+  if (index < 32) return index - 16 === 0 ? "👻" : String(index - 16);
   if (index < 48) return String(index - 32 + 1);
   return CONTEXT_LABELS[index - 48];
 };
@@ -151,7 +151,7 @@ export const WeightsView = () => {
               {player.weights.map((row, c) => (
                 <tr key={c}>
                   <th class="row-head" title={`Score for playing card ${cardName(c)}`}>
-                    {c === 0 ? "💣" : c}
+                    {c === 0 ? "👻" : c}
                   </th>
                   {row.map((value, j) => (
                     <td

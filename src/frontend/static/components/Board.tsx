@@ -26,7 +26,7 @@ const AgentCard = ({
   if (played) cls += " their-selected";
   return (
     <button class={cls} disabled={disabled} onClick={onClick}>
-      {value > 0 ? String(value) : "💣"}
+      {value > 0 ? String(value) : "👻"}
       {shortcut ? <span class="card-shortcut">{shortcut}</span> : null}
     </button>
   );
