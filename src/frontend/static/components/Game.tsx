@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { game, gameOverAcknowledged } from "../state";
 import { sendWs } from "../ws";
 import { Board, SHORTCUTS } from "./Board";
+import { History } from "./History";
 
 export const GameView = () => {
   const g = game.value;
@@ -15,6 +16,7 @@ export const GameView = () => {
   const [selected, setSelected] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [revealedTurn, setRevealedTurn] = useState<number | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // The mission card stays hidden until the player acknowledges this turn.
   const missionRevealed = revealedTurn === turn;
@@ -61,6 +63,7 @@ export const GameView = () => {
 
   useEffect(() => {
     const handler = (ev: KeyboardEvent) => {
+      if (historyOpen) return;
       if (ready && situation) {
         if (SHORTCUTS.includes(ev.key)) {
           pick(SHORTCUTS.indexOf(ev.key));
@@ -86,9 +89,19 @@ export const GameView = () => {
         <h4 class="mb-0">
           Playing against <strong>{opponent}</strong>
         </h4>
-        <button class="btn btn-outline-danger btn-sm" onClick={leave}>
-          Leave game
-        </button>
+        <div class="d-flex gap-2">
+          {situation.history.length > 0 && (
+            <button
+              class="btn btn-outline-light btn-sm history-toggle"
+              onClick={() => setHistoryOpen(true)}
+            >
+              Game log
+            </button>
+          )}
+          <button class="btn btn-outline-danger btn-sm" onClick={leave}>
+            Leave game
+          </button>
+        </div>
       </div>
       {g.opponentStatus === "disconnected" && (
         <div class="alert alert-warning">
@@ -107,6 +120,12 @@ export const GameView = () => {
         onPick={pick}
         onContinue={cont}
         onGameOver={acknowledgeGameOver}
+      />
+      <History
+        history={situation.history}
+        opponent={opponent}
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
       />
     </div>
   );

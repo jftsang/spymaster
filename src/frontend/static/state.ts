@@ -16,6 +16,14 @@ export type MissionResultData = {
   gameOver: boolean;
 };
 
+export type HistoryStepData = {
+  mission: number;
+  whitePlayed: number;
+  blackPlayed: number;
+  whiteScore: number;
+  blackScore: number;
+};
+
 export type GameStateData = {
   white: string;
   black: string;
@@ -25,6 +33,7 @@ export type GameStateData = {
   blackScore: number;
   currentMission: number | null;
   remainingMissions: number[];
+  history: HistoryStepData[];
 };
 
 export type GameSignal = {

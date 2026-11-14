@@ -78,6 +78,50 @@ button.mission {
     margin: 1px;
 }
 
+.history-table {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.history-table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #1c1c1c;
+}
+
+/*
+ * The game log lives in a fixed right-hand sidebar when the viewport is
+ * wide enough for it to clear the centered board. Otherwise it is only
+ * shown as a modal, opened by the Game log button.
+ */
+.game-history {
+    display: none;
+}
+
+@media (min-width: 1600px) {
+    .game-history {
+        display: block;
+        position: fixed;
+        top: 80px;
+        right: 12px;
+        width: 250px;
+        max-height: calc(100vh - 92px);
+        overflow-y: auto;
+    }
+
+    .game-history .history-table {
+        max-height: none;
+    }
+
+    .history-toggle {
+        display: none;
+    }
+
+    .history-modal {
+        display: none !important;
+    }
+}
+
 footer.site-footer a {
     color: #6ea8fe;
     text-decoration: none;
