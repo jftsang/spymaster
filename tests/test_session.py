@@ -1,13 +1,10 @@
 import asyncio
 import unittest
 from datetime import timedelta
-from typing import cast
 from unittest import mock
 
-from starlette.websockets import WebSocket
-
-import spymaster.session as session_module
-from spymaster.session import Forfeit, UserSession
+import spymaster.webserver.session as session_module
+from spymaster.webserver.session import Forfeit, UserSession
 
 
 class FakeWebSocket:

@@ -15,8 +15,8 @@ from spymaster import Spymaster
 from spymaster.logger import logger
 from spymaster.players import Player
 from spymaster.players.computer_players import computer_players, new_computer_player
-from spymaster.players.online_player import OnlinePlayer
-from spymaster.session import Forfeit, UserSession
+from spymaster.webserver.online_player import OnlinePlayer
+from spymaster.webserver.session import Forfeit, UserSession
 
 
 @dataclass
@@ -525,12 +525,17 @@ class GameServer:
 gs = GameServer()
 app = gs.app
 
-frontend_dir = Path(__file__).parent / "../../dist/frontend"
-static_dir = Path(__file__).parent.parent / "frontend" / "static"
-weights_dir = Path(__file__).parent / "weights"
-help_template_path = Path(__file__).parent.parent / "frontend" / "help.html"
-privacy_path = Path(__file__).parent.parent / "frontend" / "privacy.html"
-how_to_play_path = Path(__file__).parent / "../../HowToPlay.md"
+webserver_dir = Path(__file__).parent
+spymaster_dir = webserver_dir.parent
+source_dir = spymaster_dir.parent
+project_dir = source_dir.parent
+
+frontend_dir = project_dir / "dist" / "frontend"
+static_dir = source_dir / "frontend" / "static"
+weights_dir = spymaster_dir / "weights"
+help_template_path = source_dir / "frontend" / "help.html"
+privacy_path = source_dir / "frontend" / "privacy.html"
+how_to_play_path = project_dir / "HowToPlay.md"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 app.frontend("/", directory=frontend_dir)
 

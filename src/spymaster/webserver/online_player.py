@@ -1,7 +1,7 @@
 from spymaster import AgentCard, MissionResult, Spymaster
 from spymaster.logger import logger
 from spymaster.players import Player
-from spymaster.session import UserSession
+from spymaster.webserver.session import UserSession
 
 
 class WsComm:
