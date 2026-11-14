@@ -99,7 +99,7 @@ Thresholds:
 - Core module; it must not depend on the minimax or `spymaster_ai`
   packages.
 - `Position`: frozen dataclass with `ours`, `theirs`, `missions`,
-  `white_score`, and `black_score`.
+  `current_mission`, `white_score`, and `black_score`.
 - `Position.of(game_state) -> Position`.
 - `Spymaster.position` is a property returning `Position.of(self)`.
 - Players are presented with `Spymaster` game states, not `Position`
@@ -119,7 +119,8 @@ Thresholds:
 - `GuaranteeKind`: `WIN`, `DRAW_ONLY`, `DEFENSIVE_DRAW`, `LOSS`, `NONE`.
 - `Guarantee`: result object carrying kind, equity, thresholds, and the
   cards/missions needed to execute the policy.
-- `analyse_guarantee(...)`: computes the case table above.
+- `analyse_guarantee(position)`: computes the case table above from a
+  `Position`.
 
 ### `spymaster.players.minimax.matrix_game`
 
@@ -152,12 +153,14 @@ Use the core `spymaster.position.Position` dataclass:
 - `ours: frozenset[AgentCard]`
 - `theirs: frozenset[AgentCard]`
 - `missions: frozenset[MissionCard]`
+- `current_mission: MissionCard | None`
 - `white_score: int`
 - `black_score: int`
 
-The current mission is included in `missions` at the root. Memoise on
-`(ours, theirs, missions, diff)`, since a constant score offset does not
-change future decisions.
+The current mission is included in `missions` at the root and is also
+identified by `current_mission`. Memoise on
+`(ours, theirs, missions, current_mission, diff)`, since a constant score
+offset does not change future decisions.
 
 `exact_equity(position)`:
 

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from functools import partial
 
-from spymaster import AgentCard, Spymaster
+from spymaster import AgentCard, Position
 from spymaster.spymaster import ASSASSIN, MissionCard
 
 
@@ -47,28 +47,28 @@ class Guarantee:
     required_missions: tuple[MissionCard, ...] = ()
 
 
-def analyse_guarantee(situation: Spymaster) -> Guarantee:
+def analyse_guarantee(position: Position) -> Guarantee:
     """Classify a position using only guaranteed winners.
 
     ``required_missions`` contains the highest-value missions needed by
     the active policy. Play a guaranteed winner on one of those missions
     and hold otherwise.
     """
-    missions = _unresolved_missions(situation)
+    missions = _unresolved_missions(position)
     if not missions:
         return Guarantee(GuaranteeKind.NONE)
 
     total = sum(missions)
-    diff = situation.white_score - situation.black_score
+    diff = position.white_score - position.black_score
 
     if diff + total < 0:
         return Guarantee(kind=GuaranteeKind.LOSS, equity=-1)
 
-    if ASSASSIN in situation.white_cards or ASSASSIN in situation.black_cards:
+    if ASSASSIN in position.ours or ASSASSIN in position.theirs:
         return Guarantee(kind=GuaranteeKind.NONE)
 
-    their_best = max(situation.black_cards, default=-1)
-    winners = tuple(sorted(card for card in situation.white_cards if card > their_best))
+    their_best = max(position.theirs, default=-1)
+    winners = tuple(sorted(card for card in position.ours if card > their_best))
     target = total - diff
     win_threshold = _threshold(missions, target, strict=True)
     draw_threshold = _threshold(missions, target, strict=False)
@@ -98,10 +98,10 @@ def analyse_guarantee(situation: Spymaster) -> Guarantee:
     return policy(GuaranteeKind.NONE, None, None)
 
 
-def _unresolved_missions(situation: Spymaster) -> tuple[MissionCard, ...]:
-    missions = set(situation.remaining_missions)
-    if situation.current_mission is not None:
-        missions.add(situation.current_mission)
+def _unresolved_missions(position: Position) -> tuple[MissionCard, ...]:
+    missions = set(position.missions)
+    if position.current_mission is not None:
+        missions.add(position.current_mission)
     return tuple(sorted(missions, reverse=True))
 
 

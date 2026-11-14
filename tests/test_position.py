@@ -23,6 +23,7 @@ class TestPosition(unittest.TestCase):
             position.missions,
             frozenset({MissionCard(4), MissionCard(3), MissionCard(1)}),
         )
+        self.assertEqual(position.current_mission, MissionCard(4))
         self.assertEqual(position.white_score, 7)
         self.assertEqual(position.black_score, 3)
 

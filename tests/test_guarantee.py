@@ -15,7 +15,7 @@ class TestGuaranteeAnalysis(unittest.TestCase):
             remaining_missions=[MissionCard(1), MissionCard(2)],
         )
 
-        guarantee = analyse_guarantee(situation)
+        guarantee = analyse_guarantee(situation.position)
 
         self.assertEqual(guarantee.kind, GuaranteeKind.WIN)
         self.assertEqual(guarantee.equity, 1)
@@ -33,7 +33,7 @@ class TestGuaranteeAnalysis(unittest.TestCase):
             remaining_missions=[MissionCard(1)],
         )
 
-        guarantee = analyse_guarantee(situation)
+        guarantee = analyse_guarantee(situation.position)
 
         self.assertEqual(guarantee.kind, GuaranteeKind.DRAW_ONLY)
         self.assertEqual(guarantee.equity, 0)
@@ -51,7 +51,7 @@ class TestGuaranteeAnalysis(unittest.TestCase):
             remaining_missions=[MissionCard(1)],
         )
 
-        guarantee = analyse_guarantee(situation)
+        guarantee = analyse_guarantee(situation.position)
 
         self.assertEqual(guarantee.kind, GuaranteeKind.DRAW_ONLY)
         self.assertIsNone(guarantee.equity)
@@ -67,7 +67,7 @@ class TestGuaranteeAnalysis(unittest.TestCase):
             remaining_missions=[MissionCard(3), MissionCard(2)],
         )
 
-        guarantee = analyse_guarantee(situation)
+        guarantee = analyse_guarantee(situation.position)
 
         self.assertEqual(guarantee.kind, GuaranteeKind.DEFENSIVE_DRAW)
         self.assertIsNone(guarantee.equity)
@@ -85,7 +85,7 @@ class TestGuaranteeAnalysis(unittest.TestCase):
             remaining_missions=[MissionCard(1)],
         )
 
-        guarantee = analyse_guarantee(situation)
+        guarantee = analyse_guarantee(situation.position)
 
         self.assertEqual(guarantee.kind, GuaranteeKind.LOSS)
         self.assertEqual(guarantee.equity, -1)
@@ -99,12 +99,12 @@ class TestGuaranteeAnalysis(unittest.TestCase):
             remaining_missions=[MissionCard(1)],
         )
 
-        guarantee = analyse_guarantee(situation)
+        guarantee = analyse_guarantee(situation.position)
 
         self.assertEqual(guarantee.kind, GuaranteeKind.LOSS)
 
     def test_assassin_disables_analysis(self):
-        guarantee = analyse_guarantee(Spymaster())
+        guarantee = analyse_guarantee(Spymaster().position)
 
         self.assertEqual(guarantee.kind, GuaranteeKind.NONE)
         self.assertIsNone(guarantee.equity)
@@ -117,7 +117,7 @@ class TestGuaranteeAnalysis(unittest.TestCase):
             remaining_missions=[MissionCard(3), MissionCard(2)],
         )
 
-        guarantee = analyse_guarantee(situation)
+        guarantee = analyse_guarantee(situation.position)
 
         self.assertEqual(guarantee.kind, GuaranteeKind.NONE)
         self.assertEqual(guarantee.win_threshold, 2)
@@ -126,7 +126,7 @@ class TestGuaranteeAnalysis(unittest.TestCase):
         self.assertEqual(guarantee.required_missions, ())
 
     def test_no_missions(self):
-        guarantee = analyse_guarantee(Spymaster(remaining_missions=[]))
+        guarantee = analyse_guarantee(Spymaster(remaining_missions=[]).position)
 
         self.assertEqual(guarantee.kind, GuaranteeKind.NONE)
 
