@@ -94,6 +94,20 @@ Thresholds:
 
 ## Modules
 
+### `spymaster.position`
+
+- Core module; it must not depend on the minimax or `spymaster_ai`
+  packages.
+- `Position`: frozen dataclass with `ours`, `theirs`, `missions`,
+  `white_score`, and `black_score`.
+- `Position.of(game_state) -> Position`.
+- `Spymaster.position` is a property returning `Position.of(self)`.
+- Players are presented with `Spymaster` game states, not `Position`
+  objects. A player may adapt its decisions based on the game history
+  or the identity of the other player, so those fields must remain
+  available at the player API boundary. `Position` is for search and
+  memoization only.
+
 ### `spymaster.players.minimax.evaluation`
 
 - `Evaluator`: abstract base with `evaluate(situation) -> float`.
@@ -130,10 +144,11 @@ Thresholds:
 
 ## Exact endgame
 
-Use a `Position` dataclass:
+Use the core `spymaster.position.Position` dataclass:
 
 - Constructible from a `Spymaster` through the static factory method
-  `Position.of(situation) -> Position`.
+  `Position.of(game_state) -> Position`, or through the
+  `Spymaster.position` property.
 - `ours: frozenset[AgentCard]`
 - `theirs: frozenset[AgentCard]`
 - `missions: frozenset[MissionCard]`
@@ -168,6 +183,8 @@ Optional clipping:
 
 ## Tests
 
+- `tests/test_position.py`: property construction, state changes, and
+  hashability.
 - `tests/test_evaluation.py`: evaluator ordering and bounds.
 - `tests/test_guarantee.py`: threshold arithmetic, assassin disabling,
   and draw cases.

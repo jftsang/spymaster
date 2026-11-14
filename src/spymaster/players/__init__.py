@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from spymaster import AgentCard, MissionResult, Spymaster
+from spymaster.spymaster import AgentCard, MissionResult, Spymaster
 
 
 class Player(ABC):
@@ -29,6 +29,3 @@ class Player(ABC):
         to try again.
         """
         raise ValueError("Illegal choice")
-
-
-Spymaster.model_rebuild()

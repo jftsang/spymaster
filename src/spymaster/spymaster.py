@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, NewType
 from pydantic import BaseModel, Field, field_serializer
 from pydantic.alias_generators import to_camel
 
+from spymaster.position import Position
+
 if TYPE_CHECKING:
     from spymaster.players import Player
 
@@ -105,6 +107,11 @@ class Spymaster(BaseModel):
 
     def to_dict(self):
         return self.model_dump()
+
+    @property
+    def position(self) -> Position:
+        """Return a compact, immutable view of the current game state."""
+        return Position.of(self)
 
     def print_score(self):
         assert self.white is not None and self.black is not None
