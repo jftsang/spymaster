@@ -61,6 +61,8 @@ def mission_factory() -> list[MissionCard]:
 
 
 class GameHistoryStep(BaseModel):
+    model_config = {"populate_by_name": True, "alias_generator": to_camel}
+
     mission: int
     white_played: AgentCard
     black_played: AgentCard
@@ -119,6 +121,7 @@ class Spymaster(BaseModel):
             black_score=self.white_score,
             current_mission=self.current_mission,
             remaining_missions=self.remaining_missions,
+            history=[step.flipped() for step in self.history],
         )
 
     async def play(self):

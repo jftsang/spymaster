@@ -166,6 +166,17 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(b_final["whiteCards"], a_final["blackCards"])
         self.assertEqual(b_final["blackCards"], a_final["whiteCards"])
 
+        # The history must also be complete and mirrored for Black.
+        self.assertEqual(len(b_final["history"]), 16)
+        for a_step, b_step in zip(
+            a_final["history"], b_final["history"], strict=True
+        ):
+            self.assertEqual(b_step["mission"], a_step["mission"])
+            self.assertEqual(b_step["whitePlayed"], a_step["blackPlayed"])
+            self.assertEqual(b_step["blackPlayed"], a_step["whitePlayed"])
+            self.assertEqual(b_step["whiteScore"], a_step["blackScore"])
+            self.assertEqual(b_step["blackScore"], a_step["whiteScore"])
+
     async def test_decline(self):
         alice, aws = await self.make_user("Alice")
         bob, bws = await self.make_user("Bob")  # noqa: RUF059
