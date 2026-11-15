@@ -1,3 +1,5 @@
+from functools import partial
+
 from spymaster.players import Player
 
 from .adaptive import TUNED_ADAPTIVE_FACTORIES
@@ -8,7 +10,7 @@ from .linear import LINEAR_PLAYERS_FACTORIES
 from .minimax.nash_players import NASH_PLAYER_NAME, NashPlayer
 
 FACTORIES = {}
-FACTORIES[NASH_PLAYER_NAME] = lambda: NashPlayer(name=NASH_PLAYER_NAME)
+FACTORIES[NASH_PLAYER_NAME] = partial(NashPlayer, name=NASH_PLAYER_NAME)
 FACTORIES.update(BENCHMARK_FACTORIES)
 FACTORIES.update(LINEAR_PLAYERS_FACTORIES)
 FACTORIES.update(TUNED_ADAPTIVE_FACTORIES)

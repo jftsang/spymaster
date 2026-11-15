@@ -49,7 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     benchmark = subparsers.add_parser(
         "benchmark",
-        help="Report the trained perceptron players' performance.",
+        help="Report AI players' performance against benchmarks.",
     )
     benchmark.add_argument("--games", type=int, default=100)
     benchmark.add_argument("--seed", type=int, default=0)
@@ -80,7 +80,6 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 async def play_command(args: argparse.Namespace) -> None:
-    from spymaster.players.computer_players import FACTORIES
     from spymaster.players.human_player import HumanPlayer
 
     if args.p2 is None:
@@ -117,7 +116,7 @@ async def benchmark_command(args: argparse.Namespace) -> None:
         print(f"\n{name} vs benchmark computer players ({args.games} games each):")
         for opponent, (wins, draws, losses) in results.items():
             points = wins + 0.5 * draws
-            print(f"  {opponent}: {wins}W {draws}D {losses}L ({points / ngames:.1%})")
+            print(f"  vs. {opponent}: {wins}W {draws}D {losses}L ({points / ngames:.1%})")
 
     names = list(players)
     if len(names) >= 2:

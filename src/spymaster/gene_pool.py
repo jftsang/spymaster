@@ -5,7 +5,7 @@ from itertools import product
 from random import choice
 
 import numpy as np
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from spymaster import Spymaster
 from spymaster.players import Player
@@ -207,17 +207,21 @@ async def evaluate_against_computer_players(
         opponent_names = list(BENCHMARK_FACTORIES.keys())
 
     results: dict[str, tuple[int, int, int]] = {}
-    for name in opponent_names:
+    for opp_name in opponent_names:
         games = [
-            Spymaster(white=player, black=new_computer_player(name))
+            Spymaster(white=player, black=new_computer_player(opp_name))
             for _ in range(n_games)
         ]
-        await asyncio.gather(*(game.play() for game in games))
+
+        with tqdm(desc=f"{player.name} vs {opp_name}", total=len(games)) as pbar:
+            for fut in asyncio.as_completed([game.play() for game in games]):
+                await fut
+                pbar.update(1)
 
         wins = sum(g.white_score > g.black_score for g in games)
         draws = sum(g.white_score == g.black_score for g in games)
         losses = n_games - wins - draws
-        results[name] = (wins, draws, losses)
+        results[opp_name] = (wins, draws, losses)
 
     return results
 
