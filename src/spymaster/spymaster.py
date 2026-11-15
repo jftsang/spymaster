@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, NewType
 from pydantic import BaseModel, Field, field_serializer
 from pydantic.alias_generators import to_camel
 
+from spymaster.logger import logger
 from spymaster.position import Position
 
 if TYPE_CHECKING:
@@ -138,6 +139,7 @@ class Spymaster(BaseModel):
             self.current_mission = self.remaining_missions.pop()
             self.remaining_missions.sort()
 
+            logger.info("%s - %s: Waiting for plays", self.white.name, self.black.name)
             white_pick = asyncio.ensure_future(self.choose_and_validate(self.white))
             black_pick = asyncio.ensure_future(
                 self.flipped().choose_and_validate(self.black)
@@ -198,15 +200,16 @@ class Spymaster(BaseModel):
         self.white_score += dw
         self.black_score += db
 
-        self.history.append(
-            GameHistoryStep(
-                mission=self.current_mission,
-                white_played=white_play,
-                black_played=black_play,
-                white_score=self.white_score,
-                black_score=self.black_score,
-            )
+        ghs = GameHistoryStep(
+            mission=self.current_mission,
+            white_played=white_play,
+            black_played=black_play,
+            white_score=self.white_score,
+            black_score=self.black_score,
         )
+        logger.info("%s - %s: %s", self.white.name, self.white_score, ghs)
+
+        self.history.append(ghs)
 
         return MissionResult(
             you_played=white_play,

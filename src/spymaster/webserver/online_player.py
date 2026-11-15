@@ -42,34 +42,19 @@ class OnlinePlayer(Player):
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     async def pick(self, state: Spymaster) -> AgentCard:
-        self.logger.info(
-            "awaiting card: %s to play mission %s (score %s-%s, hand %s)",
-            self.name,
-            state.current_mission,
-            state.white_score,
-            state.black_score,
-            state.white_cards,
-        )
+        self.logger.debug("%s: awaiting card", self.name)
         await self.wscomm.send_situation(state, "Pick a card")
         while True:
             choice = AgentCard(await self.session.await_card())
-            self.logger.debug("%s selected card %s", self.name, choice)
+            self.logger.debug("%s: selected card", self.name)
             if choice in state.white_cards:
                 return choice
             else:
                 self.logger.warning(
-                    "%s chose an invalid card %s; re-prompting", self.name, choice
+                    "%s: chose an invalid card %s; re-prompting", self.name, choice
                 )
                 await self.wscomm.send_situation(state, f"{choice} is not a valid card")
 
     async def receive(self, state, result: MissionResult) -> None:
-        self.logger.info(
-            "%s mission %s result: played %s, opponent played %s (score %s-%s)",
-            self.name,
-            result.mission,
-            result.you_played,
-            result.opp_played,
-            state.white_score,
-            state.black_score,
-        )
+        self.logger.debug("%s: receiving result", self.name)
         await self.wscomm.send_result(state, result)

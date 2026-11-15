@@ -12,7 +12,6 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.websockets import WebSocket, WebSocketDisconnect
 
-import spymaster.logger  # noqa: F401
 import spymaster.players.computer_players
 from spymaster import Spymaster
 from spymaster.players import Player
