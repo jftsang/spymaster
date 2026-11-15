@@ -1,12 +1,17 @@
 import asyncio
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
+import numpy as np
 from fastapi.testclient import TestClient
 
-from spymaster.players.computer_players import computer_players
+from spymaster.players.computer_players import FACTORIES
+from spymaster.tournament import TournamentResults
 from spymaster.webserver import GameServer, app
 
-AI = next(iter(computer_players))
+AI = next(iter(FACTORIES))
 
 
 class FakeWebSocket:
@@ -255,6 +260,41 @@ class TestWeightsApi(unittest.TestCase):
         for player in data["players"]:
             self.assertEqual(len(player["weights"]), 16)
             self.assertEqual(len(player["weights"][0]), 51)
+
+
+class TestTournamentsApi(unittest.TestCase):
+    def setUp(self):
+        self.client = TestClient(app)
+
+    def test_missing_results_returns_404(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "missing.npz"
+            with patch("spymaster.webserver.TOURNAMENT_RESULTS_PATH", path):
+                response = self.client.get("/api/tournaments")
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("No tournament results", response.json()["detail"])
+
+    def test_results_exposed(self):
+        results = TournamentResults(
+            scores=np.array([[0, 3], [-3, 0]], dtype=np.int16),
+            player_names=["Alice", "Bob"],
+            evaluator_names=["Alice", "Bob"],
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "tournament_results.npz"
+            results.save(path)
+            with patch("spymaster.webserver.TOURNAMENT_RESULTS_PATH", path):
+                response = self.client.get("/api/tournaments")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "players": ["Alice", "Bob"],
+                "evaluators": ["Alice", "Bob"],
+                "scores": [[0, 3], [-3, 0]],
+            },
+        )
 
 
 if __name__ == "__main__":

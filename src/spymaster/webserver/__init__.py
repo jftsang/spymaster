@@ -6,7 +6,7 @@ from uuid import uuid4
 import numpy as np
 import uvicorn
 from commonmark import commonmark
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.websockets import WebSocket, WebSocketDisconnect
@@ -15,6 +15,7 @@ import spymaster.players.computer_players
 from spymaster import Spymaster
 from spymaster.logger import logger
 from spymaster.players import Player
+from spymaster.tournament import TOURNAMENT_RESULTS_PATH, TournamentResults
 from spymaster.webserver.online_player import OnlinePlayer
 from spymaster.webserver.session import Forfeit, UserSession
 
@@ -586,6 +587,30 @@ async def privacy_view() -> HTMLResponse:
 @app.get("/weights")
 async def weights_view() -> HTMLResponse:
     return HTMLResponse(_render_page(frontend_dir / "weights.html"))
+
+
+@app.get("/tournaments")
+async def tournaments_view() -> HTMLResponse:
+    return HTMLResponse(_render_page(frontend_dir / "tournaments.html"))
+
+
+@app.get("/api/tournaments")
+async def tournaments_data() -> dict:
+    """Expose the round-robin net-score matrix as JSON."""
+    if not TOURNAMENT_RESULTS_PATH.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "No tournament results found. Run "
+                "`python -m spymaster tournament` to generate them."
+            ),
+        )
+    results = TournamentResults.load(TOURNAMENT_RESULTS_PATH)
+    return {
+        "players": results.player_names,
+        "evaluators": results.evaluator_names,
+        "scores": results.scores.tolist(),
+    }
 
 
 @app.get("/api/weights")

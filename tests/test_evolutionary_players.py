@@ -2,7 +2,7 @@ import asyncio
 import unittest
 
 from spymaster.players import Player
-from spymaster.players.evolutionary_players import LinearPlayer
+from spymaster.players.linear import LinearPlayer
 from spymaster.spymaster import Spymaster
 
 

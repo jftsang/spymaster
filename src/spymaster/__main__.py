@@ -5,6 +5,7 @@ import sys
 from spymaster import Spymaster
 from spymaster.players.benchmarks import BENCHMARK_FACTORIES
 from spymaster.players.computer_players import FACTORIES
+from spymaster.tournament import TOURNAMENT_RESULTS_PATH
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -53,6 +54,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     benchmark.add_argument("--games", type=int, default=100)
     benchmark.add_argument("--seed", type=int, default=0)
+
+    tournament = subparsers.add_parser(
+        "tournament",
+        help="Run a round-robin tournament between all computer players.",
+    )
+    tournament.add_argument("--games", type=int, default=100)
+    tournament.add_argument("--seed", type=int, default=0)
+    tournament.add_argument(
+        "--output",
+        default=str(TOURNAMENT_RESULTS_PATH),
+        help="Where to save the results.",
+    )
 
     tune = subparsers.add_parser(
         "tune",
@@ -115,8 +128,8 @@ async def benchmark_command(args: argparse.Namespace) -> None:
         )
         print(f"\n{name} vs benchmark computer players ({args.games} games each):")
         for opponent, (wins, draws, losses) in results.items():
-            points = wins + 0.5 * draws
-            print(f"  vs. {opponent}: {wins}W {draws}D {losses}L ({points / ngames:.1%})")
+            points = wins - losses
+            print(f"  vs. {opponent}: {wins}W {draws}D {losses}L (net {points:+d})")
 
     names = list(players)
     if len(names) >= 2:
@@ -130,6 +143,17 @@ async def benchmark_command(args: argparse.Namespace) -> None:
         print(f"  {b_name}: {b_wins}W {draws}D {a_wins}L")
 
 
+async def tournament_command(args: argparse.Namespace) -> None:
+    from spymaster.tournament import run_round_robin
+
+    await run_round_robin(
+        n_games=args.games,
+        seed=args.seed,
+        output=args.output,
+    )
+    print(f"Saved tournament results to {args.output}")
+
+
 def main() -> None:
     parser = build_parser()
 
@@ -139,6 +163,7 @@ def main() -> None:
         "train",
         "benchmark",
         "tune",
+        "tournament",
         "-h",
         "--help",
     }:
@@ -148,6 +173,8 @@ def main() -> None:
 
     if args.command == "benchmark":
         asyncio.run(benchmark_command(args))
+    elif args.command == "tournament":
+        asyncio.run(tournament_command(args))
     elif args.command == "tune":
         from spymaster.players.adaptive import run_tuning
 

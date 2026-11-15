@@ -4,7 +4,8 @@
   "description": "Spymaster game frontend",
   "source": [
     "src/frontend/main.html",
-    "src/frontend/weights.html"
+    "src/frontend/weights.html",
+    "src/frontend/tournaments.html"
   ],
   "scripts": {
     "build": "parcel build --dist-dir dist/frontend",

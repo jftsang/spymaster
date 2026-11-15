@@ -1,0 +1,50 @@
+.tournaments-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.tournaments-table {
+  min-width: 960px;
+}
+
+.tournaments-table th,
+.tournaments-table td {
+  white-space: nowrap;
+}
+
+.tournaments-table .player-head {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #f8f9fa;
+  text-align: left;
+}
+
+.tournaments-table thead .player-head {
+  background: #212529;
+  color: #fff;
+}
+
+.tournaments-table .score-cell {
+  min-width: 64px;
+}
+
+.tournaments-table .outlier-row .player-head {
+  border-left: 4px solid #fd7e14;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.2rem;
+  vertical-align: text-bottom;
+}
+
+.legend-positive {
+  background: rgb(25, 135, 84);
+}
+
+.legend-negative {
+  background: rgb(220, 53, 69);
+}

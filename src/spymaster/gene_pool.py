@@ -1,7 +1,5 @@
-import abc
 import asyncio
 from collections.abc import Callable, Sequence
-from itertools import product
 from random import choice
 
 import numpy as np
@@ -12,48 +10,21 @@ from spymaster.players import Player
 from spymaster.players.benchmarks import BENCHMARK_FACTORIES
 from spymaster.players.evolutionary_players import EvolutionaryPlayer
 from spymaster.players.linear import LinearPlayer
+from spymaster.tournament import Tournament
 
 PlayerFactory = Callable[[], Player]
 EvolutionaryPlayerFactory = Callable[[], EvolutionaryPlayer]
 
 
-def _points(game: Spymaster) -> float:
-    """Match points from White's perspective: 1 for a win, 0.5 for a
-    draw, 0 for a loss. The margin of victory is irrelevant.
+def _points(game: Spymaster) -> int:
+    """Match points from White's perspective: 1 for a win, 0 for a
+    draw, -1 for a loss. The margin of victory is irrelevant.
     """
     if game.white_score > game.black_score:
-        return 1.0
-    if game.white_score == game.black_score:
-        return 0.5
-    return 0.0
-
-
-class Tournament(abc.ABC):
-    @abc.abstractmethod
-    async def play(self, players: Sequence[Player]) -> list[float]:
-        pass
-
-
-class RoundRobinTournament(Tournament):
-    async def play(self, players: Sequence[Player]) -> list[float]:
-        """Round-robin tournament between all pairs of players. Each
-        pair plays two games.
-        """
-        n_players = len(players)
-        scores: list[float] = [0.0] * n_players
-
-        games: dict[tuple[int, int], Spymaster] = {}
-        for i, j in product(range(n_players), range(n_players)):
-            if i != j:
-                games[i, j] = Spymaster(white=players[i], black=players[j])
-
-        await asyncio.gather(*(game.play() for game in games.values()))
-
-        for (i, j), game in games.items():
-            white_points = _points(game)
-            scores[i] += white_points
-            scores[j] += 1 - white_points
-        return scores
+        return 1
+    if game.white_score < game.black_score:
+        return -1
+    return 0
 
 
 class PlayAgainstChallengerTournament(Tournament):
@@ -181,7 +152,7 @@ def make_gene_pool(
     if seed is not None:
         np.random.seed(seed)
 
-    factories = BENCHMARK_FACTORIES
+    factories = list(BENCHMARK_FACTORIES.values())
     return GenePool(
         n_players=n_players,
         tournament=PlayAgainstChallengerTournament(factories, n_games=n_games),
@@ -269,7 +240,7 @@ async def evaluate_and_report(
 
     print(f"\n{title} ({n_games} games):")
     for name, (wins, draws, losses) in results.items():
-        points = wins + 0.5 * draws
-        print(f"  {name}: {wins}W {draws}D {losses}L ({points / n_games:.1%})")
+        points = wins - losses
+        print(f"  {name}: {wins}W {draws}D {losses}L (net {points:+d})")
 
     return results

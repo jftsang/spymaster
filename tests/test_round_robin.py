@@ -2,10 +2,10 @@ import asyncio
 import unittest
 
 from spymaster.players import Player
-from spymaster.players.computer_players import computer_players
+from spymaster.players.computer_players import FACTORIES
 from spymaster.spymaster import Spymaster
 
-players = list(computer_players.values())
+players = [factory() for factory in FACTORIES.values()]
 
 n_games = 1
 
