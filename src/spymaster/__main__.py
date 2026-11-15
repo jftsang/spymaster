@@ -159,7 +159,7 @@ def main() -> None:
     if args.command == "benchmark":
         asyncio.run(benchmark_command(args))
     elif args.command == "tune":
-        from spymaster.gene_pool import run_tuning
+        from spymaster.players.adaptive import run_tuning
 
         kwargs = {
             "n_players": args.population,
@@ -174,7 +174,7 @@ def main() -> None:
             kwargs["output"] = args.output
         asyncio.run(run_tuning(**kwargs))
     elif args.command == "train":
-        from spymaster.gene_pool import run_gene_pool
+        from spymaster.players.linear import run_gene_pool
 
         asyncio.run(
             run_gene_pool(
