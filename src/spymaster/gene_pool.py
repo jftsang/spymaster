@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import Callable, Sequence
+from functools import partial
 from random import choice
 
 import numpy as np
@@ -152,7 +153,7 @@ def make_gene_pool(
     if seed is not None:
         np.random.seed(seed)
 
-    factories = list(BENCHMARK_FACTORIES.values())
+    factories = _opponent_factories(opponent_names)
     return GenePool(
         n_players=n_players,
         tournament=PlayAgainstChallengerTournament(factories, n_games=n_games),
@@ -161,6 +162,26 @@ def make_gene_pool(
         n_replace=n_replace,
         mutation_rate=mutation_rate,
     )
+
+
+def _opponent_factories(
+    opponent_names: Sequence[str] | None,
+) -> list[PlayerFactory]:
+    """Return fresh-instance factories for the named opponents.
+
+    Falls back to the benchmark players when no names are given. The
+    import is deferred to avoid a circular import, since the computer
+    player factories pull in modules that depend on this one.
+    """
+    if opponent_names is None:
+        return list(BENCHMARK_FACTORIES.values())
+
+    if not opponent_names:
+        raise ValueError("At least one opponent name is required")
+
+    from spymaster.players.computer_players import new_computer_player
+
+    return [partial(new_computer_player, name) for name in opponent_names]
 
 
 async def evaluate_against_computer_players(
