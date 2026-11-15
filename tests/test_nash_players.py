@@ -2,6 +2,7 @@ import asyncio
 import random
 import unittest
 
+from spymaster import Position
 from spymaster.players.computer_players import new_computer_player
 from spymaster.players.minimax.evaluation import Evaluator
 from spymaster.players.minimax.nash_players import NASH_PLAYER_NAME, NashPlayer
@@ -11,17 +12,17 @@ from spymaster.spymaster import AgentCard, MissionCard, Spymaster
 class RecordingEvaluator(Evaluator):
     def __init__(self, value: float = 0.0):
         self.value = value
-        self.situations: list[Spymaster] = []
+        self.positions: list[Position] = []
 
-    def evaluate(self, situation: Spymaster) -> float:
-        self.situations.append(situation)
+    def evaluate(self, position: Position) -> float:
+        self.positions.append(position)
         return self.value
 
 
 class MatchingPenniesEvaluator(Evaluator):
-    def evaluate(self, situation: Spymaster) -> float:
-        ours = set(situation.white_cards)
-        theirs = set(situation.black_cards)
+    def evaluate(self, position: Position) -> float:
+        ours = set(position.ours)
+        theirs = set(position.theirs)
         if ours == {10} and theirs == {6}:
             return 1.0
         if ours == {10} and theirs == {3}:
@@ -30,12 +31,12 @@ class MatchingPenniesEvaluator(Evaluator):
             return -1.0
         if ours == {5} and theirs == {3}:
             return 1.0
-        raise AssertionError(f"Unexpected child position: {situation}")
+        raise AssertionError(f"Unexpected child position: {position}")
 
 
 class CardEvaluator(Evaluator):
-    def evaluate(self, situation: Spymaster) -> float:
-        return 1.0 if AgentCard(5) in situation.white_cards else -1.0
+    def evaluate(self, position: Position) -> float:
+        return 1.0 if AgentCard(5) in position.ours else -1.0
 
 
 def make_state() -> Spymaster:
@@ -63,7 +64,7 @@ class TestNashPlayer(unittest.TestCase):
         cards, strategy, value = player.analyse(state.position)
 
         self.assertEqual(cards, [AgentCard(5), AgentCard(10)])
-        self.assertEqual(len(evaluator.situations), 4)
+        self.assertEqual(len(evaluator.positions), 4)
         self.assertAlmostEqual(sum(strategy), 1.0)
         self.assertAlmostEqual(value, 0.0)
 
@@ -79,13 +80,13 @@ class TestNashPlayer(unittest.TestCase):
 
         player.analyse(state.position)
 
-        first = evaluator.situations[0]
-        self.assertEqual(first.white_cards, [AgentCard(10)])
-        self.assertEqual(first.black_cards, [AgentCard(6)])
+        first = evaluator.positions[0]
+        self.assertEqual(first.ours, {AgentCard(10)})
+        self.assertEqual(first.theirs, {AgentCard(6)})
         self.assertEqual(first.white_score, 7)
         self.assertEqual(first.black_score, 5)
         self.assertIsNone(first.current_mission)
-        self.assertEqual(first.remaining_missions, [MissionCard(2)])
+        self.assertEqual(first.missions, {MissionCard(2)})
 
     def test_assassin_scores_the_opponents_card(self):
         evaluator = RecordingEvaluator()
@@ -105,9 +106,9 @@ class TestNashPlayer(unittest.TestCase):
         player.analyse(state.position)
 
         assassin_children = [
-            situation
-            for situation in evaluator.situations
-            if AgentCard(10) in situation.white_cards
+            position
+            for position in evaluator.positions
+            if AgentCard(10) in position.ours
         ]
         self.assertEqual(len(assassin_children), 2)
         self.assertEqual(
@@ -181,7 +182,7 @@ class TestNashPlayer(unittest.TestCase):
 
         self.assertEqual(cards, [AgentCard(5), AgentCard(10)])
         self.assertAlmostEqual(sum(strategy), 1.0)
-        self.assertEqual(evaluator.situations, [])
+        self.assertEqual(evaluator.positions, [])
 
     def test_pinned_guarantee_skips_search(self):
         evaluator = RecordingEvaluator()
@@ -200,7 +201,7 @@ class TestNashPlayer(unittest.TestCase):
         self.assertEqual(cards, [AgentCard(1), AgentCard(2), AgentCard(10)])
         self.assertEqual(strategy, [0.0, 0.0, 1.0])
         self.assertEqual(value, 1.0)
-        self.assertEqual(evaluator.situations, [])
+        self.assertEqual(evaluator.positions, [])
 
     def test_guarantee_holds_on_nonrequired_mission(self):
         player = NashPlayer("Test", evaluator=RecordingEvaluator())

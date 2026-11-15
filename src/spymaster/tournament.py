@@ -109,9 +109,7 @@ async def play_pair(
     games: list[tuple[bool, Spymaster]] = []
     for k in range(n_games):
         a_is_white = k % 2 == 0
-        white_name, black_name = (
-            (a_name, b_name) if a_is_white else (b_name, a_name)
-        )
+        white_name, black_name = (a_name, b_name) if a_is_white else (b_name, a_name)
         game = Spymaster(
             white=_new_player(white_name),
             black=_new_player(black_name),

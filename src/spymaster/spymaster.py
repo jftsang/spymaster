@@ -138,7 +138,12 @@ class Spymaster(BaseModel):
         try:
             await self._play_loop()
         except Exception as exc:
-            logger.error("%s - %s: Game terminated", self.white.name, self.black.name, exc.__class__.__name__)
+            logger.error(
+                "%s - %s: Game terminated: %s",
+                self.white.name,
+                self.black.name,
+                exc.__class__.__name__,
+            )
             raise
         else:
             logger.info("%s - %s: Game finished", self.white.name, self.black.name)

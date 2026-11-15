@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from itertools import product
 
-from spymaster import AgentCard, Spymaster
+from spymaster import AgentCard, Position
 from spymaster.spymaster import ASSASSIN, MissionCard
 
 
@@ -16,8 +16,8 @@ class Evaluator(ABC):
     """
 
     @abstractmethod
-    def evaluate(self, situation: Spymaster) -> float:
-        """Return the estimated equity of the situation for White."""
+    def evaluate(self, position: Position) -> float:
+        """Return the estimated equity of the position for White."""
         raise NotImplementedError
 
 
@@ -30,16 +30,16 @@ class CrudeEvaluator(Evaluator):
     clipped to [-1, 1].
     """
 
-    def evaluate(self, situation: Spymaster) -> float:
-        missions = _remaining_missions(situation)
-        diff = situation.white_score - situation.black_score
+    def evaluate(self, position: Position) -> float:
+        missions = sorted(position.missions)
+        diff = position.white_score - position.black_score
         if not missions:
             return _outcome(diff)
 
         total = sum(missions)
         white, black = self._expected_scores(
-            situation.white_cards,
-            situation.black_cards,
+            position.ours,
+            position.theirs,
             missions,
         )
         margin = diff + white - black
@@ -72,13 +72,6 @@ class CrudeEvaluator(Evaluator):
 
         pairs = len(ours) * len(theirs)
         return white / pairs, black / pairs
-
-
-def _remaining_missions(situation: Spymaster) -> list[MissionCard]:
-    missions = set(situation.remaining_missions)
-    if situation.current_mission is not None:
-        missions.add(situation.current_mission)
-    return sorted(missions)
 
 
 def _outcome(diff: int) -> float:

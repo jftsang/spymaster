@@ -1,4 +1,5 @@
 """One-ply minimax player using equity evaluation of child positions."""
+
 import logging
 from random import choices
 
@@ -14,6 +15,7 @@ from .moves import child_position
 NASH_PLAYER_NAME = "AI (Nash, 1-ply)"
 
 logger = logging.getLogger("spymaster.players.minimax.nash_players")
+
 
 class NashPlayer(Player):
     """Play the equilibrium mixture of the current mission's payoff matrix.
@@ -35,6 +37,9 @@ class NashPlayer(Player):
         self.evaluator = evaluator if evaluator is not None else CrudeEvaluator()
         self.exact_rounds = exact_rounds
         self.use_guarantees = use_guarantees
+        self.logger = logging.getLogger(
+            f"{__name__}.{self.__class__.__name__}.{id(self)}"
+        )
 
     async def pick(self, state: Spymaster) -> AgentCard:
         position = state.position
@@ -42,6 +47,19 @@ class NashPlayer(Player):
             raise ValueError("NashPlayer requires a current mission")
 
         cards, strategy, _value = self.analyse(position)
+        crude_evaluation = CrudeEvaluator().evaluate(position)
+        self.logger.info(
+            "Evaluation: %.3f; Crude Evaluation: %.3f", _value, crude_evaluation
+        )
+        self.logger.info(
+            "Strategy: {%s}",
+            ", ".join(
+                f"{c}: {s:.3f}"
+                for c, s in sorted(
+                    zip(cards, strategy), key=lambda cs: cs[1], reverse=True
+                )
+            ),
+        )
         return choices(cards, weights=strategy, k=1)[0]
 
     def analyse(self, position: Position) -> tuple[list[AgentCard], list[float], float]:
@@ -80,7 +98,7 @@ class NashPlayer(Player):
                 return float(guarantee.equity)
         if self.exact_rounds and len(child.missions) <= self.exact_rounds:
             return exact_equity(child)
-        return self.evaluator.evaluate(child.to_spymaster())
+        return self.evaluator.evaluate(child)
 
 
 def _pinned_guarantee(

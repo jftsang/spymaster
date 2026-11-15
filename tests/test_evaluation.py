@@ -10,7 +10,7 @@ class TestCrudeEvaluator(unittest.TestCase):
 
     def test_equal_position_is_zero(self):
         situation = Spymaster()
-        self.assertEqual(self.evaluator.evaluate(situation), 0.0)
+        self.assertEqual(self.evaluator.evaluate(situation.position), 0.0)
 
     def test_finished_game_uses_score_difference(self):
         winning = Spymaster(
@@ -29,9 +29,9 @@ class TestCrudeEvaluator(unittest.TestCase):
             remaining_missions=[],
         )
 
-        self.assertEqual(self.evaluator.evaluate(winning), 1.0)
-        self.assertEqual(self.evaluator.evaluate(losing), -1.0)
-        self.assertEqual(self.evaluator.evaluate(drawn), 0.0)
+        self.assertEqual(self.evaluator.evaluate(winning.position), 1.0)
+        self.assertEqual(self.evaluator.evaluate(losing.position), -1.0)
+        self.assertEqual(self.evaluator.evaluate(drawn.position), 0.0)
 
     def test_current_mission_is_included(self):
         situation = Spymaster(
@@ -41,7 +41,7 @@ class TestCrudeEvaluator(unittest.TestCase):
             remaining_missions=[],
         )
 
-        self.assertEqual(self.evaluator.evaluate(situation), 1.0)
+        self.assertEqual(self.evaluator.evaluate(situation.position), 1.0)
 
     def test_stronger_hand_has_positive_equity(self):
         situation = Spymaster(
@@ -51,7 +51,7 @@ class TestCrudeEvaluator(unittest.TestCase):
             remaining_missions=[],
         )
 
-        self.assertGreater(self.evaluator.evaluate(situation), 0.0)
+        self.assertGreater(self.evaluator.evaluate(situation.position), 0.0)
 
     def test_assassin_scores_the_opponents_card(self):
         situation = Spymaster(
@@ -67,8 +67,8 @@ class TestCrudeEvaluator(unittest.TestCase):
             remaining_missions=[],
         )
 
-        self.assertAlmostEqual(self.evaluator.evaluate(situation), 0.4)
-        self.assertAlmostEqual(self.evaluator.evaluate(flipped), -0.4)
+        self.assertAlmostEqual(self.evaluator.evaluate(situation.position), 0.4)
+        self.assertAlmostEqual(self.evaluator.evaluate(flipped.position), -0.4)
 
     def test_equal_assassins_cancel(self):
         situation = Spymaster(
@@ -78,7 +78,7 @@ class TestCrudeEvaluator(unittest.TestCase):
             remaining_missions=[],
         )
 
-        self.assertEqual(self.evaluator.evaluate(situation), 0.0)
+        self.assertEqual(self.evaluator.evaluate(situation.position), 0.0)
 
     def test_evaluation_is_bounded(self):
         situation = Spymaster(
@@ -89,7 +89,7 @@ class TestCrudeEvaluator(unittest.TestCase):
             remaining_missions=[],
         )
 
-        self.assertEqual(self.evaluator.evaluate(situation), 1.0)
+        self.assertEqual(self.evaluator.evaluate(situation.position), 1.0)
 
 
 if __name__ == "__main__":

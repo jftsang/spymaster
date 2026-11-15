@@ -95,8 +95,8 @@ class ActiveGame:
                 reason = exc.reason
             except asyncio.CancelledError:
                 return
-            except Exception as exc:  # noqa: BLE001
-                logger.error("game error: %s: %s", type(exc).__name__, exc)
+            except Exception as exc:
+                logger.exception("game error: %s", type(exc).__name__)
         await self.finish(forfeiter, reason)
 
     async def finish(self, forfeiter: str | None, reason: str) -> None:

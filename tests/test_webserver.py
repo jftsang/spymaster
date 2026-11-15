@@ -52,9 +52,9 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
                 self.fail("game did not finish in time")
             fut = session._card_future
             if fut is not None and not fut.done():
-                situation = last(ws.sent, "situation")
+                situation = last(ws.sent, "position")
                 if situation is not None:
-                    session.set_card(situation["situation"]["whiteCards"][0])
+                    session.set_card(situation["position"]["whiteCards"][0])
             await asyncio.sleep(0.005)
         await asyncio.sleep(0.05)
 
@@ -160,8 +160,8 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         # Alice sits in the white seat, Bob in the black seat. Each must
         # see the board from their own point of view, especially the
         # final state shown when the game ends.
-        a_final = last(aws.sent, "result")["situation"]
-        b_final = last(bws.sent, "result")["situation"]
+        a_final = last(aws.sent, "result")["position"]
+        b_final = last(bws.sent, "result")["position"]
         self.assertEqual(a_final["white"], "Alice")
         self.assertEqual(a_final["black"], "Bob")
         self.assertEqual(b_final["white"], "Bob")
