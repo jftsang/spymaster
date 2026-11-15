@@ -1,9 +1,9 @@
 """Zero-sum matrix-game solving for minimax players."""
 
 from collections.abc import Sequence
-from math import isfinite
+from math import inf, isfinite
 
-from scipy.optimize import linprog
+from scipy.optimize import Bounds, LinearConstraint, milp
 
 Matrix = Sequence[Sequence[float]]
 
@@ -32,17 +32,27 @@ def solve_matrix_game(matrix: Matrix) -> tuple[list[float], float]:
         best_row = max(range(row_count), key=lambda row: rows[row][0])
         return _one_hot(best_row, row_count), rows[best_row][0]
 
-    result = linprog(
+    result = milp(
         c=[0.0] * row_count + [-1.0],
-        A_ub=[
-            [-rows[row][column] for row in range(row_count)] + [1.0]
-            for column in range(column_count)
+        constraints=[
+            LinearConstraint(
+                [
+                    [-rows[row][column] for row in range(row_count)] + [1.0]
+                    for column in range(column_count)
+                ],
+                lb=[-inf] * column_count,
+                ub=[0.0] * column_count,
+            ),
+            LinearConstraint(
+                [[1.0] * row_count + [0.0]],
+                lb=[1.0],
+                ub=[1.0],
+            ),
         ],
-        b_ub=[0.0] * column_count,
-        A_eq=[[1.0] * row_count + [0.0]],
-        b_eq=[1.0],
-        bounds=[(0.0, None)] * row_count + [(None, None)],
-        method="highs",
+        bounds=Bounds(
+            lb=[0.0] * row_count + [-inf],
+            ub=[inf] * (row_count + 1),
+        ),
     )
     if not result.success or result.x is None:
         raise RuntimeError(f"Could not solve matrix game: {result.message}")
