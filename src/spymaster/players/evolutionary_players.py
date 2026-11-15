@@ -76,5 +76,8 @@ class LinearPlayer(EvolutionaryPlayer):
         vec = self.to_vector(state)
         choices_weights = self.weights_matrix @ vec
         choices_weights[vec[:16] == 0] = -np.inf
-        best_choice = int(np.argmax(choices_weights))
-        return AgentCard(best_choice)
+        max_weight = np.max(choices_weights)
+        exp_weights = np.exp(choices_weights - max_weight)
+        probabilities = exp_weights / np.sum(exp_weights)
+        choice = int(np.random.choice(len(probabilities), p=probabilities))
+        return AgentCard(choice)
