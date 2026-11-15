@@ -48,10 +48,10 @@ class NashPlayer(Player):
 
         cards, strategy, _value = self.analyse(position)
         crude_evaluation = CrudeEvaluator().evaluate(position)
-        self.logger.info(
+        self.logger.debug(
             "Evaluation: %.3f; Crude Evaluation: %.3f", _value, crude_evaluation
         )
-        self.logger.info(
+        self.logger.debug(
             "Strategy: {%s}",
             ", ".join(
                 f"{c}: {s:.3f}"

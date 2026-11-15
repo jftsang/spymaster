@@ -55,8 +55,9 @@ class PlayAgainstChallengerTournament(Tournament):
                 player_games.append(Spymaster(white=white, black=factory()))
             per_player_games.append(player_games)
 
-        await asyncio.gather(
-            *(game.play() for games in per_player_games for game in games)
+        await tqdm.gather(
+            *(game.play() for games in per_player_games for game in games),
+            desc="Games",
         )
 
         return [sum(_points(game) for game in games) for games in per_player_games]
@@ -117,14 +118,19 @@ class GenePool:
             self.players[idx] = parent.create_offspring(self.mutation_rate)
 
     async def simulate(self, n_iterations: int):
-        for t in tqdm(range(n_iterations)):
-            scores = await self.tournament.play(self.players)
+        for t in tqdm(range(n_iterations), desc="Iterations"):
+            try:
+                scores = await self.tournament.play(self.players)
+                fitness = await self.fitness_evaluator.evaluate_population(self)
+            except asyncio.CancelledError:
+                asyncio.current_task().uncancel()  # type: ignore
+                break
+
             best_idx = max(range(self.n_players), key=lambda i: scores[i])
             if scores[best_idx] > self._best_score:
                 self._best_score = scores[best_idx]
                 self._best_player = self.players[best_idx]
 
-            fitness = await self.fitness_evaluator.evaluate_population(self)
             print(
                 f"{t}: max score = {max(scores)}, "
                 f"min score = {min(scores)}, "

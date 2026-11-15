@@ -82,7 +82,7 @@ class LinearPlayer(EvolutionaryPlayer):
 
 
 async def train_against(
-    opponent_names: str | Sequence[str] = "AI (Hard)",
+    opponent_names: str | Sequence[str] = "AI (Benchmark, Hard)",
     n_players: int = 32,
     n_iterations: int = 200,
     n_games: int = 30,
@@ -118,7 +118,7 @@ async def train_against(
 
 
 async def run_gene_pool(
-    opponent_names: str | Sequence[str] = "AI (Hard)",
+    opponent_names: str | Sequence[str] = "AI (Benchmark, Hard)",
     n_players: int = 32,
     n_iterations: int = 200,
     n_games: int = 30,

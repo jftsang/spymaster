@@ -81,6 +81,15 @@ class GameHistoryStep(BaseModel):
             black_score=self.white_score,
         )
 
+class GameHistory(list[GameHistoryStep]):
+    def to_table(self):
+        header = f"{'Rnd':>3} {'Mission':>7} {'White':>5} {'Black':>5} {'W score':>7} {'B score':>7}"
+        rows = [
+            f"{i:>3} {s.mission:>7} {s.white_played:>5} {s.black_played:>5} "
+            f"{s.white_score:>7} {s.black_score:>7}"
+            for i, s in enumerate(self, 1)
+        ]
+        return "\n".join([header, "-" * len(header), *rows])
 
 class Spymaster(BaseModel):
     model_config = {
@@ -97,7 +106,7 @@ class Spymaster(BaseModel):
     black_score: int = 0
     current_mission: MissionCard | None = None
     remaining_missions: list[MissionCard] = Field(default_factory=mission_factory)
-    history: list[GameHistoryStep] = Field(default_factory=list)
+    history: GameHistory = Field(default_factory=GameHistory)
 
     @field_serializer("white", "black")
     def serialize_players(self, player: Player | None, _info):
@@ -129,12 +138,12 @@ class Spymaster(BaseModel):
             black_score=self.white_score,
             current_mission=self.current_mission,
             remaining_missions=self.remaining_missions,
-            history=[step.flipped() for step in self.history],
+            history=GameHistory([step.flipped() for step in self.history]),
         )
 
     async def play(self):
         assert self.white is not None and self.black is not None
-        logger.info("%s - %s: Starting game", self.white.name, self.black.name)
+        logger.debug("%s - %s: Starting game", self.white.name, self.black.name)
         try:
             await self._play_loop()
         except Exception as exc:
@@ -146,7 +155,7 @@ class Spymaster(BaseModel):
             )
             raise
         else:
-            logger.info("%s - %s: Game finished", self.white.name, self.black.name)
+            logger.debug("%s - %s: Game finished", self.white.name, self.black.name)
 
     async def _play_loop(self):
         assert self.white is not None and self.black is not None
