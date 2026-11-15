@@ -1,5 +1,5 @@
 """One-ply minimax player using equity evaluation of child positions."""
-
+import logging
 from random import choices
 
 from spymaster import AgentCard, Position, Spymaster
@@ -13,6 +13,7 @@ from .moves import child_position
 
 NASH_PLAYER_NAME = "AI (Nash, 1-ply)"
 
+logger = logging.getLogger("spymaster.players.minimax.nash_players")
 
 class NashPlayer(Player):
     """Play the equilibrium mixture of the current mission's payoff matrix.

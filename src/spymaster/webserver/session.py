@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from fastapi.websockets import WebSocket
 
-from spymaster.logger import logger
 from spymaster.players import Player
 
 if TYPE_CHECKING:
@@ -55,6 +55,8 @@ class UserSession:
         self._card_future: asyncio.Future | None = None
         self.awaiting_card = False
 
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+
     # -- wiring -----------------------------------------------------------
 
     def attach(self, ws: WebSocket) -> None:
@@ -62,7 +64,7 @@ class UserSession:
         self.websocket = ws
         self.connected = True
         self.disconnected_at = None
-        logger.debug("attached websocket to session %s", self.session_id)
+        self.logger.debug("attached websocket to session %s", self.session_id)
 
     def detach(self) -> None:
         """Mark the session as disconnected. The grace period for any
@@ -70,7 +72,7 @@ class UserSession:
         self.connected = False
         self.disconnected_at = datetime.now(UTC)
         self.websocket = None
-        logger.debug("detached session %s", self.session_id)
+        self.logger.debug("detached session %s", self.session_id)
 
     # -- sending ----------------------------------------------------------
 
@@ -124,7 +126,7 @@ class UserSession:
                         self.disconnected_at + GRACE_PERIOD - now
                     ).total_seconds()
                     if remaining <= 0:
-                        logger.warning(
+                        self.logger.warning(
                             "grace period expired: %s forfeits",
                             self.username or self.session_id,
                         )

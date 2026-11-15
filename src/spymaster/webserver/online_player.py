@@ -1,5 +1,6 @@
+import logging
+
 from spymaster import AgentCard, MissionResult, Spymaster
-from spymaster.logger import logger
 from spymaster.players import Player
 from spymaster.webserver.session import UserSession
 
@@ -38,9 +39,10 @@ class OnlinePlayer(Player):
         super().__init__(name=name)
         self.session = session
         self.wscomm = WsComm(session)
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     async def pick(self, state: Spymaster) -> AgentCard:
-        logger.info(
+        self.logger.info(
             "awaiting card: %s to play mission %s (score %s-%s, hand %s)",
             self.name,
             state.current_mission,
@@ -51,17 +53,17 @@ class OnlinePlayer(Player):
         await self.wscomm.send_situation(state, "Pick a card")
         while True:
             choice = AgentCard(await self.session.await_card())
-            logger.info("%s selected card %s", self.name, choice)
+            self.logger.debug("%s selected card %s", self.name, choice)
             if choice in state.white_cards:
                 return choice
             else:
-                logger.warning(
+                self.logger.warning(
                     "%s chose an invalid card %s; re-prompting", self.name, choice
                 )
                 await self.wscomm.send_situation(state, f"{choice} is not a valid card")
 
     async def receive(self, state, result: MissionResult) -> None:
-        logger.info(
+        self.logger.info(
             "%s mission %s result: played %s, opponent played %s (score %s-%s)",
             self.name,
             result.mission,

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from uuid import uuid4
@@ -11,13 +12,15 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.websockets import WebSocket, WebSocketDisconnect
 
+import spymaster.logger  # noqa: F401
 import spymaster.players.computer_players
 from spymaster import Spymaster
-from spymaster.logger import logger
 from spymaster.players import Player
 from spymaster.tournament import TOURNAMENT_RESULTS_PATH, TournamentResults
 from spymaster.webserver.online_player import OnlinePlayer
 from spymaster.webserver.session import Forfeit, UserSession
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
