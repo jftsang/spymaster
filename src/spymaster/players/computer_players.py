@@ -1,187 +1,23 @@
-from pathlib import Path
-from random import gauss, random
-
-import numpy as np
-
 from spymaster.players import Player
 
+from .adaptive import TUNED_ADAPTIVE_FACTORIES
 from .benchmarks import (
-    AdaptiveAimingPlayer,
-    RandomPlayer,
-    RussiaPlayer,
-    SimpleAimingPlayer,
-    default_computer_players,
+    BENCHMARK_FACTORIES,
 )
-from .evolutionary_players import EvolutionaryPlayer
+from .linear import LINEAR_PLAYERS_FACTORIES
 from .minimax.nash_players import NASH_PLAYER_NAME, NashPlayer
 
-WEIGHTS_DIR = Path(__file__).parent.parent / "weights"
-LINEAR_AMERICA_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_america.npy"
-LINEAR_RUSSIA_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_russia.npy"
-LINEAR_CHINA_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_china.npy"
-LINEAR_FRANCE_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_france.npy"
-LINEAR_BRITAIN_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_britain.npy"
-LINEAR_BENCHMARK_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_benchmark.npy"
-
-TUNED_ADAPTIVE_PARAMS_PATH = WEIGHTS_DIR / "tuned_adaptive.npy"
-
-LINEAR_AMERICA_NAME = "AI (Single Linear Layer #1)"
-LINEAR_RUSSIA_NAME = "AI (Single Linear Layer #2)"
-LINEAR_CHINA_NAME = "AI (Single Linear Layer #3)"
-LINEAR_FRANCE_NAME = "AI (Single Linear Layer #4)"
-LINEAR_BRITAIN_NAME = "AI (Single Linear Layer #5)"
-LINEAR_BENCHMARK_NAME = "AI (Single Linear Layer #6)"
-TUNED_ADAPTIVE_NAME = "AI (Tuned Adaptive)"
-
-# Trained SingleLinearLayer players, keyed by display name.
-LINEAR_PLAYER_SPECS: list[tuple[str, Path]] = [
-    (LINEAR_AMERICA_NAME, LINEAR_AMERICA_WEIGHTS_PATH),
-    (LINEAR_RUSSIA_NAME, LINEAR_RUSSIA_WEIGHTS_PATH),
-    (LINEAR_CHINA_NAME, LINEAR_CHINA_WEIGHTS_PATH),
-    (LINEAR_FRANCE_NAME, LINEAR_FRANCE_WEIGHTS_PATH),
-    (LINEAR_BRITAIN_NAME, LINEAR_BRITAIN_WEIGHTS_PATH),
-    (LINEAR_BENCHMARK_NAME, LINEAR_BENCHMARK_WEIGHTS_PATH),
-]
-
-_perceptron_cache: dict[Path, Player] = {}
-
-
-def load_perceptron(name: str, weights_path: Path) -> Player:
-    """Load a SingleLayerPerceptronPlayer from saved weights. Loaded
-    players are cached and reused; they carry no mutable state, so a
-    single instance can play many games simultaneously.
-    """
-    from spymaster.players.evolutionary_players import LinearPlayer
-
-    if weights_path not in _perceptron_cache:
-        _perceptron_cache[weights_path] = LinearPlayer.load(
-            str(weights_path), name=name
-        )
-    return _perceptron_cache[weights_path]
-
-
-def load_tuned_adaptive(name: str = TUNED_ADAPTIVE_NAME) -> Player:
-    """Load a TunedAdaptivePlayer from saved parameters. Loaded players
-    are cached and reused; they carry no mutable state.
-    """
-    if TUNED_ADAPTIVE_PARAMS_PATH not in _perceptron_cache:
-        _perceptron_cache[TUNED_ADAPTIVE_PARAMS_PATH] = TunedAdaptivePlayer.load(
-            TUNED_ADAPTIVE_PARAMS_PATH, name=name
-        )
-    return _perceptron_cache[TUNED_ADAPTIVE_PARAMS_PATH]
-
-
-def _clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
-    return max(low, min(high, value))
-
-
-class TunedAdaptivePlayer(RussiaPlayer, EvolutionaryPlayer):
-    """A RussiaPlayer whose bloodthirst, paranoia, and idleness are
-    evolved by the gene pool instead of being hand-set.
-
-    The tuned parameters live in a three-dimensional genome encoded by
-    the ``save``/``load`` functions, so they can be written to and read
-    back from a ``.npy`` file like the perceptron weights.
-    """
-
-    def __init__(
-        self,
-        name: str = "Tuned Adaptive Player",
-        bloodthirst: float = 0.5,
-        paranoia: float = 0.5,
-        idleness: float = 0.33,
-    ):
-        super().__init__(
-            name=name,
-            bloodthirst=bloodthirst,
-            paranoia=paranoia,
-            idleness=idleness,
-        )
-
-    @classmethod
-    def randomized(cls) -> TunedAdaptivePlayer:
-        return cls(
-            name="Randomized Tuned Adaptive Player",
-            bloodthirst=random(),
-            paranoia=random(),
-            idleness=random(),
-        )
-
-    @property
-    def genome(self) -> np.ndarray:
-        return np.array(
-            [self.bloodthirst, self.paranoia, self.idleness], dtype=np.float64
-        )
-
-    def create_offspring(self, mutation_rate: float = 0.1) -> TunedAdaptivePlayer:
-        return TunedAdaptivePlayer(
-            name=self.name,
-            bloodthirst=_clamp(self.bloodthirst + gauss(0.0, mutation_rate)),
-            paranoia=_clamp(self.paranoia + gauss(0.0, mutation_rate)),
-            idleness=_clamp(self.idleness + gauss(0.0, mutation_rate)),
-        )
-
-    def save(self, path: str | Path) -> None:
-        np.save(path, self.genome)
-
-    @classmethod
-    def load(
-        cls, path: str | Path, name: str = "Tuned Adaptive Player"
-    ) -> TunedAdaptivePlayer:
-        params = np.load(path)
-        return cls(
-            name=name,
-            bloodthirst=float(params[0]),
-            paranoia=float(params[1]),
-            idleness=float(params[2]),
-        )
-
-    def __str__(self) -> str:
-        return (
-            "TunedAdaptivePlayer(\n"
-            f"    bloodthirst={self.bloodthirst},\n"
-            f"    paranoia={self.paranoia},\n"
-            f"    idleness={self.idleness},\n)"
-        )
+FACTORIES = {}
+FACTORIES[NASH_PLAYER_NAME] = lambda: NashPlayer(name=NASH_PLAYER_NAME)
+FACTORIES.update(BENCHMARK_FACTORIES)
+FACTORIES.update(LINEAR_PLAYERS_FACTORIES)
+FACTORIES.update(TUNED_ADAPTIVE_FACTORIES)
 
 
 def new_computer_player(name: str) -> Player:
     """Create a fresh AI player instance. Fresh instances can play many
     games simultaneously without sharing mutable state."""
-    factories = {
-        "AI (Easiest)": lambda: RandomPlayer(name="AI (Easiest)"),
-        "AI (Easy)": lambda: SimpleAimingPlayer(name="AI (Easy)", variance=2),
-        "AI (Medium)": lambda: SimpleAimingPlayer(name="AI (Medium)", variance=4),
-        "AI (Hard)": lambda: AdaptiveAimingPlayer(name="AI (Hard)"),
-        "AI (Hardest)": lambda: RussiaPlayer(
-            name="AI (Hardest)", bloodthirst=0.5, paranoia=0.5, idleness=0.33
-        ),
-        TUNED_ADAPTIVE_NAME: lambda: load_tuned_adaptive(),
-        NASH_PLAYER_NAME: lambda: NashPlayer(name=NASH_PLAYER_NAME),
-    }
-    factories.update(
-        {
-            player_name: (lambda n=player_name, p=path: load_perceptron(n, p))
-            for player_name, path in LINEAR_PLAYER_SPECS
-        }
-    )
     try:
-        return factories[name]()
-    except KeyError:
-        raise KeyError(f"Unknown computer player: {name}")
-
-
-computer_players: dict[str, Player] = {
-    p.name: p for p in default_computer_players
-}
-computer_players[NASH_PLAYER_NAME] = NashPlayer(name=NASH_PLAYER_NAME)
-
-# Trained SingleLayerPerceptron players are registered only once their
-# weight artifacts exist, so a fresh checkout still imports cleanly.
-for _name, _path in LINEAR_PLAYER_SPECS:
-    if _path.exists():
-        computer_players[_name] = load_perceptron(_name, _path)
-
-# Tuned Adaptive player is registered if its parameter artifacts exist.
-if TUNED_ADAPTIVE_PARAMS_PATH.exists():
-    computer_players[TUNED_ADAPTIVE_NAME] = load_tuned_adaptive()
+        return FACTORIES[name]()
+    except KeyError as e:
+        raise KeyError(f"Unknown computer player: {name}") from e

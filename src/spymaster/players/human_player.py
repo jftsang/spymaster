@@ -28,6 +28,7 @@ class HumanPlayer(Player):
         print(result)
         input("Press enter to continue...")
 
+
 def tryint(x: str) -> int | None:
     try:
         return int(x)

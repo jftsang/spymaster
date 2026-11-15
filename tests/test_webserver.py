@@ -168,9 +168,7 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
 
         # The history must also be complete and mirrored for Black.
         self.assertEqual(len(b_final["history"]), 16)
-        for a_step, b_step in zip(
-            a_final["history"], b_final["history"], strict=True
-        ):
+        for a_step, b_step in zip(a_final["history"], b_final["history"], strict=True):
             self.assertEqual(b_step["mission"], a_step["mission"])
             self.assertEqual(b_step["whitePlayed"], a_step["blackPlayed"])
             self.assertEqual(b_step["blackPlayed"], a_step["whitePlayed"])

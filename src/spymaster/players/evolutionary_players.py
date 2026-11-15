@@ -1,9 +1,5 @@
 import abc
-from typing import ClassVar
 
-import numpy as np
-
-from spymaster import AgentCard, Spymaster
 from spymaster.players import Player
 
 
@@ -11,73 +7,3 @@ class EvolutionaryPlayer(Player, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def create_offspring(self, mutation_rate: float = 0.1) -> EvolutionaryPlayer:
         pass
-
-
-class LinearPlayer(EvolutionaryPlayer):
-    INPUTS_LENGTH: ClassVar[int] = 16 + 16 + 16 + 1 + 1 + 1
-
-    def __init__(self, name: str, weights_matrix: np.ndarray):
-        super().__init__(name=name)
-        weights_matrix = weights_matrix.astype(np.float32)
-        if weights_matrix.shape != (16, self.INPUTS_LENGTH):
-            raise ValueError(f"Invalid shape: {weights_matrix.shape}")
-        self.weights_matrix = weights_matrix
-
-    @classmethod
-    def randomized(cls) -> LinearPlayer:
-        return cls(
-            name="Randomized Single Linear Layer Player",
-            weights_matrix=np.random.normal(0, 1, (16, cls.INPUTS_LENGTH)),
-        )
-
-    def save(self, path: str) -> None:
-        np.save(path, self.weights_matrix)
-
-    @classmethod
-    def load(
-        cls, path: str, name: str = "Single Layer Perceptron Player"
-    ) -> LinearPlayer:
-        return cls(name=name, weights_matrix=np.load(path))
-
-    def __str__(self):
-        white_weights = self.weights_matrix[:, :16]
-        black_weights = self.weights_matrix[:, 16:32]
-        mission_weights = self.weights_matrix[:, 32:48]
-        current_mission_weight = self.weights_matrix[:, 48]
-        score_weights = self.weights_matrix[:, 49:51]
-        return f"""{self.__class__.__name__}(
-    white_weights={white_weights},
-    black_weights={black_weights},
-    mission_weights={mission_weights},
-    current_mission_weight={current_mission_weight},
-    score_weights={score_weights},
-)"""
-
-    def create_offspring(self, mutation_rate: float = 0.1) -> LinearPlayer:
-        new_weights = self.weights_matrix.copy()
-        new_weights += np.random.normal(0, mutation_rate, self.weights_matrix.shape)
-        return LinearPlayer(name=self.name, weights_matrix=new_weights)
-
-    def to_vector(self, state: Spymaster) -> np.ndarray:
-        vec = np.zeros(self.INPUTS_LENGTH, dtype=np.float32)
-        for i in state.white_cards:
-            vec[i] = 1
-        for i in state.black_cards:
-            vec[i + 16] = 1
-        for i in state.remaining_missions:
-            vec[i - 1 + 32] = 1
-
-        vec[16 + 16 + 16] = state.current_mission
-        vec[16 + 16 + 16 + 1] = state.white_score
-        vec[16 + 16 + 16 + 2] = state.black_score
-        return vec
-
-    async def pick(self, state: Spymaster) -> AgentCard:
-        vec = self.to_vector(state)
-        choices_weights = self.weights_matrix @ vec
-        choices_weights[vec[:16] == 0] = -np.inf
-        max_weight = np.max(choices_weights)
-        exp_weights = np.exp(choices_weights - max_weight)
-        probabilities = exp_weights / np.sum(exp_weights)
-        choice = int(np.random.choice(len(probabilities), p=probabilities))
-        return AgentCard(choice)

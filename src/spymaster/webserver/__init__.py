@@ -11,10 +11,10 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.websockets import WebSocket, WebSocketDisconnect
 
+import spymaster.players.computer_players
 from spymaster import Spymaster
 from spymaster.logger import logger
 from spymaster.players import Player
-from spymaster.players.computer_players import computer_players, new_computer_player
 from spymaster.webserver.online_player import OnlinePlayer
 from spymaster.webserver.session import Forfeit, UserSession
 
@@ -271,7 +271,7 @@ class GameServer:
                 }
             )
             return
-        if target in computer_players:
+        if target in spymaster.players.computer_players.FACTORIES:
             # Computer players always accept.
             logger.info("challenge: %s -> %s (computer, auto-accept)", me, target)
             await self._start(session, computer_name=target)
@@ -383,7 +383,11 @@ class GameServer:
             player = OnlinePlayer(name=name, session=session)
             session.player = player
             return GameSide(name=name, player=player, session=session)
-        return GameSide(name=name, player=new_computer_player(name), session=None)
+        return GameSide(
+            name=name,
+            player=spymaster.players.computer_players.new_computer_player(name),
+            session=None,
+        )
 
     async def _start(
         self,
@@ -473,7 +477,7 @@ class GameServer:
                         "isComputer": False,
                     }
                 )
-        for name in computer_players:
+        for name in spymaster.players.computer_players.FACTORIES:
             players.append(
                 {
                     "name": name,
@@ -589,7 +593,7 @@ async def weights_data() -> dict:
     """Expose the trained single-linear-layer weight matrices as JSON so
     the weight explorer page can render them.
     """
-    from spymaster.players.evolutionary_players import LinearPlayer
+    from spymaster.players.linear import LinearPlayer
 
     players = []
     for path in sorted(weights_dir.glob("*.npy")):

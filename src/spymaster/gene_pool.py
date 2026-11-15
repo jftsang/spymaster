@@ -9,24 +9,12 @@ from tqdm import tqdm
 
 from spymaster import Spymaster
 from spymaster.players import Player
-from spymaster.players.benchmarks import default_computer_player_names
-from spymaster.players.computer_players import (
-    computer_players,
-    new_computer_player,
-)
-from spymaster.players.evolutionary_players import (
-    EvolutionaryPlayer,
-    LinearPlayer,
-)
+from spymaster.players.benchmarks import BENCHMARK_FACTORIES
+from spymaster.players.evolutionary_players import EvolutionaryPlayer
+from spymaster.players.linear import LinearPlayer
 
 PlayerFactory = Callable[[], Player]
 EvolutionaryPlayerFactory = Callable[[], EvolutionaryPlayer]
-
-
-def america_factory() -> Player:
-    """Create a fresh America player. Fresh instances can play many
-    games simultaneously without sharing mutable state."""
-    return new_computer_player("AI (Hard)")
 
 
 def _points(game: Spymaster) -> float:
@@ -69,7 +57,7 @@ class RoundRobinTournament(Tournament):
 
 
 class PlayAgainstChallengerTournament(Tournament):
-    """Play each player against one or more challengers, using factories
+    """Play each player against one or more challengers, using FACTORIES
     so that every game gets a fresh challenger instance (challengers such
     as AdaptiveAimingPlayer keep mutable state between rounds).
 
@@ -80,7 +68,7 @@ class PlayAgainstChallengerTournament(Tournament):
 
     def __init__(
         self,
-        challenger_factories: Sequence[PlayerFactory] = (america_factory,),
+        challenger_factories: Sequence[PlayerFactory],
         n_games: int = 30,
     ):
         self.challenger_factories: list[PlayerFactory] = list(challenger_factories)
@@ -105,7 +93,7 @@ class PlayAgainstChallengerTournament(Tournament):
 class FitnessEvaluator:
     def __init__(
         self,
-        reference_factories: Sequence[PlayerFactory] = (america_factory,),
+        reference_factories: Sequence[PlayerFactory],
     ):
         self.reference_factories = list(reference_factories)
 
@@ -128,8 +116,8 @@ class GenePool:
         self,
         n_players: int,
         tournament: Tournament,
-        population_factory: EvolutionaryPlayerFactory = LinearPlayer.randomized,
-        reference_factories: Sequence[PlayerFactory] = (america_factory,),
+        population_factory: EvolutionaryPlayerFactory,
+        reference_factories: Sequence[PlayerFactory],
         n_replace: int = 20,
         mutation_rate: float = 0.1,
     ):
@@ -193,7 +181,7 @@ def make_gene_pool(
     if seed is not None:
         np.random.seed(seed)
 
-    factories = benchmark_player_factories(opponent_names)
+    factories = BENCHMARK_FACTORIES
     return GenePool(
         n_players=n_players,
         tournament=PlayAgainstChallengerTournament(factories, n_games=n_games),
@@ -202,17 +190,6 @@ def make_gene_pool(
         n_replace=n_replace,
         mutation_rate=mutation_rate,
     )
-
-
-def benchmark_player_factories(
-    names: Sequence[str] | None = None,
-) -> list[PlayerFactory]:
-    """Return a fresh factory for each benchmark player named, or for
-    every default computer player when ``names`` is ``None``.
-    """
-    if names is None:
-        names = default_computer_player_names
-    return [lambda name=name: new_computer_player(name) for name in names]
 
 
 async def evaluate_against_computer_players(
@@ -224,8 +201,10 @@ async def evaluate_against_computer_players(
     always as White. Returns a mapping of opponent name to a
     ``(wins, draws, losses)`` tuple.
     """
+    from spymaster.players.computer_players import new_computer_player
+
     if opponent_names is None:
-        opponent_names = list(computer_players.keys())
+        opponent_names = list(BENCHMARK_FACTORIES.keys())
 
     results: dict[str, tuple[int, int, int]] = {}
     for name in opponent_names:

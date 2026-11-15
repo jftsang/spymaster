@@ -1,5 +1,6 @@
 """The players from the original Spymaster website."""
 
+from collections.abc import Callable, Mapping
 from random import choice, randint
 
 from spymaster import AgentCard, MissionResult, Spymaster
@@ -123,17 +124,12 @@ class RussiaPlayer(Player):
             return e
 
 
-china = RandomPlayer(name="AI (Easiest)")
-france = SimpleAimingPlayer(name="AI (Easy)", variance=2)
-britain = SimpleAimingPlayer(name="AI (Medium)", variance=4)
-america = AdaptiveAimingPlayer(name="AI (Hard)")
-russia = RussiaPlayer(name="AI (Hardest)", bloodthirst=0.5, paranoia=0.5, idleness=0.33)
-
-default_computer_players = [
-    china,
-    france,
-    britain,
-    america,
-    russia,
-]
-default_computer_player_names = [p.name for p in default_computer_players]
+BENCHMARK_FACTORIES: Mapping[str, Callable[[], Player]] = {
+    "AI (Benchmark, Easiest)": lambda: RandomPlayer(name="AI (Benchmark, Easiest)"),
+    "AI (Benchmark, Easy)": lambda: SimpleAimingPlayer(name="AI (Benchmark, Easy)", variance=2),
+    "AI (Benchmark, Medium)": lambda: SimpleAimingPlayer(name="AI (Benchmark, Medium)", variance=4),
+    "AI (Benchmark, Hard)": lambda: AdaptiveAimingPlayer(name="AI (Benchmark, Hard)"),
+    "AI (Benchmark, Hardest)": lambda: RussiaPlayer(
+        name="AI (Benchmark, Hardest)", bloodthirst=0.5, paranoia=0.5, idleness=0.33
+    ),
+}

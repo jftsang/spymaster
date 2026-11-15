@@ -43,9 +43,7 @@ class NashPlayer(Player):
         cards, strategy, _value = self.analyse(position)
         return choices(cards, weights=strategy, k=1)[0]
 
-    def analyse(
-        self, position: Position
-    ) -> tuple[list[AgentCard], list[float], float]:
+    def analyse(self, position: Position) -> tuple[list[AgentCard], list[float], float]:
         """Return legal cards, their equilibrium probabilities, and value."""
         if position.current_mission is None:
             raise ValueError("NashPlayer requires a current mission")
@@ -102,10 +100,7 @@ def _guarantee_card(position: Position, guarantee: Guarantee) -> AgentCard:
         return min(position.ours)
 
     winners = set(guarantee.guaranteed_winners)
-    if (
-        position.current_mission in guarantee.required_missions
-        and winners
-    ):
+    if position.current_mission in guarantee.required_missions and winners:
         return min(winners)
 
     reserves = [card for card in position.ours if card not in winners]

@@ -52,8 +52,7 @@ def _exact_equity(
         if not missions:
             return _outcome(diff)
         value = fsum(
-            _exact_equity(ours, theirs, missions, mission, diff)
-            for mission in missions
+            _exact_equity(ours, theirs, missions, mission, diff) for mission in missions
         )
         return value / len(missions)
 

@@ -3,12 +3,14 @@ import asyncio
 import sys
 
 from spymaster import Spymaster
+from spymaster.players.benchmarks import BENCHMARK_FACTORIES
+from spymaster.players.computer_players import FACTORIES
 
 
 def build_parser() -> argparse.ArgumentParser:
-    from spymaster.players.computer_players import computer_players
+    from spymaster.players.computer_players import FACTORIES
 
-    player_names = list(computer_players.keys())
+    player_names = list(FACTORIES.keys())
 
     parser = argparse.ArgumentParser(prog="spymaster")
     subparsers = parser.add_subparsers(dest="command")
@@ -78,15 +80,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 async def play_command(args: argparse.Namespace) -> None:
-    from spymaster.players.computer_players import computer_players as players
+    from spymaster.players.computer_players import FACTORIES
     from spymaster.players.human_player import HumanPlayer
 
     if args.p2 is None:
         p1 = HumanPlayer(name="You")
-        p2 = players[args.p1]
+        p2 = FACTORIES[args.p1]()
     else:
-        p1 = players[args.p1]
-        p2 = players[args.p2]
+        p1 = FACTORIES[args.p1]()
+        p2 = FACTORIES[args.p2]()
 
     game = Spymaster(white=p1, black=p2)
     await game.play()
@@ -100,33 +102,22 @@ async def benchmark_command(args: argparse.Namespace) -> None:
         evaluate_against_computer_players,
         head_to_head,
     )
-    from spymaster.players.benchmarks import default_computer_player_names
-    from spymaster.players.computer_players import (
-        LINEAR_PLAYER_SPECS,
-        load_perceptron,
-    )
 
     if args.seed is not None:
         np.random.seed(args.seed)
 
-    players = {
-        name: load_perceptron(name, path)
-        for name, path in LINEAR_PLAYER_SPECS
-        if path.exists()
-    }
-
+    players = {n: f() for n, f in FACTORIES.items()}
     for name, player in players.items():
+        ngames: int = args.games
         results = await evaluate_against_computer_players(
             player,
-            n_games=args.games,
-            opponent_names=default_computer_player_names,
+            n_games=ngames,
+            opponent_names=list(BENCHMARK_FACTORIES.keys()),
         )
-        print(f"\n{name} vs default computer players ({args.games} games each):")
+        print(f"\n{name} vs benchmark computer players ({args.games} games each):")
         for opponent, (wins, draws, losses) in results.items():
             points = wins + 0.5 * draws
-            print(
-                f"  {opponent}: {wins}W {draws}D {losses}L ({points / args.games:.1%})"
-            )
+            print(f"  {opponent}: {wins}W {draws}D {losses}L ({points / ngames:.1%})")
 
     names = list(players)
     if len(names) >= 2:

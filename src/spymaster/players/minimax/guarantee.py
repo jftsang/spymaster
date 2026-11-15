@@ -83,9 +83,7 @@ def analyse_guarantee(position: Position) -> Guarantee:
 
     if diff + total == 0:
         equity = (
-            0
-            if draw_threshold is not None and draw_threshold <= available
-            else None
+            0 if draw_threshold is not None and draw_threshold <= available else None
         )
         return policy(GuaranteeKind.DRAW_ONLY, equity, draw_threshold)
 

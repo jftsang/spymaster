@@ -1,12 +1,95 @@
 from collections.abc import Sequence
+from functools import partial
 from pathlib import Path
+from random import gauss, random
+
+import numpy as np
 
 from spymaster.gene_pool import evaluate_and_report, make_gene_pool
-from spymaster.players.benchmarks import default_computer_player_names
-from spymaster.players.computer_players import (
-    TUNED_ADAPTIVE_PARAMS_PATH,
-    TunedAdaptivePlayer,
+
+from .benchmarks import (
+    BENCHMARK_FACTORIES,
+    RussiaPlayer,
 )
+from .evolutionary_players import EvolutionaryPlayer
+
+WEIGHTS_DIR = Path(__file__).parent.parent / "weights"
+TUNED_ADAPTIVE_NAME = "AI (Adaptive)"
+TUNED_ADAPTIVE_PARAMS_PATH = WEIGHTS_DIR / "tuned_adaptive.npy"
+
+
+class TunedAdaptivePlayer(RussiaPlayer, EvolutionaryPlayer):
+    """A RussiaPlayer whose bloodthirst, paranoia, and idleness are
+    evolved by the gene pool instead of being hand-set.
+
+    The tuned parameters live in a three-dimensional genome encoded by
+    the ``save``/``load`` functions, so they can be written to and read
+    back from a ``.npy`` file like the perceptron weights.
+    """
+
+    def __init__(
+        self,
+        name: str = "Tuned Adaptive Player",
+        bloodthirst: float = 0.5,
+        paranoia: float = 0.5,
+        idleness: float = 0.33,
+    ):
+        super().__init__(
+            name=name,
+            bloodthirst=bloodthirst,
+            paranoia=paranoia,
+            idleness=idleness,
+        )
+
+    @classmethod
+    def randomized(cls) -> TunedAdaptivePlayer:
+        return cls(
+            name="Randomized Tuned Adaptive Player",
+            bloodthirst=random(),
+            paranoia=random(),
+            idleness=random(),
+        )
+
+    @property
+    def genome(self) -> np.ndarray:
+        return np.array(
+            [self.bloodthirst, self.paranoia, self.idleness], dtype=np.float64
+        )
+
+    def create_offspring(self, mutation_rate: float = 0.1) -> TunedAdaptivePlayer:
+        return TunedAdaptivePlayer(
+            name=self.name,
+            bloodthirst=_clamp(self.bloodthirst + gauss(0.0, mutation_rate)),
+            paranoia=_clamp(self.paranoia + gauss(0.0, mutation_rate)),
+            idleness=_clamp(self.idleness + gauss(0.0, mutation_rate)),
+        )
+
+    def save(self, path: str | Path) -> None:
+        np.save(path, self.genome)
+
+    @classmethod
+    def load(
+        cls, path: str | Path, name: str = "Tuned Adaptive Player"
+    ) -> TunedAdaptivePlayer:
+        params = np.load(path)
+        return cls(
+            name=name,
+            bloodthirst=float(params[0]),
+            paranoia=float(params[1]),
+            idleness=float(params[2]),
+        )
+
+    def __str__(self) -> str:
+        return (
+            "TunedAdaptivePlayer(\n"
+            f"    bloodthirst={self.bloodthirst},\n"
+            f"    paranoia={self.paranoia},\n"
+            f"    idleness={self.idleness},\n)"
+        )
+
+
+def _clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
+    return max(low, min(high, value))
 
 
 async def train_tuned_adaptive(
@@ -68,12 +151,17 @@ async def run_tuning(
     print(best)
 
     tuned = TunedAdaptivePlayer.load(str(output), name="Tuned Adaptive Player")
-    names = (
-        list(opponent_names) if opponent_names else list(default_computer_player_names)
-    )
+    names = list(opponent_names) if opponent_names else list(BENCHMARK_FACTORIES.keys())
     return await evaluate_and_report(
         tuned,
         names,
         test_games,
         "Tuned player vs benchmark players",
     )
+
+
+TUNED_ADAPTIVE_FACTORIES = {
+    TUNED_ADAPTIVE_NAME: partial(
+        TunedAdaptivePlayer.load, TUNED_ADAPTIVE_PARAMS_PATH, TUNED_ADAPTIVE_NAME
+    )
+}
