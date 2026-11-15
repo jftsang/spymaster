@@ -134,12 +134,23 @@ class Spymaster(BaseModel):
 
     async def play(self):
         assert self.white is not None and self.black is not None
+        logger.info("%s - %s: Starting game", self.white.name, self.black.name)
+        try:
+            await self._play_loop()
+        except Exception as exc:
+            logger.error("%s - %s: Game terminated", self.white.name, self.black.name, exc.__class__.__name__)
+            raise
+        else:
+            logger.info("%s - %s: Game finished", self.white.name, self.black.name)
+
+    async def _play_loop(self):
+        assert self.white is not None and self.black is not None
         while self.remaining_missions:
             shuffle(self.remaining_missions)
             self.current_mission = self.remaining_missions.pop()
             self.remaining_missions.sort()
 
-            logger.info("%s - %s: Waiting for plays", self.white.name, self.black.name)
+            logger.debug("%s - %s: Waiting for plays", self.white.name, self.black.name)
             white_pick = asyncio.ensure_future(self.choose_and_validate(self.white))
             black_pick = asyncio.ensure_future(
                 self.flipped().choose_and_validate(self.black)
@@ -207,7 +218,8 @@ class Spymaster(BaseModel):
             white_score=self.white_score,
             black_score=self.black_score,
         )
-        logger.info("%s - %s: %s", self.white.name, self.white_score, ghs)
+        assert self.white is not None and self.black is not None
+        logger.debug("%s - %s: %s", self.white.name, self.black.name, ghs)
 
         self.history.append(ghs)
 

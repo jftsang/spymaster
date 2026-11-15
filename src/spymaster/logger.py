@@ -1,7 +1,9 @@
 import logging
+import os
 
 logger = logging.getLogger("spymaster")
-logger.setLevel(logging.INFO)
+level = logging.DEBUG if os.environ.get("SPYMASTER_DEBUG") else logging.INFO
+logger.setLevel(level)
 
 if not logger.handlers:
     handler = logging.StreamHandler()
