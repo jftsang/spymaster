@@ -15,6 +15,14 @@ from spymaster.tournament import Tournament
 
 PlayerFactory = Callable[[], Player]
 EvolutionaryPlayerFactory = Callable[[], EvolutionaryPlayer]
+PlayerSource = Player | PlayerFactory
+
+
+def _instantiate_player(player: PlayerSource) -> Player:
+    """Return a player instance, calling the factory if one was given."""
+    if isinstance(player, Player):
+        return player
+    return player()
 
 
 def _points(game: Spymaster) -> int:
@@ -32,6 +40,9 @@ class PlayAgainstChallengerTournament(Tournament):
     """Play each player against one or more challengers, using FACTORIES
     so that every game gets a fresh challenger instance (challengers such
     as AdaptiveAimingPlayer keep mutable state between rounds).
+
+    The candidates in ``players`` are reused across games, so they must
+    be stateless (or at least safe to share between concurrent games).
 
     When several challengers are given, each game picks one uniformly at
     random, so the candidates face a shuffled, evenly-mixed mix of
@@ -191,13 +202,16 @@ def _opponent_factories(
 
 
 async def evaluate_against_computer_players(
-    player: Player,
+    player: PlayerSource,
     n_games: int = 100,
     opponent_names: list[str] | None = None,
 ) -> dict[str, tuple[int, int, int]]:
     """Play ``n_games`` games against each default computer player,
     always as White. Returns a mapping of opponent name to a
     ``(wins, draws, losses)`` tuple.
+
+    If ``player`` is a factory, every game gets a fresh instance; passing
+    a single instance reuses it and is only safe for stateless players.
     """
     from spymaster.players.computer_players import new_computer_player
 
@@ -207,11 +221,16 @@ async def evaluate_against_computer_players(
     results: dict[str, tuple[int, int, int]] = {}
     for opp_name in opponent_names:
         games = [
-            Spymaster(white=player, black=new_computer_player(opp_name))
+            Spymaster(
+                white=_instantiate_player(player),
+                black=new_computer_player(opp_name),
+            )
             for _ in range(n_games)
         ]
 
-        with tqdm(desc=f"{player.name} vs {opp_name}", total=len(games)) as pbar:
+        first_white = games[0].white if games else None
+        label = first_white.name if first_white is not None else "player"
+        with tqdm(desc=f"{label} vs {opp_name}", total=len(games)) as pbar:
             for fut in asyncio.as_completed([game.play() for game in games]):
                 await fut
                 pbar.update(1)
@@ -225,24 +244,41 @@ async def evaluate_against_computer_players(
 
 
 async def head_to_head(
-    player_a: Player,
-    player_b: Player,
+    player_a: PlayerSource,
+    player_b: PlayerSource,
     n_games: int = 100,
 ) -> tuple[int, int, int]:
     """Play ``player_a`` against ``player_b``, ``n_games`` with each as
     White. Returns ``(a_wins, draws, b_wins)`` from A's point of view.
 
-    Both players must be stateless (safe to reuse across games) -- true
-    for SingleLayerPerceptronPlayers.
+    Each side is instantiated from its source for every game, so passing
+    factories keeps stateful players isolated between games. Passing a
+    single instance reuses it and is only safe for stateless players.
     """
-    games = [Spymaster(white=player_a, black=player_b) for _ in range(n_games)] + [
-        Spymaster(white=player_b, black=player_a) for _ in range(n_games)
+    games = [
+        (
+            True,
+            Spymaster(
+                white=_instantiate_player(player_a),
+                black=_instantiate_player(player_b),
+            ),
+        )
+        for _ in range(n_games)
+    ] + [
+        (
+            False,
+            Spymaster(
+                white=_instantiate_player(player_b),
+                black=_instantiate_player(player_a),
+            ),
+        )
+        for _ in range(n_games)
     ]
-    await asyncio.gather(*(game.play() for game in games))
+    await asyncio.gather(*(game.play() for _, game in games))
 
     a_wins = draws = b_wins = 0
-    for game in games:
-        if game.white is player_a:
+    for a_is_white, game in games:
+        if a_is_white:
             a_score, b_score = game.white_score, game.black_score
         else:
             a_score, b_score = game.black_score, game.white_score
@@ -256,7 +292,7 @@ async def head_to_head(
 
 
 async def evaluate_and_report(
-    player: Player,
+    player: PlayerSource,
     opponent_names: list[str],
     n_games: int,
     title: str,

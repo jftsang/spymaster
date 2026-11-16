@@ -111,38 +111,24 @@ async def play_command(args: argparse.Namespace) -> None:
 async def benchmark_command(args: argparse.Namespace) -> None:
     import numpy as np
 
-    from spymaster.gene_pool import (
-        evaluate_against_computer_players,
-        head_to_head,
-    )
+    from spymaster.gene_pool import evaluate_against_computer_players
 
     if args.seed is not None:
         np.random.seed(args.seed)
 
-    players = {n: f() for n, f in FACTORIES.items()
-               if n == args.candidate}
-    for name, player in players.items():
-        ngames: int = args.games
-        results = await evaluate_against_computer_players(
-            player,
-            n_games=ngames,
-            opponent_names=list(BENCHMARK_FACTORIES.keys()),
-        )
-        print(f"\n{name} vs benchmark computer players ({args.games} games each):")
-        for opponent, (wins, draws, losses) in results.items():
-            points = wins - losses
-            print(f"  vs. {opponent}: {wins}W {draws}D {losses}L (net {points:+d})")
-
-    names = list(players)
-    if len(names) >= 2:
-        a_name, b_name = names[0], names[1]
-        a_wins, draws, b_wins = await head_to_head(
-            players[a_name], players[b_name], n_games=args.games
-        )
-        total = 2 * args.games
-        print(f"\nHead to head ({total} games):")
-        print(f"  {a_name}: {a_wins}W {draws}D {b_wins}L")
-        print(f"  {b_name}: {b_wins}W {draws}D {a_wins}L")
+    factory = FACTORIES[args.candidate]
+    results = await evaluate_against_computer_players(
+        factory,
+        n_games=args.games,
+        opponent_names=list(BENCHMARK_FACTORIES.keys()),
+    )
+    print(
+        f"\n{args.candidate} vs benchmark computer players "
+        f"({args.games} games each):"
+    )
+    for opponent, (wins, draws, losses) in results.items():
+        points = wins - losses
+        print(f"  vs. {opponent}: {wins}W {draws}D {losses}L (net {points:+d})")
 
 
 async def tournament_command(args: argparse.Namespace) -> None:
