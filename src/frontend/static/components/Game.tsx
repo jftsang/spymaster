@@ -5,8 +5,10 @@ import { Analysis } from "./Analysis";
 import { Board, SHORTCUTS } from "./Board";
 import { History } from "./History";
 
+const SIDE_QUERY = "(min-width: 1200px)";
 const WIDE_QUERY = "(min-width: 1600px)";
-const isWideScreen = () => window.matchMedia(WIDE_QUERY).matches;
+const hasSideLayout = () => window.matchMedia(SIDE_QUERY).matches;
+const hasFixedSidebars = () => window.matchMedia(WIDE_QUERY).matches;
 
 export const GameView = () => {
   const g = game.value;
@@ -22,28 +24,38 @@ export const GameView = () => {
   const [selected, setSelected] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [revealedTurn, setRevealedTurn] = useState<number | null>(null);
-  const [isWide, setIsWide] = useState(isWideScreen);
-  const [historyVisible, setHistoryVisible] = useState(isWideScreen);
-  const [analysisVisible, setAnalysisVisible] = useState(isWideScreen);
+  const [sideLayout, setSideLayout] = useState(hasSideLayout);
+  const [fixedSidebars, setFixedSidebars] = useState(hasFixedSidebars);
+  const [historyVisible, setHistoryVisible] = useState(hasSideLayout);
+  const [analysisVisible, setAnalysisVisible] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   // The mission card stays hidden until the player acknowledges this turn.
   const missionRevealed = revealedTurn === turn;
-  const historyModalOpen = !isWide && historyVisible;
-  const analysisModalOpen = !isWide && analysisVisible && opponentIsComputer;
+  const historyModalOpen = !sideLayout && historyVisible;
+  const analysisModalOpen =
+    !sideLayout && analysisVisible && opponentIsComputer;
+  const sideColumn = sideLayout && !fixedSidebars;
 
-  // Keep the default visibility in step with the responsive breakpoint.
+  // Keep the default visibility in step with the responsive breakpoints.
   useEffect(() => {
-    const query = window.matchMedia(WIDE_QUERY);
+    const sideQuery = window.matchMedia(SIDE_QUERY);
+    const wideQuery = window.matchMedia(WIDE_QUERY);
     const update = () => {
-      setIsWide(query.matches);
-      setHistoryVisible(query.matches);
-      setAnalysisVisible(query.matches);
+      const side = sideQuery.matches;
+      setSideLayout(side);
+      setFixedSidebars(wideQuery.matches);
+      setHistoryVisible(side);
+      setAnalysisVisible(false);
     };
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
+    sideQuery.addEventListener("change", update);
+    wideQuery.addEventListener("change", update);
+    return () => {
+      sideQuery.removeEventListener("change", update);
+      wideQuery.removeEventListener("change", update);
+    };
   }, []);
 
   // A new turn from the server resets the interaction gate.
@@ -147,13 +159,13 @@ export const GameView = () => {
       if (ev.key === "h") {
         const next = !historyVisible;
         setHistoryVisible(next);
-        if (!isWide && next) setAnalysisVisible(false);
+        if (!sideLayout && next) setAnalysisVisible(false);
         return;
       }
       if (ev.key === "y" && opponentIsComputer) {
         const next = !analysisVisible;
         setAnalysisVisible(next);
-        if (!isWide && next) setHistoryVisible(false);
+        if (!sideLayout && next) setHistoryVisible(false);
         return;
       }
       if (historyModalOpen || analysisModalOpen) return;
@@ -174,8 +186,32 @@ export const GameView = () => {
     return <div class="container py-4">Waiting for game state…</div>;
   }
 
+  const analysisPanel = opponentIsComputer ? (
+    <Analysis
+      data={analysis}
+      loading={analysisLoading}
+      error={analysisError}
+      opponent={opponent}
+      enabled={opponentIsComputer}
+      visible={analysisVisible}
+      sidebar={sideLayout}
+      onOpen={() => setAnalysisVisible(true)}
+      onClose={() => setAnalysisVisible(false)}
+    />
+  ) : null;
+  const historyPanel = (
+    <History
+      history={situation.history}
+      opponent={opponent}
+      visible={historyVisible}
+      sidebar={sideLayout}
+      onOpen={() => setHistoryVisible(true)}
+      onClose={() => setHistoryVisible(false)}
+    />
+  );
+
   return (
-    <div class="container py-4">
+    <div class={"py-4 " + (fixedSidebars ? "container" : "container-fluid px-3 px-xl-4")}>
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="mb-0">
           Playing against <strong>{opponent}</strong>
@@ -186,7 +222,7 @@ export const GameView = () => {
               class="btn btn-outline-info btn-sm analysis-toggle"
               onClick={() => {
                 setAnalysisVisible(true);
-                if (!isWide) setHistoryVisible(false);
+                if (!sideLayout) setHistoryVisible(false);
               }}
             >
               Analysis
@@ -196,7 +232,7 @@ export const GameView = () => {
             class="btn btn-outline-light btn-sm history-toggle"
             onClick={() => {
               setHistoryVisible(true);
-              if (!isWide) setAnalysisVisible(false);
+              if (!sideLayout) setAnalysisVisible(false);
             }}
           >
             Game log
@@ -211,34 +247,35 @@ export const GameView = () => {
           {opponent}'s connection was lost — 5 minute grace period.
         </div>
       )}
-      <Board
-        situation={situation}
-        result={result}
-        ready={ready}
-        selected={selected}
-        showResult={showResult}
-        missionRevealed={missionRevealed}
-        canContinue={canContinue}
-        gameOverPending={gameOverPending}
-        onPick={pick}
-        onContinue={cont}
-        onGameOver={acknowledgeGameOver}
-      />
-      <Analysis
-        data={analysis}
-        loading={analysisLoading}
-        error={analysisError}
-        opponent={opponent}
-        enabled={opponentIsComputer}
-        visible={analysisVisible}
-        onClose={() => setAnalysisVisible(false)}
-      />
-      <History
-        history={situation.history}
-        opponent={opponent}
-        visible={historyVisible}
-        onClose={() => setHistoryVisible(false)}
-      />
+      <div class={sideColumn ? "game-layout" : undefined}>
+        <div class={sideColumn ? "game-main" : undefined}>
+          <Board
+            situation={situation}
+            result={result}
+            ready={ready}
+            selected={selected}
+            showResult={showResult}
+            missionRevealed={missionRevealed}
+            canContinue={canContinue}
+            gameOverPending={gameOverPending}
+            onPick={pick}
+            onContinue={cont}
+            onGameOver={acknowledgeGameOver}
+          />
+        </div>
+        {sideColumn ? (
+          <div class="game-side-column">
+            {analysisPanel}
+            {historyPanel}
+          </div>
+        ) : null}
+      </div>
+      {!sideColumn ? (
+        <>
+          {analysisPanel}
+          {historyPanel}
+        </>
+      ) : null}
     </div>
   );
 };

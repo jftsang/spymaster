@@ -90,12 +90,58 @@ button.mission {
 }
 
 /*
- * The game log lives in a fixed right-hand sidebar when the viewport is
- * wide enough for it to clear the centered board. Otherwise it is only
- * shown as a modal, opened by the Game log button.
+ * Accessory panels: fixed sidebars on very wide screens, an in-flow right
+ * column on medium-wide screens (e.g. 13" laptops), and modals on narrow
+ * screens.
  */
-.game-history {
+.game-history,
+.game-analysis {
     display: none;
+}
+
+.game-side-column {
+    display: none;
+}
+
+@media (min-width: 1200px) and (max-width: 1599.98px) {
+    .game-layout {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .game-main {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .game-side-column {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        width: 280px;
+        flex: 0 0 280px;
+    }
+
+    .game-side-column .game-analysis,
+    .game-side-column .game-history {
+        display: block;
+    }
+
+    .game-side-column .history-table {
+        max-height: 40vh;
+    }
+
+    .history-toggle,
+    .analysis-toggle,
+    .history-modal,
+    .analysis-modal {
+        display: none !important;
+    }
+
+    .accessory-header-collapsed {
+        cursor: pointer;
+    }
 }
 
 @media (min-width: 1600px) {
@@ -109,28 +155,6 @@ button.mission {
         overflow-y: auto;
     }
 
-    .game-history .history-table {
-        max-height: none;
-    }
-
-    .history-toggle {
-        display: none;
-    }
-
-    .history-modal {
-        display: none !important;
-    }
-}
-
-/*
- * The analysis panel mirrors the game log: a fixed left-hand sidebar on
- * wide screens, and a modal opened by the Analysis button otherwise.
- */
-.game-analysis {
-    display: none;
-}
-
-@media (min-width: 1600px) {
     .game-analysis {
         display: block;
         position: fixed;
@@ -141,12 +165,19 @@ button.mission {
         overflow-y: auto;
     }
 
-    .analysis-toggle {
-        display: none;
+    .game-history .history-table {
+        max-height: none;
     }
 
+    .history-toggle,
+    .analysis-toggle,
+    .history-modal,
     .analysis-modal {
         display: none !important;
+    }
+
+    .accessory-header-collapsed {
+        cursor: pointer;
     }
 }
 
