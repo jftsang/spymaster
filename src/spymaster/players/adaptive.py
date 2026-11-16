@@ -14,8 +14,6 @@ from .benchmarks import (
 from .evolutionary_players import EvolutionaryPlayer
 
 WEIGHTS_DIR = Path(__file__).parent.parent / "weights"
-TUNED_ADAPTIVE_NAME = "AI (Adaptive Ducker)"
-TUNED_ADAPTIVE_PARAMS_PATH = WEIGHTS_DIR / "adaptive_ducker.npy"
 
 
 class TunedAdaptivePlayer(RussiaPlayer, EvolutionaryPlayer):
@@ -129,7 +127,7 @@ async def run_tuning(
     seed: int | None = 0,
     test_games: int = 100,
     opponent_names: Sequence[str] | None = None,
-    output: str | Path = TUNED_ADAPTIVE_PARAMS_PATH,
+    output: str | Path = "tuned_adaptive_weights.npy",
 ) -> dict[str, tuple[int, int, int]]:
     """Evolve TunedAdaptivePlayer's parameters against all five
     benchmark players, save them to ``output``, then play ``test_games``
@@ -159,9 +157,10 @@ async def run_tuning(
         "Tuned player vs benchmark players",
     )
 
-
 TUNED_ADAPTIVE_FACTORIES = {
-    TUNED_ADAPTIVE_NAME: partial(
-        TunedAdaptivePlayer.load, TUNED_ADAPTIVE_PARAMS_PATH, TUNED_ADAPTIVE_NAME
-    )
+    "AI (Adaptive, Ducker)": partial(
+        TunedAdaptivePlayer.load, WEIGHTS_DIR / "adaptive_ducker.npy", "AI (Adaptive Ducker)"
+    ),
+    "AI (Adaptive, Aggressive)": partial(RussiaPlayer, bloodthirst=1, paranoia=0, idleness=0),
+    "AI (Adaptive, Paranoid)": partial(RussiaPlayer, bloodthirst=0.25, paranoia=1, idleness=0.67)
 }
