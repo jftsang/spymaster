@@ -11,15 +11,45 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.websockets import WebSocket, WebSocketDisconnect
+from pydantic import BaseModel
+from pydantic.alias_generators import to_camel
+from starlette.concurrency import run_in_threadpool
 
 import spymaster.players.computer_players
-from spymaster import Spymaster
+from spymaster import AgentCard, MissionCard, Position, Spymaster
 from spymaster.players import Player
+from spymaster.players.minimax.nash_players import NASH_PLAYER_NAME, NashPlayer
 from spymaster.tournament import TOURNAMENT_RESULTS_PATH, TournamentResults
 from spymaster.webserver.online_player import OnlinePlayer
 from spymaster.webserver.session import Forfeit, UserSession
 
 logger = logging.getLogger(__name__)
+
+
+class AnalysisRequest(BaseModel):
+    """A game position submitted for analysis by the webserver."""
+
+    model_config = {"populate_by_name": True, "alias_generator": to_camel}
+
+    ours: list[AgentCard]
+    theirs: list[AgentCard]
+    missions: list[MissionCard]
+    current_mission: MissionCard | None = None
+    white_score: int = 0
+    black_score: int = 0
+
+    def to_position(self) -> Position:
+        missions = set(self.missions)
+        if self.current_mission is not None:
+            missions.add(self.current_mission)
+        return Position(
+            ours=frozenset(self.ours),
+            theirs=frozenset(self.theirs),
+            missions=frozenset(missions),
+            current_mission=self.current_mission,
+            white_score=self.white_score,
+            black_score=self.black_score,
+        )
 
 
 @dataclass
@@ -139,6 +169,9 @@ class GameServer:
         self.sessions: dict[str, UserSession] = {}
         self.games: dict[int, ActiveGame] = {}
         self._game_id = 0
+        # A single stateless Nash player is shared by every game and by the
+        # analysis API so that its cached analyses are reused across games.
+        self.nash_player = NashPlayer(name=NASH_PLAYER_NAME)
 
     # -- session / connection management ----------------------------------
 
@@ -386,11 +419,12 @@ class GameServer:
             player = OnlinePlayer(name=name, session=session)
             session.player = player
             return GameSide(name=name, player=player, session=session)
-        return GameSide(
-            name=name,
-            player=spymaster.players.computer_players.new_computer_player(name),
-            session=None,
+        player = (
+            self.nash_player
+            if name == NASH_PLAYER_NAME
+            else spymaster.players.computer_players.new_computer_player(name)
         )
+        return GameSide(name=name, player=player, session=None)
 
     async def _start(
         self,
@@ -419,8 +453,15 @@ class GameServer:
                 continue
             session.in_game = True
             session.active_game = active
-            opponent = black.name if side is white else white.name
-            await session.send({"msgType": "gameStart", "opponent": opponent})
+            other = black if side is white else white
+            session.opponent_is_computer = other.session is None
+            await session.send(
+                {
+                    "msgType": "gameStart",
+                    "opponent": other.name,
+                    "opponentIsComputer": session.opponent_is_computer,
+                }
+            )
         asyncio.create_task(active.run())
         logger.info("game started: %s (white) vs %s (black)", white.name, black.name)
         await self.broadcast_players()
@@ -635,6 +676,43 @@ async def weights_data() -> dict:
             }
         )
     return {"inputs": LinearPlayer.INPUTS_LENGTH, "players": players}
+
+
+@app.post("/analysis")
+async def analysis_data(request: AnalysisRequest) -> dict:
+    """Analyse a game position with the shared Nash player.
+
+    Returns the equilibrium value from the submitted player's
+    perspective, together with the equilibrium strategy for both
+    players. Strategies are aligned with their corresponding card
+    lists.
+    """
+    position = request.to_position()
+    if position.current_mission is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Position has no current mission to analyse",
+        )
+    try:
+        (our_cards, our_strategy, equity), (
+            their_cards,
+            their_strategy,
+            _,
+        ) = await asyncio.gather(
+            run_in_threadpool(gs.nash_player.analyse, position),
+            run_in_threadpool(gs.nash_player.analyse, position.flipped()),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if abs(equity) < 1e-9:
+        equity = 0.0
+    return {
+        "equity": equity,
+        "ourCards": our_cards,
+        "ourStrategy": our_strategy,
+        "theirCards": their_cards,
+        "theirStrategy": their_strategy,
+    }
 
 
 if __name__ == "__main__":

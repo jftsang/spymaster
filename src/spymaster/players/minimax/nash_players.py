@@ -37,6 +37,9 @@ class NashPlayer(Player):
         self.evaluator = evaluator if evaluator is not None else CrudeEvaluator()
         self.exact_rounds = exact_rounds
         self.use_guarantees = use_guarantees
+        self._analysis_cache: dict[
+            Position, tuple[tuple[AgentCard, ...], tuple[float, ...], float]
+        ] = {}
         self.logger = logging.getLogger(
             f"{__name__}.{self.__class__.__name__}.{id(self)}"
         )
@@ -63,7 +66,22 @@ class NashPlayer(Player):
         return choices(cards, weights=strategy, k=1)[0]
 
     def analyse(self, position: Position) -> tuple[list[AgentCard], list[float], float]:
-        """Return legal cards, their equilibrium probabilities, and value."""
+        """Return legal cards, their equilibrium probabilities, and value.
+
+        Results are cached per player instance, so a long-lived player
+        (such as the webserver's shared analysis player) reuses analyses
+        across positions and games.
+        """
+        cached = self._analysis_cache.get(position)
+        if cached is None:
+            cached = self._compute_analysis(position)
+            self._analysis_cache[position] = cached
+        cards, strategy, value = cached
+        return list(cards), list(strategy), value
+
+    def _compute_analysis(
+        self, position: Position
+    ) -> tuple[tuple[AgentCard, ...], tuple[float, ...], float]:
         if position.current_mission is None:
             raise ValueError("NashPlayer requires a current mission")
 
@@ -71,7 +89,8 @@ class NashPlayer(Player):
             guarantee = analyse_guarantee(position)
             pinned = _pinned_guarantee(position, guarantee)
             if pinned is not None:
-                return pinned
+                cards, strategy, value = pinned
+                return tuple(cards), tuple(strategy), value
 
         cards = sorted(position.ours)
         opponents = sorted(position.theirs)
@@ -83,7 +102,7 @@ class NashPlayer(Player):
             for card in cards
         ]
         strategy, value = solve_matrix_game(matrix)
-        return cards, strategy, value
+        return tuple(cards), tuple(strategy), value
 
     def _value_after_round(
         self,

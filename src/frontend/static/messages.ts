@@ -59,7 +59,10 @@ export const handleWsMessage = (data: any) => {
 
     case "gameStart": {
       const accepted = pendingChallengeTo.value;
-      game.value = newGame(data.opponent ?? null);
+      game.value = newGame(
+        data.opponent ?? null,
+        data.opponentIsComputer ?? false,
+      );
       gameOverAcknowledged.value = false;
       view.value = "game";
       toast.value = null;
@@ -75,6 +78,8 @@ export const handleWsMessage = (data: any) => {
       const base = game.value ?? newGame(st?.black ?? null);
       game.value = {
         ...base,
+        opponentIsComputer:
+          data.opponentIsComputer ?? base.opponentIsComputer,
         situation: st,
         over: false,
         turn: base.turn + 1,
@@ -88,6 +93,8 @@ export const handleWsMessage = (data: any) => {
       const base = game.value ?? newGame(st?.black ?? null);
       game.value = {
         ...base,
+        opponentIsComputer:
+          data.opponentIsComputer ?? base.opponentIsComputer,
         situation: st,
         result: res,
         over: res?.gameOver ?? base.over,

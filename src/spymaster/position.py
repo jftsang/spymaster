@@ -43,3 +43,14 @@ class Position:
             white_score=game_state.white_score,
             black_score=game_state.black_score,
         )
+
+    def flipped(self) -> Position:
+        """Return the same position from the other player's perspective."""
+        return Position(
+            ours=self.theirs,
+            theirs=self.ours,
+            missions=self.missions,
+            current_mission=self.current_mission,
+            white_score=self.black_score,
+            black_score=self.white_score,
+        )

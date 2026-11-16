@@ -20,6 +20,7 @@ class WsComm:
             "msgType": "situation",
             "situation": state.to_dict(),
             "message": message,
+            "opponentIsComputer": self.session.opponent_is_computer,
         }
         self.session.last_game_message = msg
         await self.session.send(msg)
@@ -29,6 +30,7 @@ class WsComm:
             "msgType": "result",
             "situation": state.to_dict(),
             "result": result.to_dict(),
+            "opponentIsComputer": self.session.opponent_is_computer,
         }
         self.session.last_game_message = msg
         await self.session.send(msg)

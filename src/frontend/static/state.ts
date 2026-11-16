@@ -24,6 +24,14 @@ export type HistoryStepData = {
   blackScore: number;
 };
 
+export type AnalysisData = {
+  equity: number;
+  ourCards: number[];
+  ourStrategy: number[];
+  theirCards: number[];
+  theirStrategy: number[];
+};
+
 export type GameStateData = {
   white: string;
   black: string;
@@ -38,6 +46,7 @@ export type GameStateData = {
 
 export type GameSignal = {
   opponent: string | null;
+  opponentIsComputer: boolean;
   situation: GameStateData | null;
   result: MissionResultData | null;
   over: boolean;
@@ -67,8 +76,12 @@ export const showToast = (msg: string) => {
   }, 4000);
 };
 
-export const newGame = (opponent: string | null): GameSignal => ({
+export const newGame = (
+  opponent: string | null,
+  opponentIsComputer = false,
+): GameSignal => ({
   opponent,
+  opponentIsComputer,
   situation: null,
   result: null,
   over: false,

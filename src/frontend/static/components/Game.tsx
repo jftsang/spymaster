@@ -1,8 +1,12 @@
 import { useEffect, useState } from "preact/hooks";
-import { game, gameOverAcknowledged } from "../state";
+import { AnalysisData, game, gameOverAcknowledged } from "../state";
 import { sendWs } from "../ws";
+import { Analysis } from "./Analysis";
 import { Board, SHORTCUTS } from "./Board";
 import { History } from "./History";
+
+const WIDE_QUERY = "(min-width: 1600px)";
+const isWideScreen = () => window.matchMedia(WIDE_QUERY).matches;
 
 export const GameView = () => {
   const g = game.value;
@@ -11,15 +15,36 @@ export const GameView = () => {
   const turn = g?.turn ?? 0;
   const awaitingMove = g?.awaitingMove ?? false;
   const over = g?.over ?? false;
+  const opponent = g?.opponent || situation?.black || "Opponent";
+  const opponentIsComputer = g?.opponentIsComputer ?? false;
 
   const [ready, setReady] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [revealedTurn, setRevealedTurn] = useState<number | null>(null);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [isWide, setIsWide] = useState(isWideScreen);
+  const [historyVisible, setHistoryVisible] = useState(isWideScreen);
+  const [analysisVisible, setAnalysisVisible] = useState(isWideScreen);
+  const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   // The mission card stays hidden until the player acknowledges this turn.
   const missionRevealed = revealedTurn === turn;
+  const historyModalOpen = !isWide && historyVisible;
+  const analysisModalOpen = !isWide && analysisVisible && opponentIsComputer;
+
+  // Keep the default visibility in step with the responsive breakpoint.
+  useEffect(() => {
+    const query = window.matchMedia(WIDE_QUERY);
+    const update = () => {
+      setIsWide(query.matches);
+      setHistoryVisible(query.matches);
+      setAnalysisVisible(query.matches);
+    };
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
 
   // A new turn from the server resets the interaction gate.
   useEffect(() => {
@@ -31,6 +56,61 @@ export const GameView = () => {
   useEffect(() => {
     if (result) setShowResult(true);
   }, [result]);
+
+  // Analyse each new position against a computer opponent. The turn
+  // changes only when a new decision is presented, so result displays do
+  // not trigger a fresh analysis.
+  useEffect(() => {
+    const mission = situation?.currentMission ?? null;
+    if (!opponentIsComputer || situation === null || mission === null || over) {
+      setAnalysis(null);
+      setAnalysisLoading(false);
+      setAnalysisError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    const missions = situation.remainingMissions.slice();
+    if (!missions.includes(mission)) missions.push(mission);
+
+    setAnalysis(null);
+    setAnalysisLoading(true);
+    setAnalysisError(null);
+
+    const load = async () => {
+      try {
+        const response = await fetch("/analysis", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ours: situation.whiteCards,
+            theirs: situation.blackCards,
+            missions,
+            currentMission: mission,
+            whiteScore: situation.whiteScore,
+            blackScore: situation.blackScore,
+          }),
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => null);
+          throw new Error(
+            body?.detail ?? `${response.status} ${response.statusText}`,
+          );
+        }
+        const data = (await response.json()) as AnalysisData;
+        if (!controller.signal.aborted) setAnalysis(data);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        setAnalysisError(err instanceof Error ? err.message : String(err));
+      } finally {
+        if (!controller.signal.aborted) setAnalysisLoading(false);
+      }
+    };
+    void load();
+
+    return () => controller.abort();
+  }, [turn, opponentIsComputer, over]);
 
   const pick = (card: number) => {
     if (!ready || !situation || !situation.whiteCards.includes(card)) return;
@@ -63,7 +143,20 @@ export const GameView = () => {
 
   useEffect(() => {
     const handler = (ev: KeyboardEvent) => {
-      if (historyOpen) return;
+      if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+      if (ev.key === "h") {
+        const next = !historyVisible;
+        setHistoryVisible(next);
+        if (!isWide && next) setAnalysisVisible(false);
+        return;
+      }
+      if (ev.key === "y" && opponentIsComputer) {
+        const next = !analysisVisible;
+        setAnalysisVisible(next);
+        if (!isWide && next) setHistoryVisible(false);
+        return;
+      }
+      if (historyModalOpen || analysisModalOpen) return;
       if (ready && situation) {
         if (SHORTCUTS.includes(ev.key)) {
           pick(SHORTCUTS.indexOf(ev.key));
@@ -81,8 +174,6 @@ export const GameView = () => {
     return <div class="container py-4">Waiting for game state…</div>;
   }
 
-  const opponent = g.opponent || situation.black;
-
   return (
     <div class="container py-4">
       <div class="d-flex justify-content-between align-items-center mb-3">
@@ -90,14 +181,26 @@ export const GameView = () => {
           Playing against <strong>{opponent}</strong>
         </h4>
         <div class="d-flex gap-2">
-          {situation.history.length > 0 && (
+          {opponentIsComputer && (
             <button
-              class="btn btn-outline-light btn-sm history-toggle"
-              onClick={() => setHistoryOpen(true)}
+              class="btn btn-outline-info btn-sm analysis-toggle"
+              onClick={() => {
+                setAnalysisVisible(true);
+                if (!isWide) setHistoryVisible(false);
+              }}
             >
-              Game log
+              Analysis
             </button>
           )}
+          <button
+            class="btn btn-outline-light btn-sm history-toggle"
+            onClick={() => {
+              setHistoryVisible(true);
+              if (!isWide) setAnalysisVisible(false);
+            }}
+          >
+            Game log
+          </button>
           <button class="btn btn-outline-danger btn-sm" onClick={leave}>
             Leave game
           </button>
@@ -121,11 +224,20 @@ export const GameView = () => {
         onContinue={cont}
         onGameOver={acknowledgeGameOver}
       />
+      <Analysis
+        data={analysis}
+        loading={analysisLoading}
+        error={analysisError}
+        opponent={opponent}
+        enabled={opponentIsComputer}
+        visible={analysisVisible}
+        onClose={() => setAnalysisVisible(false)}
+      />
       <History
         history={situation.history}
         opponent={opponent}
-        open={historyOpen}
-        onClose={() => setHistoryOpen(false)}
+        visible={historyVisible}
+        onClose={() => setHistoryVisible(false)}
       />
     </div>
   );

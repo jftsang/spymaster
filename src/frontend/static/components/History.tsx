@@ -3,7 +3,7 @@ import { HistoryStepData } from "../state";
 
 const PlayedCard = ({ card, kind }: { card: number; kind: "you" | "opp" }) => (
   <span class={"badge " + (kind === "you" ? "bg-primary" : "bg-danger")}>
-    {card > 0 ? String(card) : "💣"}
+    {card > 0 ? String(card) : "👻"}
   </span>
 );
 
@@ -47,26 +47,31 @@ const HistoryTable = ({
 type HistoryProps = {
   history: HistoryStepData[];
   opponent: string;
-  open: boolean;
+  visible: boolean;
   onClose: () => void;
 };
 
 /**
  * Wide screens show the game log in a fixed sidebar on the right, leaving
- * the board itself centered. Narrow screens hide it behind the Game log
- * button and show it as a modal overlay instead (see the CSS breakpoint).
+ * the board itself centered. Narrow screens show it as a modal overlay
+ * instead (see the CSS breakpoint). The visible flag is shared by both.
  */
-export const History = ({ history, opponent, open, onClose }: HistoryProps) => {
+export const History = ({
+  history,
+  opponent,
+  visible,
+  onClose,
+}: HistoryProps) => {
   useEffect(() => {
-    if (!open) return;
+    if (!visible) return;
     const handler = (ev: KeyboardEvent) => {
       if (ev.key === "Escape") onClose();
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [open, onClose]);
+  }, [visible, onClose]);
 
-  if (history.length === 0) return null;
+  if (!visible) return null;
 
   return (
     <>
@@ -77,42 +82,40 @@ export const History = ({ history, opponent, open, onClose }: HistoryProps) => {
         </div>
       </aside>
 
-      {open ? (
+      <div
+        class="modal d-block history-modal"
+        style="background: rgba(0,0,0,0.6);"
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Game log"
+        onClick={onClose}
+      >
         <div
-          class="modal d-block history-modal"
-          style="background: rgba(0,0,0,0.6);"
-          tabIndex={-1}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Game log"
-          onClick={onClose}
+          class="modal-dialog modal-dialog-centered"
+          onClick={(ev) => ev.stopPropagation()}
         >
-          <div
-            class="modal-dialog modal-dialog-centered"
-            onClick={(ev) => ev.stopPropagation()}
-          >
-            <div class="modal-content bg-dark text-light border-secondary">
-              <div class="modal-header">
-                <h5 class="modal-title">Game log</h5>
-                <button
-                  type="button"
-                  class="btn-close btn-close-white"
-                  aria-label="Close"
-                  onClick={onClose}
-                />
-              </div>
-              <div class="modal-body p-0">
-                <HistoryTable history={history} opponent={opponent} />
-              </div>
-              <div class="modal-footer">
-                <button class="btn btn-secondary" onClick={onClose}>
-                  Close
-                </button>
-              </div>
+          <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header">
+              <h5 class="modal-title">Game log</h5>
+              <button
+                type="button"
+                class="btn-close btn-close-white"
+                aria-label="Close"
+                onClick={onClose}
+              />
+            </div>
+            <div class="modal-body p-0">
+              <HistoryTable history={history} opponent={opponent} />
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" onClick={onClose}>
+                Close
+              </button>
             </div>
           </div>
         </div>
-      ) : null}
+      </div>
     </>
   );
 };

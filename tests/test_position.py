@@ -72,6 +72,26 @@ class TestPosition(unittest.TestCase):
     def test_position_is_hashable(self):
         self.assertIsInstance(hash(Spymaster().position), int)
 
+    def test_flipped_swaps_players_and_scores(self):
+        position = Spymaster(
+            white_cards=[AgentCard(10), AgentCard(2)],
+            black_cards=[AgentCard(5), AgentCard(1)],
+            white_score=7,
+            black_score=3,
+            current_mission=MissionCard(4),
+            remaining_missions=[MissionCard(3)],
+        ).position
+
+        flipped = position.flipped()
+
+        self.assertEqual(flipped.ours, position.theirs)
+        self.assertEqual(flipped.theirs, position.ours)
+        self.assertEqual(flipped.missions, position.missions)
+        self.assertEqual(flipped.current_mission, position.current_mission)
+        self.assertEqual(flipped.white_score, position.black_score)
+        self.assertEqual(flipped.black_score, position.white_score)
+        self.assertEqual(flipped.flipped(), position)
+
 
 if __name__ == "__main__":
     unittest.main()

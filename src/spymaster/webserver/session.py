@@ -47,6 +47,7 @@ class UserSession:
         self.player: Player | None = None
         self.active_game: ActiveGame | None = None
         self.in_game = False
+        self.opponent_is_computer = False
         self.pending_challenge_to: str | None = None
         self.pending_challenge_from: str | None = None
         self.last_game_message: dict[str, Any] | None = None

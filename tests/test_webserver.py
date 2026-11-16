@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from spymaster.players.computer_players import FACTORIES
 from spymaster.tournament import TournamentResults
-from spymaster.webserver import GameServer, app
+from spymaster.webserver import GameServer, app, gs
 
 AI = next(iter(FACTORIES))
 
@@ -89,7 +89,9 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
     async def test_play_against_ai(self):
         session, ws = await self.make_user("Alice")
         await self.gs.challenge(session, AI)
-        self.assertIsNotNone(last(ws.sent, "gameStart"))
+        start = last(ws.sent, "gameStart")
+        self.assertIsNotNone(start)
+        self.assertTrue(start["opponentIsComputer"])
         self.assertTrue(any(p["name"] == AI for p in self.gs.online_players()))
 
         await self.drive(session, ws)
@@ -136,6 +138,8 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         await self.gs.accept_from(bob, "Alice")
         self.assertEqual(last(aws.sent, "gameStart")["opponent"], "Bob")
         self.assertEqual(last(bws.sent, "gameStart")["opponent"], "Alice")
+        self.assertFalse(last(aws.sent, "gameStart")["opponentIsComputer"])
+        self.assertFalse(last(bws.sent, "gameStart")["opponentIsComputer"])
 
         await asyncio.gather(
             self.drive(alice, aws),
@@ -260,6 +264,60 @@ class TestWeightsApi(unittest.TestCase):
         for player in data["players"]:
             self.assertEqual(len(player["weights"]), 16)
             self.assertEqual(len(player["weights"][0]), 51)
+
+
+class TestAnalysisApi(unittest.TestCase):
+    def setUp(self):
+        self.client = TestClient(app)
+        self.position: dict[str, object] = {
+            "ours": [10, 5],
+            "theirs": [6, 3],
+            "missions": [7, 2],
+            "currentMission": 7,
+            "whiteScore": 0,
+            "blackScore": 5,
+        }
+
+    def test_strategies_are_exposed_for_both_players(self):
+        response = self.client.post("/analysis", json=self.position)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(
+            set(data),
+            {
+                "equity",
+                "ourCards",
+                "ourStrategy",
+                "theirCards",
+                "theirStrategy",
+            },
+        )
+        self.assertEqual(len(data["ourCards"]), len(data["ourStrategy"]))
+        self.assertEqual(len(data["theirCards"]), len(data["theirStrategy"]))
+        self.assertAlmostEqual(sum(data["ourStrategy"]), 1.0)
+        self.assertAlmostEqual(sum(data["theirStrategy"]), 1.0)
+        self.assertGreaterEqual(data["equity"], -1.0)
+        self.assertLessEqual(data["equity"], 1.0)
+
+    def test_position_without_current_mission_is_rejected(self):
+        position = dict(self.position)
+        position["currentMission"] = None
+
+        response = self.client.post("/analysis", json=position)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("current mission", response.json()["detail"])
+
+    def test_analysis_is_cached_on_the_shared_player(self):
+        gs.nash_player._analysis_cache.clear()
+
+        self.client.post("/analysis", json=self.position)
+        cached = len(gs.nash_player._analysis_cache)
+
+        self.client.post("/analysis", json=self.position)
+
+        self.assertEqual(len(gs.nash_player._analysis_cache), cached)
 
 
 class TestTournamentsApi(unittest.TestCase):

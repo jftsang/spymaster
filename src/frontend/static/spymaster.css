@@ -122,6 +122,98 @@ button.mission {
     }
 }
 
+/*
+ * The analysis panel mirrors the game log: a fixed left-hand sidebar on
+ * wide screens, and a modal opened by the Analysis button otherwise.
+ */
+.game-analysis {
+    display: none;
+}
+
+@media (min-width: 1600px) {
+    .game-analysis {
+        display: block;
+        position: fixed;
+        top: 80px;
+        left: 12px;
+        width: 250px;
+        max-height: calc(100vh - 92px);
+        overflow-y: auto;
+    }
+
+    .analysis-toggle {
+        display: none;
+    }
+
+    .analysis-modal {
+        display: none !important;
+    }
+}
+
+.game-history,
+.game-analysis,
+.game-history .card,
+.game-analysis .card,
+.history-modal .card,
+.analysis-modal .card {
+    color: #fff;
+}
+
+.game-history .table,
+.history-modal .table {
+    --bs-table-color: #fff;
+    --bs-table-striped-color: #fff;
+}
+
+.equity-bar {
+    position: relative;
+    height: 14px;
+    background-color: #343a40;
+    border: 1px solid #6c757d;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.equity-bar::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    background-color: #adb5bd;
+}
+
+.equity-positive,
+.equity-negative {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+}
+
+.equity-positive {
+    right: 50%;
+    background-color: #0d6efd;
+}
+
+.equity-negative {
+    left: 50%;
+    background-color: #cb0000;
+}
+
+.analysis-scale {
+    font-size: 0.7rem;
+    line-height: 1;
+}
+
+.analysis-probability {
+    height: 10px;
+}
+
+.analysis-percentage {
+    width: 2.5em;
+}
+
 footer.site-footer a {
     color: #6ea8fe;
     text-decoration: none;
