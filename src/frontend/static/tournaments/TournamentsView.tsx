@@ -36,9 +36,12 @@ const quantile = (sorted: number[], q: number): number => {
 const formatScore = (value: number): string =>
   value > 0 ? `+${value}` : String(value);
 
+type SortBy = "order" | "total";
+
 export const TournamentsView = () => {
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortBy>("order");
 
   useEffect(() => {
     fetch("/api/tournaments")
@@ -72,9 +75,10 @@ export const TournamentsView = () => {
     const sameSets =
       data.players.length === data.evaluators.length &&
       data.players.every((name, i) => name === data.evaluators[i]);
-    const rowOrder = data.players
-      .map((_, i) => i)
-      .sort((a, b) => totals[b] - totals[a]);
+    const rowOrder = data.players.map((_, i) => i);
+    if (sortBy === "total") {
+      rowOrder.sort((a, b) => totals[b] - totals[a]);
+    }
     const columnOrder = sameSets
       ? rowOrder
       : data.evaluators.map((_, i) => i);
@@ -96,6 +100,19 @@ export const TournamentsView = () => {
     body = (
       <>
         <div class="d-flex flex-wrap align-items-center gap-3 mb-3 small text-muted">
+          <label class="d-flex align-items-center gap-2">
+            Sort by
+            <select
+              class="form-select form-select-sm w-auto"
+              value={sortBy}
+              onChange={(e) =>
+                setSortBy((e.target as HTMLSelectElement).value as SortBy)
+              }
+            >
+              <option value="order">Player order</option>
+              <option value="total">Total score</option>
+            </select>
+          </label>
           <span>
             <span class="legend-swatch legend-positive" /> positive
           </span>
@@ -171,7 +188,7 @@ export const TournamentsView = () => {
         Round-robin results for every pair of computer players. Each cell is the
         row player's net score over 100 games against the column player:{" "}
         <strong>+1</strong> for a win, <strong>0</strong> for a draw, and{" "}
-        <strong>-1</strong> for a loss. Rows are sorted by total net score.
+        <strong>-1</strong> for a loss. Rows are sorted by the selected option.
       </p>
       {body}
     </div>
