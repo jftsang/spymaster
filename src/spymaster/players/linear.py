@@ -163,28 +163,29 @@ async def run_gene_pool(
 
 
 WEIGHTS_DIR = Path(__file__).parent.parent / "weights"
+
+LINEAR_BENCHMARK_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_benchmark.npy"
 LINEAR_CHINA_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_china.npy"
 LINEAR_FRANCE_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_france.npy"
 LINEAR_BRITAIN_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_britain.npy"
 LINEAR_AMERICA_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_america.npy"
 LINEAR_RUSSIA_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_russia.npy"
-LINEAR_BENCHMARK_WEIGHTS_PATH = WEIGHTS_DIR / "linear_weights_benchmark.npy"
 
+LINEAR_BENCHMARK_NAME = "AI (Linear Layer, broadly trained)"
 LINEAR_CHINA_NAME = "AI (Linear Layer #1)"
 LINEAR_FRANCE_NAME = "AI (Linear Layer #2)"
 LINEAR_BRITAIN_NAME = "AI (Linear Layer #3)"
 LINEAR_AMERICA_NAME = "AI (Linear Layer #4)"
 LINEAR_RUSSIA_NAME = "AI (Linear Layer #5)"
-LINEAR_BENCHMARK_NAME = "AI (Linear Layer #6)"
 
 # Trained SingleLinearLayer players, keyed by display name.
 LINEAR_PLAYER_SPECS: list[tuple[str, Path]] = [
+    (LINEAR_BENCHMARK_NAME, LINEAR_BENCHMARK_WEIGHTS_PATH),
     (LINEAR_CHINA_NAME, LINEAR_CHINA_WEIGHTS_PATH),
     (LINEAR_FRANCE_NAME, LINEAR_FRANCE_WEIGHTS_PATH),
     (LINEAR_BRITAIN_NAME, LINEAR_BRITAIN_WEIGHTS_PATH),
     (LINEAR_AMERICA_NAME, LINEAR_AMERICA_WEIGHTS_PATH),
     (LINEAR_RUSSIA_NAME, LINEAR_RUSSIA_WEIGHTS_PATH),
-    (LINEAR_BENCHMARK_NAME, LINEAR_BENCHMARK_WEIGHTS_PATH),
 ]
 
 LINEAR_PLAYERS_FACTORIES = {
