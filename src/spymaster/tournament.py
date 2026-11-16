@@ -205,11 +205,7 @@ async def run_round_robin(
         results.save(output)
 
     totals = scores.sum(axis=1)
-    for name, total in sorted(
-        zip(player_names, totals, strict=True),
-        key=lambda item: item[1],
-        reverse=True,
-    ):
+    for name, total in zip(player_names, totals, strict=True):
         print(f"{name}: {total:+d}")
 
     return results

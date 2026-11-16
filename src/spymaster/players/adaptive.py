@@ -161,6 +161,18 @@ TUNED_ADAPTIVE_FACTORIES = {
     "AI (Adaptive, Ducker)": partial(
         TunedAdaptivePlayer.load, WEIGHTS_DIR / "adaptive_ducker.npy", "AI (Adaptive Ducker)"
     ),
-    "AI (Adaptive, Aggressive)": partial(RussiaPlayer, bloodthirst=1, paranoia=0, idleness=0),
-    "AI (Adaptive, Paranoid)": partial(RussiaPlayer, bloodthirst=0.25, paranoia=1, idleness=0.67)
+    "AI (Adaptive, Aggressive)": partial(
+        RussiaPlayer,
+        name="AI (Adaptive, Aggressive)",
+        bloodthirst=1,
+        paranoia=0,
+        idleness=0,
+    ),
+    "AI (Adaptive, Paranoid)": partial(
+        RussiaPlayer,
+        name="AI (Adaptive, Paranoid)",
+        bloodthirst=0.25,
+        paranoia=1,
+        idleness=0.67,
+    ),
 }
