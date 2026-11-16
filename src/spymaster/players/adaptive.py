@@ -14,8 +14,8 @@ from .benchmarks import (
 from .evolutionary_players import EvolutionaryPlayer
 
 WEIGHTS_DIR = Path(__file__).parent.parent / "weights"
-TUNED_ADAPTIVE_NAME = "AI (Adaptive)"
-TUNED_ADAPTIVE_PARAMS_PATH = WEIGHTS_DIR / "tuned_adaptive.npy"
+TUNED_ADAPTIVE_NAME = "AI (Adaptive Ducker)"
+TUNED_ADAPTIVE_PARAMS_PATH = WEIGHTS_DIR / "adaptive_ducker.npy"
 
 
 class TunedAdaptivePlayer(RussiaPlayer, EvolutionaryPlayer):

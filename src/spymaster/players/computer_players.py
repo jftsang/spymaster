@@ -11,9 +11,9 @@ from .minimax.nash_players import NASH_PLAYER_NAME, NashPlayer
 
 FACTORIES = {}
 FACTORIES[NASH_PLAYER_NAME] = partial(NashPlayer, name=NASH_PLAYER_NAME)
+FACTORIES.update(TUNED_ADAPTIVE_FACTORIES)
 FACTORIES.update(BENCHMARK_FACTORIES)
 FACTORIES.update(LINEAR_PLAYERS_FACTORIES)
-FACTORIES.update(TUNED_ADAPTIVE_FACTORIES)
 
 
 def new_computer_player(name: str) -> Player:
