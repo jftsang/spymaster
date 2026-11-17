@@ -1,11 +1,6 @@
 import { useEffect } from "preact/hooks";
 import { HistoryStepData } from "../state";
-
-const PlayedCard = ({ card, kind }: { card: number; kind: "you" | "opp" }) => (
-  <span class={"badge " + (kind === "you" ? "bg-primary" : "bg-danger")}>
-    {card > 0 ? String(card) : "👻"}
-  </span>
-);
+import { CardBadge } from "./CardBadge";
 
 const HistoryTable = ({
   history,
@@ -20,7 +15,7 @@ const HistoryTable = ({
         <tr>
           <th scope="col">Mission</th>
           <th scope="col">You</th>
-          <th scope="col">{opponent}</th>
+          <th scope="col">Opponent</th>
           <th scope="col">Score</th>
         </tr>
       </thead>
@@ -29,10 +24,10 @@ const HistoryTable = ({
           <tr key={step.mission}>
             <td>{step.mission}</td>
             <td>
-              <PlayedCard card={step.whitePlayed} kind="you" />
+              <CardBadge card={step.whitePlayed} kind="you" />
             </td>
             <td>
-              <PlayedCard card={step.blackPlayed} kind="opp" />
+              <CardBadge card={step.blackPlayed} kind="opp" />
             </td>
             <td>
               {step.whiteScore}–{step.blackScore}

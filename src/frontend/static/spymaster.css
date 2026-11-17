@@ -89,6 +89,17 @@ button.mission {
     background-color: #1c1c1c;
 }
 
+.card-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.4em;
+    min-width: 2.4em;
+    padding-left: 0;
+    padding-right: 0;
+    font-variant-numeric: tabular-nums;
+}
+
 /*
  * Accessory panels: fixed sidebars on very wide screens, an in-flow right
  * column on medium-wide screens (e.g. 13" laptops), and modals on narrow

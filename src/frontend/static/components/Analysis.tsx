@@ -1,5 +1,6 @@
 import { useEffect } from "preact/hooks";
 import { AnalysisData } from "../state";
+import { CardBadge } from "./CardBadge";
 
 type StrategyOption = {
   card: number;
@@ -11,8 +12,6 @@ const topThree = (cards: number[], strategy: number[]): StrategyOption[] =>
     .map((card, index) => ({ card, probability: strategy[index] ?? 0 }))
     .sort((a, b) => b.probability - a.probability)
     .slice(0, 3);
-
-const cardLabel = (card: number): string => (card > 0 ? String(card) : "👻");
 
 const EquityBar = ({ equity }: { equity: number }) => {
   const width = `${Math.min(1, Math.abs(equity)) * 50}%`;
@@ -39,14 +38,13 @@ const Options = ({
   kind: "you" | "opp";
 }) => {
   const options = topThree(cards, strategy);
-  const badge = kind === "you" ? "bg-primary" : "bg-danger";
   const bar = kind === "you" ? "bg-primary" : "bg-danger";
   return (
     <div class="mb-2">
       <div class="small fw-bold mb-1">{title}</div>
       {options.map((option) => (
         <div key={option.card} class="d-flex align-items-center gap-2 mb-1">
-          <span class={"badge " + badge}>{cardLabel(option.card)}</span>
+          <CardBadge card={option.card} kind={kind} />
           <div class="progress flex-grow-1 analysis-probability">
             <div
               class={"progress-bar " + bar}
@@ -105,7 +103,7 @@ const AnalysisPanel = ({
             kind="you"
           />
           <Options
-            title={`${opponent}'s best options`}
+            title="Your opponent's best options"
             cards={data.theirCards}
             strategy={data.theirStrategy}
             kind="opp"
@@ -224,7 +222,7 @@ export const Analysis = ({
                     kind="you"
                   />
                   <Options
-                    title={`${opponent}'s best options`}
+                    title="Your opponent's best options"
                     cards={data.theirCards}
                     strategy={data.theirStrategy}
                     kind="opp"
