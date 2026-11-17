@@ -20,8 +20,37 @@ Spymaster was created by [Richard Bartle][bartle] as a variation on the
 game [Goofspiel][goofspiel]. Spymaster introduces a new strategic
 element in the form of the assassin. You can play the original game [on
 Dr Bartle's website][upstream]. This website is a remake with support
-for multiplayer and support for additional AIs.
+for multiplayer, a mobile-responsive UI, and a number of new AI players.
 
 [bartle]: http://mud.co.uk/richard/
 [goofspiel]: https://en.wikipedia.org/wiki/Goofspiel
 [upstream]: https://www.youhaventlived.com/spymaster/
+
+
+## About the AI players
+
+The **Benchmark** players ([src][benchmark-src]) are the five that
+feature on the original Spymaster website, with different levels of
+difficulty.
+
+[benchmark-src]: https://github.com/jftsang/spymaster/blob/main/src/spymaster/players/benchmarks.py
+
+The **Nash, 1-ply** player ([src][nash-src]) plays the Nash equilibrium
+in the endgame, and otherwise uses a 1-ply minimax of an evaluation
+function. It does very well against most other AIs, except for...
+
+[nash-src]: https://github.com/jftsang/spymaster/blob/main/src/spymaster/players/minimax/nash_players.py
+
+...the **Adaptive** players ([src][adaptive-src]), which are variants on
+the benchmark "Russia" player with different personalities that control
+how they use the assassin card, and whether they will duck.
+
+[adaptive-src]: https://github.com/jftsang/spymaster/blob/main/src/spymaster/players/adaptive.py
+
+The **Linear Layer** players ([src][linear-src]) construct a strategy
+vector by encoding the current position as a vector and applying linear
+transforms, chosen by a genetic algorithm. They were a bit of an
+experiment; they were trained to perform well against the benchmarks but
+ended up being cripplingly overspecialised.
+
+[linear-src]: https://github.com/jftsang/spymaster/blob/main/src/spymaster/players/linear.py
