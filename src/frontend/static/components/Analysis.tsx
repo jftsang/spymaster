@@ -1,4 +1,4 @@
-import { useEffect } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { AnalysisData } from "../state";
 import { CardBadge } from "./CardBadge";
 
@@ -13,15 +13,65 @@ const topThree = (cards: number[], strategy: number[]): StrategyOption[] =>
     .sort((a, b) => b.probability - a.probability)
     .slice(0, 3);
 
+const EQUITY_HELP =
+  "Equity is an estimate of the outcome given the current position, assuming both sides play optimally: it is +1 if you have a winning strategy and -1 if the opponent has a winning strategy. It depends on the difference between your scores, the remaining available missions and the cards that each side holds.";
+
 const EquityBar = ({ equity }: { equity: number }) => {
-  const width = `${Math.min(1, Math.abs(equity)) * 50}%`;
+  const boundary = (0.5 + Math.max(-1, Math.min(1, equity)) / 2) * 100;
   return (
     <div class="equity-bar" aria-label={`Equity ${equity.toFixed(2)}`}>
-      {equity >= 0 ? (
-        <div class="equity-positive" style={{ width }} />
-      ) : (
-        <div class="equity-negative" style={{ width }} />
-      )}
+      <div
+        class="equity-positive"
+        style={{ left: 0, right: "auto", width: `${boundary}%` }}
+      />
+      <div
+        class="equity-negative"
+        style={{ left: "auto", right: 0, width: `${100 - boundary}%` }}
+      />
+    </div>
+  );
+};
+
+const EquityHeading = ({ equity }: { equity: number }) => {
+  const [showHelp, setShowHelp] = useState(false);
+  return (
+    <div class="d-flex justify-content-between align-items-baseline mb-1 equity-heading">
+      <span class="small d-flex align-items-center gap-1">
+        Equity
+        <button
+          type="button"
+          class="equity-help"
+          aria-label="About equity"
+          aria-expanded={showHelp}
+          aria-describedby={showHelp ? "equity-help-text" : undefined}
+          onMouseEnter={() => setShowHelp(true)}
+          onMouseLeave={() => setShowHelp(false)}
+          onFocus={() => setShowHelp(true)}
+          onBlur={() => setShowHelp(false)}
+          onClick={() => setShowHelp(true)}
+        >
+          ?
+          {showHelp ? (
+            <span
+              class="equity-tooltip"
+              role="tooltip"
+              id="equity-help-text"
+              style={{ pointerEvents: "auto" }}
+              onClick={() => setShowHelp(false)}
+            >
+              {EQUITY_HELP}
+            </span>
+          ) : null}
+        </button>
+      </span>
+      <span
+        class={
+          "small fw-bold " + (equity >= 0 ? "text-primary" : "text-danger")
+        }
+      >
+        {equity > 0 ? "+" : ""}
+        {equity.toFixed(2)}
+      </span>
     </div>
   );
 };
@@ -82,18 +132,7 @@ const AnalysisContent = ({
       {error ? <p class="small text-danger mb-2">{error}</p> : null}
       {data ? (
         <>
-          <div class="d-flex justify-content-between align-items-baseline mb-1">
-            <span class="small">Equity</span>
-            <span
-              class={
-                "small fw-bold " +
-                (data.equity >= 0 ? "text-primary" : "text-danger")
-              }
-            >
-              {data.equity > 0 ? "+" : ""}
-              {data.equity.toFixed(2)}
-            </span>
-          </div>
+          <EquityHeading equity={data.equity} />
           <EquityBar equity={data.equity} />
           <div class="d-flex justify-content-between analysis-scale mb-2">
             <span>+</span>
