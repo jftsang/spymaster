@@ -60,20 +60,24 @@ const Options = ({
   );
 };
 
-const AnalysisPanel = ({
+const AnalysisContent = ({
   data,
   loading,
   error,
   opponent,
+  pending,
 }: {
   data: AnalysisData | null;
   loading: boolean;
   error: string | null;
   opponent: string;
-}) => (
-  <div class="card bg-dark border-secondary">
-    <div class="card-header small py-1">Analysis</div>
-    <div class="card-body p-2">
+  pending: boolean;
+}) => {
+  if (pending) {
+    return <p class="small mb-0">Continue to the next mission to see analysis.</p>;
+  }
+  return (
+    <>
       {loading ? <p class="small mb-2">Analysing…</p> : null}
       {error ? <p class="small text-danger mb-2">{error}</p> : null}
       {data ? (
@@ -103,16 +107,16 @@ const AnalysisPanel = ({
             kind="you"
           />
           <Options
-            title="Your opponent's best options"
+            title={`${opponent}'s best options`}
             cards={data.theirCards}
             strategy={data.theirStrategy}
             kind="opp"
           />
         </>
       ) : null}
-    </div>
-  </div>
-);
+    </>
+  );
+};
 
 type AnalysisProps = {
   data: AnalysisData | null;
@@ -121,6 +125,7 @@ type AnalysisProps = {
   opponent: string;
   enabled: boolean;
   visible: boolean;
+  pending?: boolean;
   sidebar?: boolean;
   onOpen?: () => void;
   onClose: () => void;
@@ -137,6 +142,7 @@ export const Analysis = ({
   opponent,
   enabled,
   visible,
+  pending = false,
   sidebar,
   onOpen,
   onClose,
@@ -193,42 +199,13 @@ export const Analysis = ({
           </div>
           {visible ? (
             <div class="card-body p-2">
-              {loading ? <p class="small mb-2">Analysing…</p> : null}
-              {error ? <p class="small text-danger mb-2">{error}</p> : null}
-              {data ? (
-                <>
-                  <div class="d-flex justify-content-between align-items-baseline mb-1">
-                    <span class="small">Equity</span>
-                    <span
-                      class={
-                        "small fw-bold " +
-                        (data.equity >= 0 ? "text-primary" : "text-danger")
-                      }
-                    >
-                      {data.equity > 0 ? "+" : ""}
-                      {data.equity.toFixed(2)}
-                    </span>
-                  </div>
-                  <EquityBar equity={data.equity} />
-                  <div class="d-flex justify-content-between analysis-scale mb-2">
-                    <span>+</span>
-                    <span>0</span>
-                    <span>−</span>
-                  </div>
-                  <Options
-                    title="Your best options"
-                    cards={data.ourCards}
-                    strategy={data.ourStrategy}
-                    kind="you"
-                  />
-                  <Options
-                    title="Your opponent's best options"
-                    cards={data.theirCards}
-                    strategy={data.theirStrategy}
-                    kind="opp"
-                  />
-                </>
-              ) : null}
+              <AnalysisContent
+                data={data}
+                loading={loading}
+                error={error}
+                opponent={opponent}
+                pending={pending}
+              />
             </div>
           ) : null}
         </div>
@@ -259,11 +236,12 @@ export const Analysis = ({
                 />
               </div>
               <div class="modal-body p-2">
-                <AnalysisPanel
+                <AnalysisContent
                   data={data}
                   loading={loading}
                   error={error}
                   opponent={opponent}
+                  pending={pending}
                 />
               </div>
               <div class="modal-footer">

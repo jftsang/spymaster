@@ -1,15 +1,17 @@
-import { useEffect } from "preact/hooks";
+import { useEffect, useRef } from "preact/hooks";
 import { HistoryStepData } from "../state";
 import { CardBadge } from "./CardBadge";
 
 const HistoryTable = ({
   history,
   opponent,
+  scrollRef,
 }: {
   history: HistoryStepData[];
   opponent: string;
+  scrollRef?: { current: HTMLDivElement | null };
 }) => (
-  <div class="history-table">
+  <div class="history-table" ref={scrollRef}>
     <table class="table table-sm table-dark table-striped text-center align-middle mb-0">
       <thead>
         <tr>
@@ -62,6 +64,8 @@ export const History = ({
   onOpen,
   onClose,
 }: HistoryProps) => {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     if (!visible || sidebar) return;
     const handler = (ev: KeyboardEvent) => {
@@ -70,6 +74,12 @@ export const History = ({
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [visible, sidebar, onClose]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [history.length, visible, sidebar]);
 
   return (
     <>
@@ -110,7 +120,13 @@ export const History = ({
               </button>
             ) : null}
           </div>
-          {visible ? <HistoryTable history={history} opponent={opponent} /> : null}
+          {visible ? (
+            <HistoryTable
+              history={history}
+              opponent={opponent}
+              scrollRef={scrollRef}
+            />
+          ) : null}
         </div>
       </aside>
 
@@ -139,7 +155,11 @@ export const History = ({
                 />
               </div>
               <div class="modal-body p-0">
-                <HistoryTable history={history} opponent={opponent} />
+                <HistoryTable
+                  history={history}
+                  opponent={opponent}
+                  scrollRef={scrollRef}
+                />
               </div>
               <div class="modal-footer">
                 <button class="btn btn-secondary" onClick={onClose}>

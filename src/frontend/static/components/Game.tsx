@@ -194,6 +194,7 @@ export const GameView = () => {
       opponent={opponent}
       enabled={opponentIsComputer}
       visible={analysisVisible}
+      pending={canContinue}
       sidebar={sideLayout}
       onOpen={() => setAnalysisVisible(true)}
       onClose={() => setAnalysisVisible(false)}
