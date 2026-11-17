@@ -40,9 +40,9 @@ class TunedAdaptivePlayer(RussiaPlayer, EvolutionaryPlayer):
         )
 
     @classmethod
-    def randomized(cls) -> TunedAdaptivePlayer:
+    def randomized(cls, name="Randomized Tuned Adaptive Player") -> TunedAdaptivePlayer:
         return cls(
-            name="Randomized Tuned Adaptive Player",
+            name=name,
             bloodthirst=random(),
             paranoia=random(),
             idleness=random(),
@@ -159,14 +159,20 @@ async def run_tuning(
 
 TUNED_ADAPTIVE_FACTORIES = {
     "AI (Adaptive, Ducker)": partial(
-        TunedAdaptivePlayer.load, WEIGHTS_DIR / "adaptive_ducker.npy", "AI (Adaptive Ducker)"
+    RussiaPlayer,
+        name="AI (Adaptive, Ducker)",
+        bloodthirst=0.24,
+        paranoia=0.49,
+        idleness=0.96,
+        conservative_interval=(1, 7),
     ),
     "AI (Adaptive, Aggressive)": partial(
         RussiaPlayer,
         name="AI (Adaptive, Aggressive)",
         bloodthirst=1,
-        paranoia=0,
-        idleness=0,
+        paranoia=0.05,
+        idleness=0.05,
+        mission_value_thresholds=(3, 7, 9),
     ),
     "AI (Adaptive, Paranoid)": partial(
         RussiaPlayer,
@@ -175,4 +181,7 @@ TUNED_ADAPTIVE_FACTORIES = {
         paranoia=1,
         idleness=0.67,
     ),
+    "AI (Adaptive, Randomized)": partial(
+        TunedAdaptivePlayer.randomized, name="AI (Adaptive, Randomized)"
+    )
 }
