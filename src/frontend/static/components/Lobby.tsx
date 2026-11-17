@@ -72,7 +72,7 @@ const PlayerRow = ({ player, me }: { player: PlayerStatus; me: string | null }) 
   return (
     <li class="list-group-item bg-dark text-light d-flex justify-content-between align-items-center">
       <span>
-        {player.name} {isMe && <span class="text-muted">(you)</span>} {status}
+        {player.name} {isMe && <span class="text-light">(you)</span>} {status}
       </span>
       {!isMe && (
         <button
@@ -97,7 +97,7 @@ export const Lobby = () => {
       {toast.value && <div class="alert alert-info">{toast.value}</div>}
       {me && (
         <div class="card bg-dark border-secondary">
-          <div class="card-header">Players online</div>
+          <div class="card-header text-light">Players online</div>
           <ul class="list-group list-group-flush">
             {players.value.map((p) => (
               <PlayerRow key={p.name} player={p} me={me} />
