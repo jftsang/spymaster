@@ -194,20 +194,20 @@ export const Board = ({
         </div>
       </div>
 
-      <div class="row justify-content-center mt-3">
-        <div class="col d-flex justify-content-end align-items-center">
-          {showResult && result ? (
+      <div class="d-flex flex-wrap flex-md-nowrap justify-content-center align-items-center gap-3 mt-3">
+        {showResult && result ? (
+          <div class="order-1">
             <AgentCard value={result.youPlayed} kind="you" />
-          ) : null}
+          </div>
+        ) : null}
+        <div class="order-3 order-md-2 w-100 w-md-auto text-center">
+          <p class="text-nowrap mb-0">{message}</p>
         </div>
-        <div class="col d-flex justify-content-center align-items-center">
-          <p class="text-center text-nowrap mb-0">{message}</p>
-        </div>
-        <div class="col d-flex justify-content-start align-items-center">
-          {showResult && result ? (
+        {showResult && result ? (
+          <div class="order-2 order-md-3">
             <AgentCard value={result.oppPlayed} kind="opp" />
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </div>
 
       {scoreLine ? <p class="text-center">{scoreLine}</p> : null}
