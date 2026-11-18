@@ -24,10 +24,23 @@ const AgentCard = ({
   let cls = "btn agentcard " + (kind === "you" ? "btn-primary" : "btn-danger");
   if (selected) cls += " our-selected";
   if (played) cls += " their-selected";
+  const icon = kind === "you" ? "spyb" : "spyr";
+  const inHand = shortcut !== undefined;
+  const waitingForTurn = kind === "you" && inHand && disabled;
+  const visuallyDisabled = disabled && !waitingForTurn;
+  const key =
+    kind === "you" && !visuallyDisabled
+      ? (shortcut ?? SHORTCUTS[value])
+      : undefined;
   return (
-    <button class={cls} disabled={disabled} onClick={onClick}>
-      {value > 0 ? String(value) : "👻"}
-      {shortcut ? <span class="card-shortcut">{shortcut}</span> : null}
+    <button
+      class={cls}
+      disabled={visuallyDisabled}
+      aria-label={value > 0 ? `Agent ${value}` : "Ghost"}
+      onClick={waitingForTurn ? undefined : onClick}
+    >
+      <img src={`/static/icons/${icon}${value}.gif`} alt="" />
+      {key ? <span class="card-shortcut">{key}</span> : null}
     </button>
   );
 };

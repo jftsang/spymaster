@@ -21,6 +21,7 @@ game [Goofspiel][goofspiel]. It introduces a new strategic element in
 the form of the assassin. You can play the original game [on Dr Bartle's
 website][upstream]. This website is a remake with support for
 multiplayer, a mobile-responsive UI, and a number of new AI players.
+Assets and flavour text are offered by kind permission of Dr Bartle.
 
 [bartle]: http://mud.co.uk/richard/
 [goofspiel]: https://en.wikipedia.org/wiki/Goofspiel
