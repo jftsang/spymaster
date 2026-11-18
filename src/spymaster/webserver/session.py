@@ -107,15 +107,19 @@ class UserSession:
     async def await_card(self) -> int:
         """Wait for the player to play a card.
 
-        If the session is disconnected, poll and raise ``Forfeit`` once
-        the grace period has elapsed since disconnection. A reconnect
-        resets the clock (the poll re-checks ``connected``).
+        Against a human opponent, a disconnection starts a grace period:
+        poll and raise ``Forfeit`` once it has elapsed. A reconnect
+        resets the clock (the poll re-checks ``connected``). Games
+        against a computer have no deadline — the player may stay
+        offline indefinitely and resume on this same session.
         """
         loop = asyncio.get_running_loop()
         future: asyncio.Future = loop.create_future()
         self._card_future = future
         self.awaiting_card = True
         try:
+            if self.opponent_is_computer:
+                return await future
             while True:
                 if future.done():
                     return future.result()

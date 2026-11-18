@@ -206,10 +206,16 @@ class GameServer:
         who = session.username or session.session_id
         active = session.active_game
         if active is not None and not active.over:
+            countdown = (
+                "game will wait for reconnect"
+                if session.opponent_is_computer
+                else "grace period running"
+            )
             logger.warning(
-                "connection lost: %s dropped mid-game vs %s (grace period running)",
+                "connection lost: %s dropped mid-game vs %s (%s)",
                 who,
                 active.opponent_name(who),
+                countdown,
             )
         else:
             logger.info("connection lost: %s", who)
@@ -486,7 +492,7 @@ class GameServer:
 
         For players in a game, distinguishes those still choosing a
         card from those already waiting on their opponent, and flags
-        any who have dropped but are still inside their grace period.
+        any who have dropped out of a game against another player.
         """
         entries = []
         for session in self.sessions.values():

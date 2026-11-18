@@ -48,6 +48,20 @@ class TestSessionGrace(unittest.IsolatedAsyncioTestCase):
         session.set_card(7)
         self.assertEqual(await asyncio.wait_for(task, timeout=2), 7)
 
+    async def test_computer_opponent_waits_indefinitely(self):
+        session = UserSession("s6")
+        session.username = "Frank"
+        session.opponent_is_computer = True
+        session.attach(FakeWebSocket())  # ty: ignore[invalid-argument-type]
+        task = asyncio.create_task(session.await_card())
+        await asyncio.sleep(0.05)
+        session.detach()
+        await asyncio.sleep(0.7)  # longer than the grace period
+        self.assertFalse(task.done())
+        session.attach(FakeWebSocket())  # ty: ignore[invalid-argument-type]
+        session.set_card(4)
+        self.assertEqual(await asyncio.wait_for(task, timeout=2), 4)
+
     async def test_explicit_forfeit(self):
         session = UserSession("s3")
         session.username = "Carol"

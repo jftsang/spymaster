@@ -23,8 +23,10 @@ games.
   yet (no data model for it).
 - Leaving a game is explicit (a "Leave game" button with a
   confirmation dialog), which forfeits immediately.
-- A dropped connection gives **5 minutes of grace** before forfeiting.
-  The connection carries its session id as a cookie.
+- A dropped connection against another player gives **5 minutes of
+  grace** before forfeiting. Against a computer there is no deadline:
+  the game waits on the same session (device cookie) until the player
+  returns. The connection carries its session id as a cookie.
 - No user registration and no score persistence.
 
 ### Session cookie
@@ -94,9 +96,10 @@ One per session id. Fields:
 - `set_card(card)` — resolve the pending pick future.
 - `forfeit(reason)` — set an exception on the pending pick future.
 - `await_card()` — await the pick future; while the session is
-  disconnected, poll (sub-second) and raise `Forfeit` once 5 minutes
-  has elapsed since `disconnected_at`. Reconnection resets the clock
-  (the poll re-checks `connected`).
+  disconnected in a game against another player, poll (sub-second) and
+  raise `Forfeit` once 5 minutes has elapsed since `disconnected_at`.
+  Reconnection resets the clock (the poll re-checks `connected`).
+  Against a computer, wait indefinitely for the pick.
 
 `Forfeit(Exception)` carries `player_name` and `reason`
 (`grace`/`left`).
@@ -200,8 +203,11 @@ reconnect resume correctly.
   open and the `players` list is already refreshed.
 - Reconnect overlay while `!wsConnected`; `ws.ts` reconnects with
   exponential backoff (500ms -> 5s cap); cookie flows automatically.
+  The overlay explains that only games against another player have a
+  5 minute grace period; computer games wait on this device.
 - Opponent disconnect banner in the game view ("lost connection — 5
-  minute grace") cleared on reconnect / game over.
+  minute grace") cleared on reconnect / game over. Only other players
+  can disconnect, so this banner never appears in computer games.
 
 ## Verification
 
@@ -209,5 +215,7 @@ reconnect resume correctly.
 - `python -m spymaster.webserver`, `pytest` (game engine untouched).
 - Manual: two-browser challenge; challenge an AI; duplicate username
   rejection; mid-game disconnect + reconnect within grace; forfeit
-  after grace (verify with temporarily shortened grace, then restore);
-  explicit Leave-game; game end -> overlay -> Back to lobby.
+  after grace against another player (verify with temporarily shortened
+  grace, then restore); mid-game disconnect against an AI, return after
+  longer than the grace period, and finish the game; explicit
+  Leave-game; game end -> overlay -> Back to lobby.

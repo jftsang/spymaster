@@ -11,7 +11,8 @@ export const ReconnectOverlay = () => {
         <div class="spinner-border mb-3" role="status" />
         <p>Connection lost — reconnecting…</p>
         <p class="text-muted small">
-          If you are in a game, you have a 5 minute grace period.
+          Games against another player have a 5 minute grace period.
+          Against a computer, your game will wait on this device until you return.
         </p>
       </div>
     </div>

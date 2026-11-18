@@ -1,12 +1,14 @@
 import asyncio
 import tempfile
 import unittest
+from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
 from fastapi.testclient import TestClient
 
+import spymaster.webserver.session as session_module
 from spymaster.players.computer_players import FACTORIES
 from spymaster.tournament import TournamentResults
 from spymaster.webserver import GameServer, app, gs
@@ -52,9 +54,9 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
                 self.fail("game did not finish in time")
             fut = session._card_future
             if fut is not None and not fut.done():
-                situation = last(ws.sent, "position")
+                situation = last(ws.sent, "situation")
                 if situation is not None:
-                    session.set_card(situation["position"]["whiteCards"][0])
+                    session.set_card(situation["situation"]["whiteCards"][0])
             await asyncio.sleep(0.005)
         await asyncio.sleep(0.05)
 
@@ -99,6 +101,35 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(over)
         self.assertEqual(over["reason"], "ended")
         self.assertFalse(session.in_game)
+
+    async def test_ai_game_waits_while_disconnected(self):
+        with (
+            patch.object(session_module, "GRACE_PERIOD", timedelta(seconds=0.2)),
+            patch.object(session_module, "GRACE_REPOLL_SECONDS", 0.02),
+        ):
+            session, ws = await self.make_user("Alice")
+            await self.gs.challenge(session, AI)
+            self.assertTrue(last(ws.sent, "gameStart")["opponentIsComputer"])
+
+            loop = asyncio.get_running_loop()
+            deadline = loop.time() + 5
+            while not session.awaiting_card:
+                self.assertLess(loop.time(), deadline, "no card was requested")
+                await asyncio.sleep(0.005)
+
+            await self.gs.disconnect(session)
+            await asyncio.sleep(0.5)  # longer than the grace period
+            self.assertTrue(session.in_game)
+            self.assertIsNone(last(ws.sent, "gameOver"))
+
+            ws2 = FakeWebSocket()
+            session.attach(ws2)
+            await self.gs.login(session, "Alice")
+            self.assertTrue(session.in_game)
+            await self.drive(session, ws2)
+            over = last(ws2.sent, "gameOver")
+            self.assertIsNotNone(over)
+            self.assertEqual(over["reason"], "ended")
 
     async def test_busy_player_challenge_refused(self):
         alice, aws = await self.make_user("Alice")
@@ -149,6 +180,31 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         b_over = last(bws.sent, "gameOver")
         self.assertEqual(a_over["winner"], b_over["winner"])
 
+    async def test_human_game_forfeits_after_grace(self):
+        with (
+            patch.object(session_module, "GRACE_PERIOD", timedelta(seconds=0.2)),
+            patch.object(session_module, "GRACE_REPOLL_SECONDS", 0.02),
+        ):
+            alice, _ = await self.make_user("Alice")
+            bob, bws = await self.make_user("Bob")
+            await self.gs.challenge(alice, "Bob")
+            await self.gs.accept_from(bob, "Alice")
+
+            loop = asyncio.get_running_loop()
+            deadline = loop.time() + 5
+            while not alice.awaiting_card:
+                self.assertLess(loop.time(), deadline, "no card was requested")
+                await asyncio.sleep(0.005)
+
+            await self.gs.disconnect(alice)
+            await asyncio.sleep(0.5)  # longer than the grace period
+            over = last(bws.sent, "gameOver")
+            self.assertIsNotNone(over)
+            self.assertEqual(over["reason"], "grace")
+            self.assertEqual(over["winner"], "Bob")
+            self.assertFalse(alice.in_game)
+            self.assertFalse(bob.in_game)
+
     async def test_black_player_sees_flipped_state(self):
         alice, aws = await self.make_user("Alice")
         bob, bws = await self.make_user("Bob")
@@ -164,8 +220,8 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         # Alice sits in the white seat, Bob in the black seat. Each must
         # see the board from their own point of view, especially the
         # final state shown when the game ends.
-        a_final = last(aws.sent, "result")["position"]
-        b_final = last(bws.sent, "result")["position"]
+        a_final = last(aws.sent, "result")["situation"]
+        b_final = last(bws.sent, "result")["situation"]
         self.assertEqual(a_final["white"], "Alice")
         self.assertEqual(a_final["black"], "Bob")
         self.assertEqual(b_final["white"], "Bob")
