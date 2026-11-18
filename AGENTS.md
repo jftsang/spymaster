@@ -24,6 +24,45 @@ Run with
 
     uv run -m unittest
 
+### Frontend and responsive layout
+
+The frontend uses Preact and Bootstrap 5.3.2 (loaded from CDN in
+`src/frontend/main.html`). Prefer Bootstrap utility classes and existing
+patterns over custom CSS where possible.
+
+There are two independent sets of breakpoints; do not conflate them.
+
+Sidebar/accessory-panel layout is driven by `SIDE_QUERY` and
+`WIDE_QUERY` in `src/frontend/static/components/Game.tsx`, mirrored in
+`src/frontend/static/spymaster.css`:
+
+- `< 1200px` (Bootstrap `xl`): analysis and game log/history are
+  available via toggles/modals rather than sidebars, leaving the right
+  edge of the page free.
+- `1200px–1599.98px` (`SIDE_QUERY`, `min-width: 1200px`): medium-wide
+  screens (e.g. 13" laptops). Analysis/history render in an in-flow
+  right column alongside the board.
+- `>= 1600px` (`WIDE_QUERY`, `min-width: 1600px`): very wide screens.
+  Analysis and history render as fixed sidebars flanking the board.
+
+Layout *inside* the board uses the `md` breakpoint (768px), because
+that is where the two agent-card columns switch between stacked and
+side-by-side:
+
+- `< 768px`: the card grids stack, so the remaining-missions list turns
+  into a vertical strip on the right of the board and its label is
+  hidden.
+- `>= 768px`: the card grids are side-by-side, so the remaining-missions
+  list is a labelled horizontal row above them.
+
+Keep these structures intact: accessory panels stay in their
+breakpoint-appropriate positions, and the missions display changes
+layout only when the card grids stack.
+
+The agent cards in each hand must always remain a 4x4 grid — never let
+rows wrap. Card rows use `flex-nowrap` and the grid columns are
+`col-md-4`, which leaves room for four cards per row even at 768px.
+
 ## Out-of-scope
 
 There will be no database in the main game engine or webserver. However,

@@ -4,7 +4,7 @@ type CardBadgeProps = {
 };
 
 export const cardLabel = (card: number): string =>
-  card > 0 ? String(card) : "👻";
+  card > 0 ? String(card) : "0";
 
 export const CardBadge = ({ card, kind }: CardBadgeProps) => (
   <span

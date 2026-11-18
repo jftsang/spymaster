@@ -1,4 +1,5 @@
 import { GameStateData, MissionResultData } from "../state";
+import { MissionButton, RemainingMissions } from "./Missions";
 
 export const SHORTCUTS = "`123qwerasdfzxcv";
 
@@ -45,12 +46,6 @@ const AgentCard = ({
   );
 };
 
-const MissionButton = ({ value, disabled }: { value: number; disabled?: boolean }) => (
-  <button class="btn btn-warning mission" disabled={disabled}>
-    {String(value)}
-  </button>
-);
-
 type CardGridProps = {
   cards: number[];
   kind: "you" | "opp";
@@ -90,7 +85,7 @@ const CardGrid = ({
       );
     }
     rows.push(
-      <div key={r} class="row justify-content-center align-items-center">
+      <div key={r} class="row flex-nowrap justify-content-center align-items-center">
         {cells}
       </div>,
     );
@@ -156,57 +151,45 @@ export const Board = ({
 
   return (
     <div>
-      <div class="row justify-content-center align-items-center mb-3">
-        Remaining missions
-        <div class="row d-flex justify-content-center">
-          {Array.from({ length: 16 }, (_, i) => {
-            const value = i + 1;
-            const remaining = situation.remainingMissions.includes(value);
-            // Keep the drawn mission looking like it is still to come
-            // until the player acknowledges it.
-            const hiddenCurrent =
-              !missionRevealed && value === situation.currentMission;
-            return (
-              <MissionButton
-                key={i}
-                value={value}
-                disabled={!remaining && !hiddenCurrent}
+      <div class="d-flex flex-row-reverse flex-md-column gap-3 gap-md-0">
+        <RemainingMissions
+          remainingMissions={situation.remainingMissions}
+          currentMission={situation.currentMission}
+          missionRevealed={missionRevealed}
+        />
+        <div class="flex-grow-1" style={{ minWidth: 0 }}>
+          <div class="row justify-content-center">
+            <div class="col-md-4 justify-content-center align-items-center">
+              <div class="row justify-content-center">You</div>
+              <CardGrid
+                cards={situation.whiteCards}
+                kind="you"
+                disabled={!ready}
+                selected={selected}
+                onPick={onPick}
               />
-            );
-          })}
-        </div>
-      </div>
-
-      <div class="row justify-content-center">
-        <div class="col-md-4 justify-content-center align-items-center">
-          <div class="row justify-content-center">You</div>
-          <CardGrid
-            cards={situation.whiteCards}
-            kind="you"
-            disabled={!ready}
-            selected={selected}
-            onPick={onPick}
-          />
-          <div class="row justify-content-center align-items-center">
-            {`Score: ${situation.whiteScore}`}
-          </div>
-        </div>
-        <div class="col-md-2 align-self-center text-center">
-          {missionShown != null ? (
-            <>
-              Mission <MissionButton value={missionShown} />
-            </>
-          ) : null}
-        </div>
-        <div class="col-md-4 justify-content-center align-items-center">
-          <div class="row justify-content-center">{opponent}</div>
-          <CardGrid
-            cards={situation.blackCards}
-            kind="opp"
-            played={showResult && result ? result.oppPlayed : null}
-          />
-          <div class="row justify-content-center align-items-center">
-            {`Score: ${situation.blackScore}`}
+              <div class="row justify-content-center align-items-center">
+                {`Score: ${situation.whiteScore}`}
+              </div>
+            </div>
+            <div class="col-md-2 align-self-center text-center">
+              {missionShown != null ? (
+                <>
+                  Mission <MissionButton value={missionShown} />
+                </>
+              ) : null}
+            </div>
+            <div class="col-md-4 justify-content-center align-items-center">
+              <div class="row justify-content-center">{opponent}</div>
+              <CardGrid
+                cards={situation.blackCards}
+                kind="opp"
+                played={showResult && result ? result.oppPlayed : null}
+              />
+              <div class="row justify-content-center align-items-center">
+                {`Score: ${situation.blackScore}`}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -218,7 +201,7 @@ export const Board = ({
           ) : null}
         </div>
         <div class="col d-flex justify-content-center align-items-center">
-          <p class="text-center mb-0">{message}</p>
+          <p class="text-center text-nowrap mb-0">{message}</p>
         </div>
         <div class="col d-flex justify-content-start align-items-center">
           {showResult && result ? (
@@ -231,10 +214,10 @@ export const Board = ({
 
       {canContinue || gameOverPending ? (
         <div class="row justify-content-center">
-          <div class="col-4">
+          <div class="col-12 d-flex justify-content-center">
             <button
               class={
-                "btn w-100 " +
+                "btn w-auto text-nowrap px-4 " +
                 (gameOverPending
                   ? "btn-danger"
                   : firstMission
