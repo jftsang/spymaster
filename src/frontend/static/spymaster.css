@@ -97,6 +97,19 @@ button.their-selected {
     border: 4px solid gold;
 }
 
+/* Fill a whole row on narrow screens so the message sits below the two
+   result cards, but shrink to its text width on wider screens so the
+   cards stay close together. (Bootstrap has no responsive width utilities.) */
+.result-message {
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .result-message {
+        width: auto;
+    }
+}
+
 button.mission {
     --bs-btn-bg: #25bf25;
     --bs-btn-border-color: #25bf25;

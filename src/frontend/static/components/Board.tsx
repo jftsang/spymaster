@@ -200,7 +200,7 @@ export const Board = ({
             <AgentCard value={result.youPlayed} kind="you" />
           </div>
         ) : null}
-        <div class="order-3 order-md-2 w-100 w-md-auto text-center">
+        <div class="order-3 order-md-2 result-message text-center">
           <p class="text-nowrap mb-0">{message}</p>
         </div>
         {showResult && result ? (

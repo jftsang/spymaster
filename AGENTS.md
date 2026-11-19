@@ -28,7 +28,10 @@ Run with
 
 The frontend uses Preact and Bootstrap 5.3.2 (loaded from CDN in
 `src/frontend/main.html`). Prefer Bootstrap utility classes and existing
-patterns over custom CSS where possible.
+patterns over custom CSS where possible. Note that Bootstrap has no
+responsive width utilities (`w-md-auto` does not exist), so when an
+element must be full-width only below a breakpoint — as with the result
+message — use a small custom rule in `spymaster.css` with a media query.
 
 There are two independent sets of breakpoints; do not conflate them.
 
