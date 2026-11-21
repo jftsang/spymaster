@@ -250,12 +250,13 @@ Files: `package.json`, `package-lock.json`,
 `src/frontend/static/notifications.ts`,
 `src/frontend/static/components/NotificationPrompt.tsx`,
 `Privacy.md`, native project files touched by `cap sync`,
-`tests/test_webserver.py` if needed.
+`tests/test_webserver.py` if needed, `.plans/mobile.md`.
 
 - Install `@capacitor/local-notifications`; run `npx cap sync`.
 - In `notifications.ts`:
   - detect native with `Capacitor.isNativePlatform()` from `@capacitor/core`;
-  - on native, `notificationsSupported` is true, and
+  - on native, `notificationsSupported` is true, startup uses
+    `LocalNotifications.checkPermissions()` to restore the existing state, and
     `enableNotifications()` calls `LocalNotifications.requestPermissions()`,
     mapping `display === "granted"` to the existing `notificationPermission`
     signal; on web keep `Notification.requestPermission()` unchanged;

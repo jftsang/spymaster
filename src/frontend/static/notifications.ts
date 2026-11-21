@@ -1,10 +1,12 @@
+import { Capacitor } from "@capacitor/core";
+import { LocalNotifications } from "@capacitor/local-notifications";
 import { signal } from "@preact/signals";
 
 const DISMISS_KEY = "notificationsDismissed";
+const isNative = Capacitor.isNativePlatform();
 
-export const notificationsSupported =
-  typeof window !== "undefined" && "Notification" in window;
-
+// The prompt's dismiss flag is local-only. Actual permission is controlled by
+// the browser or by the device's OS settings.
 const readDismissed = (): boolean => {
   if (typeof localStorage === "undefined") return false;
   try {
@@ -14,10 +16,39 @@ const readDismissed = (): boolean => {
   }
 };
 
+const toPermission = (state: string): NotificationPermission => {
+  if (state === "granted") return "granted";
+  if (state === "denied") return "denied";
+  return "default";
+};
+
+const webPermission = (): NotificationPermission | "unsupported" => {
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    return "unsupported";
+  }
+  return Notification.permission;
+};
+
+export const notificationsSupported = isNative || webPermission() !== "unsupported";
+export const notificationKind = isNative
+  ? "device notifications"
+  : "browser notifications";
+
 export const notificationPermission = signal<NotificationPermission | "unsupported">(
-  notificationsSupported ? Notification.permission : "unsupported",
+  isNative ? "default" : webPermission(),
 );
 export const notificationPromptDismissed = signal<boolean>(readDismissed());
+
+if (isNative) {
+  // Reflect a permission granted in a previous session instead of prompting again.
+  void LocalNotifications.checkPermissions()
+    .then((status) => {
+      notificationPermission.value = toPermission(status.display);
+    })
+    .catch(() => {
+      // ignore
+    });
+}
 
 export const dismissNotificationPrompt = () => {
   notificationPromptDismissed.value = true;
@@ -31,7 +62,12 @@ export const dismissNotificationPrompt = () => {
 export const enableNotifications = async () => {
   if (!notificationsSupported) return;
   try {
-    notificationPermission.value = await Notification.requestPermission();
+    if (isNative) {
+      const status = await LocalNotifications.requestPermissions();
+      notificationPermission.value = toPermission(status.display);
+    } else {
+      notificationPermission.value = await Notification.requestPermission();
+    }
   } catch (_) {
     // ignore
   }
@@ -39,12 +75,32 @@ export const enableNotifications = async () => {
   if (notificationPermission.value !== "granted") dismissNotificationPrompt();
 };
 
-// Only notify when the page is not open in front of the user. Merely
-// losing focus (window visible but not active) still counts as "open",
-// so we look at tab visibility, not focus.
+let nextNotificationId = 1;
+
 export const notify = (title: string, body?: string) => {
   if (!notificationsSupported) return;
   if (notificationPermission.value !== "granted") return;
+
+  if (isNative) {
+    // The OS controls presentation; WebView visibility is not a reliable gate.
+    void LocalNotifications.schedule({
+      notifications: [
+        {
+          id: nextNotificationId++,
+          title,
+          body: body ?? "",
+          schedule: { at: new Date(Date.now() + 500) },
+        },
+      ],
+    }).catch(() => {
+      // ignore
+    });
+    return;
+  }
+
+  // Only notify when the page is not open in front of the user. Merely
+  // losing focus (window visible but not active) still counts as "open",
+  // so we look at tab visibility, not focus.
   if (document.visibilityState !== "hidden") return;
   try {
     new Notification(title, { body });

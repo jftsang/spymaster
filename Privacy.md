@@ -25,6 +25,16 @@ information the web app handles and why.
 An internet connection is required to play. Game state, AI opponents and
 analysis all run on the remote server; the app has no offline game engine.
 
+## Notifications
+
+If you enable notifications, Spymaster alerts you to challenges and game events
+that need your attention. The server sends those events over the existing
+connection, and the app or browser creates the notification on your device; no
+push service is operated. On mobile you can revoke permission at any time in the
+device settings. Notifications require the app or page to be running or
+backgrounded with a live connection — after the app is fully terminated or the
+page is closed, no notification can be produced.
+
 ## Third parties
 
 Bootstrap and all other stylesheets, scripts and icons are served by the same

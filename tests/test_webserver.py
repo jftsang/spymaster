@@ -479,6 +479,44 @@ class TestCapacitorConfig(unittest.TestCase):
         self.assertEqual(package["scripts"]["cap:ios"], "cap open ios")
 
 
+class TestNotificationIntegration(unittest.TestCase):
+    def setUp(self):
+        self.client = TestClient(app)
+        self.frontend_dir = Path(__file__).resolve().parents[1] / "src" / "frontend"
+
+    def test_notifications_bridge_web_and_native_apis(self):
+        source = (self.frontend_dir / "static" / "notifications.ts").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('import { Capacitor } from "@capacitor/core";', source)
+        self.assertIn(
+            'import { LocalNotifications } from "@capacitor/local-notifications";',
+            source,
+        )
+        self.assertIn("Capacitor.isNativePlatform()", source)
+        self.assertIn("LocalNotifications.requestPermissions()", source)
+        self.assertIn("LocalNotifications.schedule(", source)
+        self.assertIn('document.visibilityState !== "hidden"', source)
+        self.assertIn("new Notification(title", source)
+
+    def test_prompt_uses_generic_notification_wording(self):
+        source = (
+            self.frontend_dir
+            / "static"
+            / "components"
+            / "NotificationPrompt.tsx"
+        ).read_text(encoding="utf-8")
+        self.assertIn("{notificationKind}", source)
+        self.assertNotIn("browser notifications when", source)
+
+    def test_privacy_explains_native_notifications(self):
+        response = self.client.get("/privacy")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("push service is operated", response.text)
+        self.assertIn("fully terminated", response.text)
+        self.assertIn("device settings", response.text)
+
+
 class TestWeightsApi(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
