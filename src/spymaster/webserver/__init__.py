@@ -20,7 +20,7 @@ from spymaster import AgentCard, MissionCard, Position, Spymaster
 from spymaster.players import Player
 from spymaster.players.computer_players import FACTORIES, new_computer_player
 from spymaster.players.minimax.analysis import Analyser
-from spymaster.players.minimax.nash_players import NASH_ANALYSER
+from spymaster.players.minimax.nash_players import ADAPTIVE_ANALYSER
 from spymaster.tournament import TOURNAMENT_RESULTS_PATH, TournamentResults
 from spymaster.webserver.online_player import OnlinePlayer
 from spymaster.webserver.session import Forfeit, UserSession
@@ -182,9 +182,9 @@ class GameServer:
         self.sessions: dict[str, UserSession] = {}
         self.games: dict[int, ActiveGame] = {}
         self._game_id = 0
-        # A single analyser is shared by every game and by the
+        # A single adaptive analyser is shared by every game and by the
         # analysis API so that its cached analyses are reused across games.
-        self.analyser: Analyser = NASH_ANALYSER
+        self.analyser: Analyser = ADAPTIVE_ANALYSER
 
     # -- session / connection management ----------------------------------
 

@@ -1,14 +1,21 @@
 import asyncio
 import random
 import unittest
+from unittest.mock import Mock, patch
 
 from spymaster import Position
 from spymaster.players.computer_players import new_computer_player
+from spymaster.players.minimax.analysis import Analysis
 from spymaster.players.minimax.evaluation import Evaluator
 from spymaster.players.minimax.nash_players import (
+    ADAPTIVE_ANALYSER,
+    NASH_ANALYSER,
     NASH_PLAYER_NAME,
+    TWO_PLY_PLAYER_NAME,
+    AdaptiveNashAnalyser,
     NashAnalyser,
     NashPlayer,
+    TwoPlyNashAnalyser,
 )
 from spymaster.spymaster import AgentCard, MissionCard, Spymaster
 
@@ -238,9 +245,128 @@ class TestNashPlayer(unittest.TestCase):
 
     def test_player_is_registered_with_the_computer_player_factory(self):
         player = new_computer_player(NASH_PLAYER_NAME)
+        assert isinstance(player, NashPlayer)
 
-        self.assertIsInstance(player, NashPlayer)
         self.assertEqual(player.name, NASH_PLAYER_NAME)
+        self.assertIs(player.analyser, NASH_ANALYSER)
+
+
+class TestTwoPlyNashAnalyser(unittest.TestCase):
+    def test_root_matrix_uses_values_after_two_rounds(self):
+        evaluator = RecordingEvaluator()
+        analyser = TwoPlyNashAnalyser(
+            evaluator=evaluator,
+            exact_rounds=0,
+            use_guarantees=False,
+        )
+
+        analysis = analyser.analyse(make_state().position)
+
+        self.assertEqual(len(evaluator.positions), 3)
+        self.assertTrue(
+            all(
+                not position.ours
+                and not position.theirs
+                and not position.missions
+                and position.current_mission is None
+                for position in evaluator.positions
+            )
+        )
+        self.assertEqual(
+            sorted(position.diff for position in evaluator.positions),
+            [-10, 0, 4],
+        )
+        self.assertEqual(analysis.cards, (AgentCard(5), AgentCard(10)))
+        self.assertAlmostEqual(sum(analysis.strategy), 1.0)
+
+    def test_exact_rounds_five_skips_the_second_ply(self):
+        state = Spymaster(
+            white_cards=[AgentCard(card) for card in range(10, 4, -1)],
+            black_cards=[AgentCard(card) for card in (15, 14, 13, 12, 11, 1)],
+            current_mission=MissionCard(6),
+            remaining_missions=[MissionCard(mission) for mission in range(1, 6)],
+        )
+        evaluator = RecordingEvaluator()
+        analyser = TwoPlyNashAnalyser(evaluator=evaluator, use_guarantees=False)
+
+        with patch(
+            "spymaster.players.minimax.nash_players.exact_equity",
+            return_value=0.25,
+        ) as exact:
+            analysis = analyser.analyse(state.position)
+
+        self.assertEqual(exact.call_count, 36)
+        self.assertEqual(evaluator.positions, [])
+        self.assertAlmostEqual(analysis.value, 0.25)
+
+    def test_cache_size_and_clear_cache_cover_all_caches(self):
+        analyser = TwoPlyNashAnalyser(
+            evaluator=RecordingEvaluator(),
+            exact_rounds=0,
+            use_guarantees=False,
+        )
+
+        analyser.analyse(make_state().position)
+
+        self.assertGreater(analyser.cache_size(), 0)
+        analyser.clear_cache()
+        self.assertEqual(analyser.cache_size(), 0)
+
+
+class TestAdaptiveNashAnalyser(unittest.TestCase):
+    def _position_with_cards(self, count: int) -> Position:
+        state = Spymaster(
+            white_cards=[AgentCard(card) for card in range(1, count + 1)],
+            black_cards=[AgentCard(card) for card in range(16 - count, 16)],
+            current_mission=MissionCard(count),
+            remaining_missions=[MissionCard(mission) for mission in range(1, count)],
+        )
+        return state.position
+
+    def test_delegates_by_hand_size(self):
+        one_ply = Mock()
+        two_ply = Mock()
+        result = Analysis((AgentCard(1),), (1.0,), 0.0)
+        one_ply.analyse.return_value = result
+        two_ply.analyse.return_value = result
+        analyser = AdaptiveNashAnalyser(
+            one_ply=one_ply,
+            two_ply=two_ply,
+            two_ply_max_cards=8,
+        )
+
+        self.assertIs(
+            analyser.analyse(self._position_with_cards(9)),
+            result,
+        )
+        one_ply.analyse.assert_called_once()
+        two_ply.analyse.assert_not_called()
+
+        self.assertIs(
+            analyser.analyse(self._position_with_cards(8)),
+            result,
+        )
+        two_ply.analyse.assert_called_once()
+
+    def test_cache_methods_are_delegated(self):
+        one_ply = Mock()
+        two_ply = Mock()
+        one_ply.cache_size.return_value = 2
+        two_ply.cache_size.return_value = 3
+        analyser = AdaptiveNashAnalyser(one_ply=one_ply, two_ply=two_ply)
+
+        self.assertEqual(analyser.cache_size(), 5)
+        analyser.clear_cache()
+        one_ply.clear_cache.assert_called_once()
+        two_ply.clear_cache.assert_called_once()
+
+    def test_two_ply_player_is_registered_with_the_adaptive_analyser(self):
+        player = new_computer_player(TWO_PLY_PLAYER_NAME)
+        assert isinstance(player, NashPlayer)
+
+        self.assertEqual(player.name, TWO_PLY_PLAYER_NAME)
+        self.assertIs(player.analyser, ADAPTIVE_ANALYSER)
+        self.assertIsInstance(ADAPTIVE_ANALYSER.two_ply, TwoPlyNashAnalyser)
 
 
 if __name__ == "__main__":

@@ -1,8 +1,11 @@
-"""One-ply minimax player using equity evaluation of child positions."""
+"""Nash-style analysis at one or two plies, and the players that use it."""
 
 import logging
+from dataclasses import replace
 from functools import partial
+from math import fsum
 from random import choices
+from typing import Protocol
 
 from spymaster import AgentCard, Position, Spymaster
 from spymaster.players import Player
@@ -15,6 +18,39 @@ from .matrix_game import solve_matrix_game
 from .moves import child_position
 
 logger = logging.getLogger("spymaster.players.minimax.nash_players")
+
+TWO_PLY_EXACT_ROUNDS = 5
+
+
+class _CacheableAnalyser(Protocol):
+    def analyse(self, position: Position) -> Analysis: ...
+
+    def clear_cache(self) -> None: ...
+
+    def cache_size(self) -> int: ...
+
+
+class _CachingEvaluator(Evaluator):
+    """Cache leaf evaluations by position.
+
+    Two-ply search reaches the same terminal position through different
+    orderings of the two missions, so caching avoids repeated evaluations.
+    """
+
+    def __init__(self, evaluator: Evaluator):
+        self.evaluator = evaluator
+        self._cache: dict[Position, float] = {}
+
+    def evaluate(self, position: Position) -> float:
+        if position not in self._cache:
+            self._cache[position] = self.evaluator.evaluate(position)
+        return self._cache[position]
+
+    def clear_cache(self) -> None:
+        self._cache.clear()
+
+    def cache_size(self) -> int:
+        return len(self._cache)
 
 
 class NashAnalyser:
@@ -84,6 +120,103 @@ class NashAnalyser:
         if self.exact_rounds and len(child.missions) <= self.exact_rounds:
             return exact_equity(child)
         return self.evaluator.evaluate(child)
+
+
+class TwoPlyNashAnalyser(NashAnalyser):
+    """Evaluate root plays by the equilibrium value of the next mission.
+
+    The root payoff for a pair of cards is the mean equilibrium value over
+    all possible next missions. The second ply uses the same leaf policy
+    as `NashAnalyser`: a pinned guarantee, then exact DP when the
+    configured exact-rounds threshold is reached, otherwise the crude
+    evaluator.
+    """
+
+    def __init__(
+        self,
+        evaluator: Evaluator | None = None,
+        exact_rounds: int = TWO_PLY_EXACT_ROUNDS,
+        use_guarantees: bool = True,
+    ):
+        super().__init__(evaluator, exact_rounds, use_guarantees)
+        self._cached_evaluator = _CachingEvaluator(self.evaluator)
+        self._inner = NashAnalyser(
+            evaluator=self._cached_evaluator,
+            exact_rounds=exact_rounds,
+            use_guarantees=use_guarantees,
+        )
+
+    def _value_after_round(
+        self,
+        position: Position,
+        ours: AgentCard,
+        theirs: AgentCard,
+    ) -> float:
+        child = child_position(position, ours, theirs)
+        if self.use_guarantees:
+            guarantee = analyse_guarantee(child)
+            if guarantee.equity is not None:
+                return float(guarantee.equity)
+        if self.exact_rounds and len(child.missions) <= self.exact_rounds:
+            return exact_equity(child)
+        if not child.missions:
+            return self._cached_evaluator.evaluate(child)
+
+        values = (
+            self._inner.analyse(replace(child, current_mission=mission)).value
+            for mission in sorted(child.missions)
+        )
+        return fsum(values) / len(child.missions)
+
+    def clear_cache(self) -> None:
+        super().clear_cache()
+        self._inner.clear_cache()
+        self._cached_evaluator.clear_cache()
+
+    def cache_size(self) -> int:
+        return (
+            super().cache_size()
+            + self._inner.cache_size()
+            + self._cached_evaluator.cache_size()
+        )
+
+
+class AdaptiveNashAnalyser:
+    """Use 1-ply when cards are plentiful and 2-ply in the mid-game.
+
+    Two-ply grows as ``n^2 (n-1)^3`` with ``n`` cards per hand, so running
+    it from the opening is prohibitively expensive. The configured exact
+    cutoff defaults to the existing three rounds; a five-round exact solve
+    is correct but too slow for live play and tests.
+    """
+
+    def __init__(
+        self,
+        evaluator: Evaluator | None = None,
+        two_ply_max_cards: int = 8,
+        exact_rounds: int = EXACT_ROUNDS,
+        one_ply: _CacheableAnalyser | None = None,
+        two_ply: _CacheableAnalyser | None = None,
+    ):
+        self.two_ply_max_cards = two_ply_max_cards
+        self.one_ply = one_ply if one_ply is not None else NashAnalyser(evaluator)
+        self.two_ply = (
+            two_ply
+            if two_ply is not None
+            else TwoPlyNashAnalyser(evaluator=evaluator, exact_rounds=exact_rounds)
+        )
+
+    def analyse(self, position: Position) -> Analysis:
+        if len(position.ours) > self.two_ply_max_cards:
+            return self.one_ply.analyse(position)
+        return self.two_ply.analyse(position)
+
+    def clear_cache(self) -> None:
+        self.one_ply.clear_cache()
+        self.two_ply.clear_cache()
+
+    def cache_size(self) -> int:
+        return self.one_ply.cache_size() + self.two_ply.cache_size()
 
 
 def _pinned_guarantee(
@@ -158,9 +291,21 @@ class NashPlayer(Player):
         return choices(analysis.cards, weights=analysis.strategy, k=1)[0]
 
 
-# Players are fresh; NASH_ANALYSER owns the shared analysis cache.
+# Players are fresh; the analysers own the shared analysis caches.
 NASH_ANALYSER = NashAnalyser()
 NASH_PLAYER_NAME = "AI (Nash, 1-ply)"
 NASH_FACTORIES = {
     NASH_PLAYER_NAME: partial(NashPlayer, name=NASH_PLAYER_NAME, analyser=NASH_ANALYSER)
+}
+
+# Deployed with the existing three-round exact cutoff; TwoPlyNashAnalyser
+# itself still defaults to the requested five rounds for direct use.
+ADAPTIVE_ANALYSER = AdaptiveNashAnalyser(two_ply_max_cards=8)
+TWO_PLY_PLAYER_NAME = "AI (Nash, 2-ply)"
+TWO_PLY_FACTORIES = {
+    TWO_PLY_PLAYER_NAME: partial(
+        NashPlayer,
+        name=TWO_PLY_PLAYER_NAME,
+        analyser=ADAPTIVE_ANALYSER,
+    )
 }

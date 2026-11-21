@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 
 import spymaster.webserver.session as session_module
 from spymaster.players.computer_players import FACTORIES
-from spymaster.players.minimax.nash_players import NASH_ANALYSER
+from spymaster.players.minimax.nash_players import ADAPTIVE_ANALYSER
 from spymaster.tournament import TournamentResults
 from spymaster.webserver import GameServer, app, gs
 
@@ -367,16 +367,16 @@ class TestAnalysisApi(unittest.TestCase):
         self.assertIn("current mission", response.json()["detail"])
 
     def test_analysis_is_cached_on_the_shared_analyser(self):
-        self.assertIs(gs.analyser, NASH_ANALYSER)
+        self.assertIs(gs.analyser, ADAPTIVE_ANALYSER)
 
-        NASH_ANALYSER.clear_cache()
-
-        self.client.post("/analysis", json=self.position)
-        cached = NASH_ANALYSER.cache_size()
+        ADAPTIVE_ANALYSER.clear_cache()
 
         self.client.post("/analysis", json=self.position)
+        cached = ADAPTIVE_ANALYSER.cache_size()
 
-        self.assertEqual(NASH_ANALYSER.cache_size(), cached)
+        self.client.post("/analysis", json=self.position)
+
+        self.assertEqual(ADAPTIVE_ANALYSER.cache_size(), cached)
 
 
 class TestTournamentsApi(unittest.TestCase):
