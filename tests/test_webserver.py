@@ -1,4 +1,5 @@
 import asyncio
+import json
 import tempfile
 import unittest
 from datetime import timedelta
@@ -440,6 +441,42 @@ class TestPwaAssets(unittest.TestCase):
         self.assertIn('const swUrl = "/sw" + ".js"', source)
         self.assertIn("register(swUrl)", source)
         self.assertIn("isNativePlatform", source)
+
+
+class TestCapacitorConfig(unittest.TestCase):
+    def setUp(self):
+        self.project_dir = Path(__file__).resolve().parents[1]
+
+    def test_config_uses_the_remote_origin(self):
+        config = (self.project_dir / "capacitor.config.ts").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            'const remoteOrigin = "https://spymaster.fastapicloud.dev/";', config
+        )
+        self.assertIn("url: remoteOrigin", config)
+        self.assertIn("allowNavigation: [new URL(remoteOrigin).host]", config)
+
+    def test_native_projects_and_source_assets_exist(self):
+        expected = (
+            "android/app/src/main/AndroidManifest.xml",
+            "ios/App/App.xcodeproj/project.pbxproj",
+            "assets/icon.png",
+            "assets/splash.png",
+        )
+        for path in expected:
+            with self.subTest(path=path):
+                self.assertTrue((self.project_dir / path).is_file())
+
+    def test_capacitor_scripts_are_defined(self):
+        package = json.loads(
+            (self.project_dir / "package.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            package["scripts"]["cap:sync"], "npm run build && cap sync"
+        )
+        self.assertEqual(package["scripts"]["cap:android"], "cap open android")
+        self.assertEqual(package["scripts"]["cap:ios"], "cap open ios")
 
 
 class TestWeightsApi(unittest.TestCase):

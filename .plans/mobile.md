@@ -223,11 +223,14 @@ are excluded, `README.md`, `tests/test_webserver.py` if needed.
   App id can be changed before a store submission; nothing is submitted now.
 - Configure `server.url` as `https://spymaster.fastapicloud.dev/` and
   `server.allowNavigation` to that host so `/help` and `/privacy` stay inside
-  the WebView. Keep the origin as the single source of truth.
-- Create `assets/icon.png` and `assets/splash.png` from the existing icon and
-  run `npx capacitor-assets generate --android --ios` so native icons are
-  consistent with the PWA icon.
-- `npx cap add android` and `npx cap add ios`; then `npx cap sync`.
+  the WebView. Define one `remoteOrigin` constant and derive the allowed host
+  with `new URL(remoteOrigin).host`.
+- `npx cap add android` and `npx cap add ios` first, because asset generation
+  skips platforms whose projects do not exist yet.
+- Create `assets/icon.png` (1024px) and `assets/splash.png` (2732px with the
+  logo centred on the dark theme background) from the existing icon, then run
+  `npx capacitor-assets generate --android --ios` so native icons and splash
+  screens are consistent with the PWA icon.
 - Add npm scripts: `cap:sync` (`npm run build && cap sync`),
   `cap:android` (`cap open android`), `cap:ios` (`cap open ios`).
 - README: prerequisites (Android Studio, Xcode + CocoaPods), build/sync/open
