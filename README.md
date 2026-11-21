@@ -34,7 +34,16 @@ python -m spymaster Russia
 python -m spymaster Russia America
 ```
 
-## Mobile apps
+## Mobile
+
+### Progressive web app
+
+Open https://spymaster.fastapicloud.dev/ in a modern mobile browser and use the
+browser's "Install app" or "Add to Home Screen" action. The manifest and
+service worker make the site installable; only static assets are cached, and
+gameplay always requires a network connection.
+
+### Native apps
 
 The `android/` and `ios/` projects are Capacitor wrappers around the web app.
 They load the deployed site in a WebView; game state, AI opponents and analysis
@@ -54,12 +63,19 @@ npm run cap:android  # open the Android project in Android Studio
 npm run cap:ios      # open the iOS project in Xcode
 ```
 
-Build and run the opened project from Android Studio or Xcode. `capacitor.config.ts`
+With the SDKs configured, `npx cap run android` and `npx cap run ios` can build
+and launch on a connected device or simulator instead. `capacitor.config.ts`
 points the WebView at `https://spymaster.fastapicloud.dev/`; the copied web
-assets under `dist/frontend/` are kept for PWA builds, but the native apps do
-not use them for gameplay.
+assets under `dist/frontend/` are kept for PWA builds, but neither the PWA nor
+the native apps use them for gameplay.
 
 For local development, temporarily change `remoteOrigin` in
 `capacitor.config.ts` to the URL of your running backend (use an address
 reachable from the device or emulator), run `npm run cap:sync`, and revert the
 change before committing.
+
+Notifications are optional. When enabled, the app creates them on the device
+from events sent over the live game connection; no push service is operated.
+They work while the app or page is running or backgrounded with that connection
+open, but not after a native app is fully terminated or a browser tab is closed.
+Permission can be revoked in the device or browser settings.
