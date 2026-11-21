@@ -341,6 +341,27 @@ class TestStaticPages(unittest.TestCase):
         self.assertIn('<div id="content"></div>', template)
         self.assertIn('src="static/content.ts"', template)
 
+    def test_navigation_stays_inside_the_app(self):
+        for name in ("main.html", "content.html"):
+            with self.subTest(page=name):
+                html = (self.frontend_dir / name).read_text(encoding="utf-8")
+                self.assertIn('<nav class="navbar', html)
+                self.assertIn('href="/help"', html)
+                self.assertIn('href="/privacy"', html)
+                self.assertNotIn('href="/help" target="_blank"', html)
+                self.assertNotIn('href="/privacy" target="_blank"', html)
+        lobby = self.frontend_dir / "static" / "components" / "Lobby.tsx"
+        self.assertNotIn(
+            'href="/help" target="_blank"', lobby.read_text(encoding="utf-8")
+        )
+
+    def test_tournaments_link_is_removed(self):
+        main = (self.frontend_dir / "main.html").read_text(encoding="utf-8")
+        self.assertNotIn("/tournaments", main)
+        built = self.frontend_dir.parents[1] / "dist" / "frontend" / "main.html"
+        if built.is_file():
+            self.assertNotIn("/tournaments", built.read_text(encoding="utf-8"))
+
     def test_pages_do_not_reference_a_cdn_or_vendored_copy(self):
         pages = sorted(self.frontend_dir.glob("*.html"))
         self.assertTrue(pages)

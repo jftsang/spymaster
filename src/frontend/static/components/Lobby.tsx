@@ -106,7 +106,7 @@ export const Lobby = () => {
         </div>
       )}
       <div class="mt-3">
-        <a href="/help" target="_blank" class="link-light">
+        <a href="/help" class="link-light">
           How to play
         </a>
       </div>
