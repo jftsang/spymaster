@@ -1,17 +1,15 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <title>Spymaster (Remake) - How to play</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <title>Spymaster (Remake) - PAGE_TITLE</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="static/spymaster.css">
 </head>
 <body class="bg-dark text-light d-flex flex-column min-vh-100">
   <div class="container py-4 flex-grow-1">
     <p><a href="/">&larr; Back to the game</a></p>
-    <!--HELP_CONTENT-->
+    <div id="content"></div>
   </div>
+
   <footer class="small text-center py-3">
     <a href="https://github.com/jftsang/spymaster" target="_blank" rel="noopener noreferrer">GitHub</a>
     <span class="mx-2">&middot;</span>
@@ -19,5 +17,6 @@
     <span class="mx-2">&middot;</span>
     <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy</a>
   </footer>
+  <script type="module" src="static/content.ts"></script>
 </body>
 </html>

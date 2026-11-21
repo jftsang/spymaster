@@ -305,7 +305,64 @@ class TestHelpPage(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("<h1", response.text)
         self.assertIn("Goofspiel", response.text)
-        self.assertNotIn("<!--HELP_CONTENT-->", response.text)
+        self.assertIn("<title>Spymaster (Remake) - How to play</title>", response.text)
+        self.assertNotIn("<div id=content></div>", response.text)
+
+
+class TestStaticPages(unittest.TestCase):
+    def setUp(self):
+        self.client = TestClient(app)
+        self.frontend_dir = Path(__file__).resolve().parents[1] / "src" / "frontend"
+
+    def test_privacy_describes_remote_service_and_no_cdn(self):
+        response = self.client.get("/privacy")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("internet connection is required", response.text)
+        self.assertNotIn("cdn.jsdelivr", response.text)
+        self.assertIn("rel=stylesheet", response.text)
+
+    def test_privacy_markdown_is_rendered(self):
+        response = self.client.get("/privacy")
+        self.assertIn("<h1>Privacy policy</h1>", response.text)
+        self.assertIn(
+            "<title>Spymaster (Remake) - Privacy policy</title>", response.text
+        )
+        self.assertNotIn("<div id=content></div>", response.text)
+        self.assertTrue(
+            (self.frontend_dir.parents[1] / "Privacy.md").is_file()
+        )
+
+    def test_help_and_privacy_share_one_template(self):
+        self.assertTrue((self.frontend_dir / "content.html").is_file())
+        self.assertFalse((self.frontend_dir / "help.html").exists())
+        self.assertFalse((self.frontend_dir / "privacy.html").exists())
+        template = (self.frontend_dir / "content.html").read_text(encoding="utf-8")
+        self.assertIn("PAGE_TITLE", template)
+        self.assertIn('<div id="content"></div>', template)
+        self.assertIn('src="static/content.ts"', template)
+
+    def test_pages_do_not_reference_a_cdn_or_vendored_copy(self):
+        pages = sorted(self.frontend_dir.glob("*.html"))
+        self.assertTrue(pages)
+        for page in pages:
+            with self.subTest(page=page.name):
+                html = page.read_text(encoding="utf-8")
+                self.assertNotIn("cdn.jsdelivr", html)
+                self.assertNotIn("vendor/bootstrap", html)
+
+    def test_bootstrap_is_imported_from_npm(self):
+        entries = [
+            self.frontend_dir / "static" / "index.tsx",
+            self.frontend_dir / "static" / "content.ts",
+            self.frontend_dir / "static" / "weights" / "index.tsx",
+            self.frontend_dir / "static" / "tournaments" / "index.tsx",
+        ]
+        for entry in entries:
+            with self.subTest(entry=entry.name):
+                self.assertIn(
+                    'import "bootstrap/dist/css/bootstrap.min.css";',
+                    entry.read_text(encoding="utf-8"),
+                )
 
 
 class TestWeightsApi(unittest.TestCase):

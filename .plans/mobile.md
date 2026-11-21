@@ -7,14 +7,17 @@
   session cookies, AI opponents and `/analysis` all run on the remote server
   (deployed at `https://spymaster.fastapicloud.dev/`). `npx cap`/PWA work must
   not move any of that logic into the client.
-- The frontend is multi-page: `main.html` (game) is a Parcel entry;
-  `help.html` and `privacy.html` are plain HTML served from source and rendered
-  by `help_view()` / `privacy_view()`. `dist/frontend/main.html` has a footer
-  with GitHub / Help / Tournaments / Privacy links, all `target="_blank"`.
-  `Lobby.tsx` also has a `target="_blank"` "How to play" link. `weights.html`
-  and `tournaments.html` are standalone entry points with no navigation.
+- The frontend is multi-page: `main.html`, `weights.html` and
+  `tournaments.html` are Parcel entries. In Step 1 the separate `help.html` and
+  `privacy.html` are replaced by one `content.html` entry; `help_view()` and
+  `privacy_view()` both serve its built HTML, injecting a title and rendered
+  Markdown at runtime. `dist/frontend/main.html` has a footer with GitHub /
+  Help / Tournaments / Privacy links, all `target="_blank"`. `Lobby.tsx` also
+  has a `target="_blank"` "How to play" link. `weights.html` and
+  `tournaments.html` are standalone entry points with no navigation.
 - Bootstrap 5.3.2 CSS is loaded from jsDelivr in all five HTML pages with an
-  SRI hash. No Bootstrap JS is used. `privacy.html` discloses the CDN request.
+  SRI hash. No Bootstrap JS is used. The privacy policy discloses the CDN
+  request.
 - Notifications are web-only today: `notifications.ts` uses
   `Notification.requestPermission()` and `new Notification(...)`, gated on
   `document.visibilityState === "hidden"`. Call sites are in `messages.ts`
@@ -48,12 +51,16 @@
   the deployed site. `webDir` remains `dist/frontend` so Parcel output is still
   available for the PWA build and native assets, but the app never serves game
   logic from the device.
-- **Vendored Bootstrap:** add `bootstrap@5.3.2` as a dev dependency purely as
-  the source of the minified CSS; copy the CSS plus its MIT licence into
-  `src/frontend/static/vendor/`. All pages link to
-  `/static/vendor/bootstrap.min.css` (absolute path, so Parcel leaves it
-  untouched and FastAPI's `/static` mount serves it). Remove CDN URLs and SRI
-  attributes.
+- **Bootstrap via npm/Parcel:** add `bootstrap@5.3.2` as a dev dependency and
+  import `bootstrap/dist/css/bootstrap.min.css` from every TS entry module;
+  Parcel bundles the CSS into the built pages. No copied CSS under
+  `src/frontend/static`, no CDN link and no SRI attributes, no Bootstrap JS.
+- **One Help/Privacy template:** replace both HTML files with a single
+  `content.html` Parcel entry and shared `static/content.ts` entry. Serve the
+  built HTML from `dist/frontend`; `_render_content_page()` injects a title into
+  the `PAGE_TITLE` token and rendered Markdown into the minified
+  `<div id=content></div>` marker. `HowToPlay.md` and a new root-level
+  `Privacy.md` are the two content sources.
 - **Navigation:** a small Bootstrap navbar in each server-rendered page, with
   same-tab internal links (so the WebView stays inside the app). GitHub remains
   the only `target="_blank"` link. Footer is reduced to GitHub; Tournaments is
@@ -95,55 +102,61 @@ capitalised, no Conventional Commits prefixes.
 - Commit only `.plans/mobile.md`: `Add mobile app plan`.
 - **Stop, report the commit, and prompt before Step 1.**
 
-## Step 1 — Vendor Bootstrap locally and update the privacy policy
+## Step 1 — Load Bootstrap via npm and move the privacy text to Markdown
 
-Files: `package.json`, `package-lock.json`,
-`src/frontend/static/vendor/bootstrap.min.css` (new),
-`src/frontend/static/vendor/bootstrap.LICENSE` (new), `main.html`,
-`help.html`, `privacy.html`, `weights.html`, `tournaments.html`,
-`tests/test_webserver.py`.
+Files: `package.json`, `package-lock.json`, `Privacy.md` (new),
+`src/frontend/main.html`, `weights.html`, `tournaments.html`,
+`src/frontend/content.html` (new), `src/frontend/help.html` and
+`src/frontend/privacy.html` (deleted), `src/frontend/static/content.ts` (new),
+`src/frontend/static/index.tsx`,
+`src/frontend/static/weights/index.tsx`,
+`src/frontend/static/tournaments/index.tsx`,
+`src/spymaster/webserver/__init__.py`, `tests/test_webserver.py`,
+`.plans/mobile.md`.
 
-- `npm install --save-dev bootstrap@5.3.2`.
-- Copy `node_modules/bootstrap/dist/css/bootstrap.min.css` and
-  `node_modules/bootstrap/LICENSE` into `src/frontend/static/vendor/`. Keep the
-  exact 5.3.2 minified file; no CDN, no SRI attributes, no Bootstrap JS.
-- Replace the jsDelivr `<link>` in all five HTML pages with
-  `<link rel="stylesheet" href="/static/vendor/bootstrap.min.css">`, keeping
-  `spymaster.css` after it where present. Confirm the Parcel-built
-  `dist/frontend/main.html` retains the absolute `/static/vendor/...` URL.
-- In `src/frontend/privacy.html`:
-  - replace the "Third parties" jsDelivr paragraph with a statement that
-    Bootstrap and all other static assets are served from the app's own
-    server, so no third-party CDN sees the user's IP;
-  - add that an internet connection is required because game state, AI players
-    and analysis run on the remote server;
-  - update "Last updated" to 21 November 2026.
-  Leave the notification wording for Step 5.
-- Add tests in `tests/test_webserver.py` (new `TestStaticPages` class) asserting
-  `/privacy` mentions locally served Bootstrap and no `cdn.jsdelivr`, and that
-  the HTML templates contain no CDN stylesheet link.
+- `npm install --save-dev bootstrap@5.3.2`; no copied CSS file and no CDN/SRI
+  links. Import `bootstrap/dist/css/bootstrap.min.css` in `index.tsx`,
+  `weights/index.tsx`, `tournaments/index.tsx` and the new shared `content.ts`.
+- Replace `help.html` and `privacy.html` with one `content.html` Parcel entry.
+  It carries `<title>Spymaster (Remake) - PAGE_TITLE</title>`, a
+  `<div id="content"></div>` marker, and the shared `static/content.ts` script.
+  Parcel preserves the text token and the minified marker in the built HTML.
+- Create root-level `Privacy.md` with the full policy text, mirroring
+  `HowToPlay.md`: no jsDelivr disclosure, a note that an internet connection is
+  required because game state, AIs and analysis are remote, and "Last updated:
+  21 November 2026." Leave notification wording for Step 5.
+- In `webserver/__init__.py`, replace the two template paths with
+  `content_template_path`, add `privacy_md_path`, and add a
+  `_render_content_page(title, markdown_path)` helper that runs `commonmark()`
+  and substitutes both the title token and the content marker. `help_view()`
+  and `privacy_view()` become one-liners calling it. Note in a comment that
+  Parcel minifies the marker's attribute quotes.
+- Tests: `TestHelpPage` checks the marker is replaced and the title is injected;
+  `TestStaticPages` checks `/privacy` renders `Privacy.md`, that both pages
+  share one template file, that no CDN or vendored path appears, and that every
+  TS entry imports Bootstrap from npm.
 - Verify: `npm run build`, `npm run typecheck`, `uv run -m unittest`,
-  `ruff check --fix --output-format=concise`, `ty check --output-format=concise`.
-- Commit as `Vendor Bootstrap locally`. **Stop and prompt.**
+  `ruff check --fix --output-format=concise`, `uv run ty check --output-format=concise`.
+- Commit as `Load Bootstrap via npm and render privacy from Markdown`.
+  **Stop and prompt.**
 
 ## Step 2 — Add Help/Privacy navigation, remove the Tournaments link
 
-Files: `src/frontend/main.html`, `help.html`, `privacy.html`,
+Files: `src/frontend/main.html`, `src/frontend/content.html`,
 `src/frontend/static/components/Lobby.tsx`, `tests/test_webserver.py`.
 
-- Add a JS-free Bootstrap navbar to `main.html`, `help.html` and `privacy.html`
-  (identical markup, with a comment to keep the copies in sync): brand link to
-  `/`, then `Game`, `Help`, `Privacy` links. Use `navbar navbar-dark bg-dark
+- Add a JS-free Bootstrap navbar to `main.html` and `content.html`: brand link
+  to `/`, then `Game`, `Help`, `Privacy` links. Use `navbar navbar-dark bg-dark
   border-bottom border-secondary` plus a flex wrapper and `nav-link` classes;
   do not use `navbar-expand`/toggler because Bootstrap JS is not loaded.
 - Keep "← Back to the game" on Help and Privacy. Reduce footers to the GitHub
   link only. Remove the `href="/tournaments"` link from `main.html`.
 - Remove `target="_blank"` from internal links: the footer links in
-  `main.html`, `help.html`, `privacy.html` and the "How to play" link in
+  `main.html` and `content.html` and the "How to play" link in
   `Lobby.tsx:108-112`. Keep GitHub's `target="_blank" rel="noopener noreferrer"`.
 - Leave `/tournaments`, `/weights`, their APIs, Parcel entries and files alone;
   they stay reachable by direct URL for the planned separate apps.
-- Tests: navbar present in each page; no internal `target="_blank"`; no
+- Tests: navbar present in both templates; no internal `target="_blank"`; no
   `/tournaments` link in `main.html` or its built output; Help and Privacy
   links point to `/help` and `/privacy`.
 - Verify (same commands as Step 1), then commit as
@@ -158,7 +171,7 @@ Files: `src/frontend/main.html`, `help.html`, `privacy.html`,
 Files: `src/frontend/static/manifest.json` (new),
 `src/frontend/static/icons/icon-192.png` and `icon-512.png` and
 `apple-touch-icon.png` (new), `src/frontend/static/sw.js` (new),
-`src/frontend/static/index.tsx`, `main.html`, `help.html`, `privacy.html`,
+`src/frontend/static/index.tsx`, `main.html`, `content.html`,
 `src/spymaster/webserver/__init__.py`, `tests/test_webserver.py`.
 
 - Generate 192px, 512px and 180px icons from `src/frontend/static/icon.png`
@@ -168,8 +181,8 @@ Files: `src/frontend/static/manifest.json` (new),
   `short_name: "Spymaster"`, `start_url: "/"`, `scope: "/"`,
   `display: "standalone"`, `theme_color`/`background_color` matching the dark
   Bootstrap theme, and 192/512 icon entries (`purpose: "any maskable"`).
-- Add to the `<head>` of `main.html`, `help.html`, `privacy.html`: manifest
-  link, `theme-color`, `apple-mobile-web-app-capable`, `apple-touch-icon`.
+- Add to the `<head>` of `main.html` and `content.html`: manifest link,
+  `theme-color`, `apple-mobile-web-app-capable`, `apple-touch-icon`.
 - Add `sw.js` served at `/static/sw.js`:
   - versioned cache name plus `install`/`activate` cleanup;
   - `fetch` handler that only handles same-origin GETs for static-looking
@@ -220,7 +233,7 @@ are excluded, `README.md`, `tests/test_webserver.py` if needed.
   document `npx cap add` as a one-time setup instead.
 - Verify: `npm run build`, `npm run typecheck`, `npx cap sync`,
   `uv run -m unittest`, `ruff check --fix --output-format=concise`,
-  `ty check --output-format=concise`.
+  `uv run ty check --output-format=concise`.
 - Commit as `Add Capacitor mobile wrapper`. **Stop and prompt.**
 
 ## Step 5 — Native notifications on mobile
@@ -228,7 +241,7 @@ are excluded, `README.md`, `tests/test_webserver.py` if needed.
 Files: `package.json`, `package-lock.json`,
 `src/frontend/static/notifications.ts`,
 `src/frontend/static/components/NotificationPrompt.tsx`,
-`src/frontend/privacy.html`, native project files touched by `cap sync`,
+`Privacy.md`, native project files touched by `cap sync`,
 `tests/test_webserver.py` if needed.
 
 - Install `@capacitor/local-notifications`; run `npx cap sync`.
@@ -267,8 +280,8 @@ Files: `README.md`, any small fixes found during verification.
   AI and analysis stay server-side), and notification behaviour/limitations.
 - Run the full verification suite:
   `npm run build`, `npm run typecheck`, `uv run -m unittest`,
-  `ruff check --fix --output-format=concise`, `ty check --output-format=concise`,
-  `npx cap sync`.
+  `ruff check --fix --output-format=concise`,
+  `uv run ty check --output-format=concise`, `npx cap sync`.
 - Manual checklist to report (not necessarily executable here): PWA installs
   and opens at `/`; Help/Privacy open inside the app; no Tournaments link;
   static assets load with the network offline for third-party hosts blocked;
@@ -286,7 +299,7 @@ npm run build
 npm run typecheck
 uv run -m unittest
 ruff check --fix --output-format=concise
-ty check --output-format=concise
+uv run ty check --output-format=concise
 ```
 
 `npm run build` must precede `uv run -m unittest`, because `/` reads

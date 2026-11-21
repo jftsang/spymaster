@@ -588,9 +588,9 @@ project_dir = source_dir.parent
 frontend_dir = project_dir / "dist" / "frontend"
 static_dir = source_dir / "frontend" / "static"
 weights_dir = spymaster_dir / "weights"
-help_template_path = source_dir / "frontend" / "help.html"
-privacy_path = source_dir / "frontend" / "privacy.html"
+content_template_path = frontend_dir / "content.html"
 how_to_play_path = project_dir / "HowToPlay.md"
+privacy_md_path = project_dir / "Privacy.md"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 app.frontend("/", directory=frontend_dir)
 
@@ -608,6 +608,16 @@ def _render_page(path: Path) -> str:
     return page.replace("<title>", FAVICON_LINKS + "\n<title>", 1)
 
 
+def _render_content_page(title: str, markdown_path: Path) -> str:
+    """Render a Markdown document into the shared content-page template."""
+    content = commonmark(markdown_path.read_text(encoding="utf-8"))
+    page = _render_page(content_template_path)
+    # Parcel minifies the marker's attribute quotes away in the built HTML.
+    return page.replace("PAGE_TITLE", title).replace(
+        '<div id=content></div>', content
+    )
+
+
 @app.get("/")
 async def index_view() -> HTMLResponse:
     return HTMLResponse(_render_page(frontend_dir / "main.html"))
@@ -623,15 +633,12 @@ async def ws(websocket: WebSocket):
 
 @app.get("/help")
 async def help_view() -> HTMLResponse:
-    markdown_text = how_to_play_path.read_text(encoding="utf-8")
-    content = commonmark(markdown_text)
-    page = _render_page(help_template_path)
-    return HTMLResponse(page.replace("<!--HELP_CONTENT-->", content))
+    return HTMLResponse(_render_content_page("How to play", how_to_play_path))
 
 
 @app.get("/privacy")
 async def privacy_view() -> HTMLResponse:
-    return HTMLResponse(_render_page(privacy_path))
+    return HTMLResponse(_render_content_page("Privacy policy", privacy_md_path))
 
 
 @app.get("/weights")
