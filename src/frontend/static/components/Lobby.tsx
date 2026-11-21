@@ -6,6 +6,7 @@ import {
   pendingChallengeTo,
   toast,
   setUsername,
+  clearSession,
   PlayerStatus,
 } from "../state";
 import { sendWs } from "../ws";
@@ -69,12 +70,21 @@ const PlayerRow = ({ player, me }: { player: PlayerStatus; me: string | null }) 
     sendWs({ msgType: "challenge", target: player.name });
   };
 
+  const logout = () => {
+    sendWs({ msgType: "logout" });
+    clearSession();
+  };
+
   return (
     <li class="list-group-item bg-dark text-light d-flex justify-content-between align-items-center">
       <span>
         {player.name} {isMe && <span class="text-light">(you)</span>} {status}
       </span>
-      {!isMe && (
+      {isMe ? (
+        <button class="btn btn-sm btn-outline-danger" onClick={logout}>
+          Logout
+        </button>
+      ) : (
         <button
           class="btn btn-sm btn-success"
           disabled={disabled}
@@ -92,7 +102,7 @@ export const Lobby = () => {
   const me = username.value;
   return (
     <div class="container py-4">
-      <h2 class="mb-3">Players online</h2>
+      <h2 class="mb-3">{ me ? "Players online" : "Welcome to Spymaster" }</h2>
       {!me && <LoginForm />}
       {toast.value && <div class="alert alert-info">{toast.value}</div>}
       {me && (

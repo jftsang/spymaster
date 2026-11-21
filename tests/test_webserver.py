@@ -22,12 +22,16 @@ class FakeWebSocket:
     def __init__(self, cookies=None):
         self.cookies = cookies or {}
         self.sent = []
+        self.closed = False
 
     async def send_json(self, msg):
         self.sent.append(msg)
 
     async def receive_json(self):
         raise RuntimeError("receive_json is not used in these tests")
+
+    async def close(self):
+        self.closed = True
 
 
 def last(sent, mtype):
@@ -78,6 +82,28 @@ class TestGameServer(unittest.IsolatedAsyncioTestCase):
         session.attach(ws)
         await self.gs.login(session, "   ")
         self.assertIsNotNone(last(ws.sent, "loginFailed"))
+
+    async def test_logout_clears_identity_and_disconnects(self):
+        alice, aw = await self.make_user("Alice")
+        bob, bw = await self.make_user("Bob")
+        await self.gs.handle(alice, {"msgType": "challenge", "target": "Bob"})
+        self.assertEqual(bob.pending_challenge_from, "Alice")
+
+        await self.gs.handle(alice, {"msgType": "logout"})
+
+        self.assertIsNone(alice.username)
+        self.assertIsNone(alice.pending_challenge_to)
+        self.assertIsNone(bob.pending_challenge_from)
+        self.assertIsNotNone(last(aw.sent, "loggedOut"))
+        self.assertIsNotNone(last(bw.sent, "challengeDeclined"))
+        self.assertTrue(aw.closed)
+        self.assertNotIn("Alice", [p["name"] for p in self.gs.online_players()])
+
+        cw = FakeWebSocket()
+        carol, _ = self.gs.get_or_create_session(cw)  # ty: ignore[invalid-argument-type]
+        carol.attach(cw)
+        await self.gs.login(carol, "Alice")
+        self.assertIsNotNone(last(cw.sent, "loginOk"))
 
     async def test_cookie_reuses_session(self):
         ws = FakeWebSocket()

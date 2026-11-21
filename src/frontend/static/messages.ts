@@ -10,6 +10,7 @@ import {
   newGame,
   showToast,
   setUsername,
+  clearSession,
   PlayerStatus,
   GameStateData,
   MissionResultData,
@@ -30,6 +31,10 @@ export const handleWsMessage = (data: any) => {
     case "loginFailed":
       setUsername(null);
       showToast(data.reason ?? "Login failed");
+      return;
+
+    case "loggedOut":
+      clearSession();
       return;
 
     case "players":

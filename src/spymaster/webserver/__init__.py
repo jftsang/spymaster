@@ -245,6 +245,8 @@ class GameServer:
         try:
             if mtype == "login":
                 await self.login(session, msg.get("username"))
+            elif mtype == "logout":
+                await self.logout(session)
             elif mtype == "challenge":
                 await self.challenge(session, msg.get("target"))
             elif mtype == "accept":
@@ -299,6 +301,22 @@ class GameServer:
             await session.send(session.last_game_message)
         await self.broadcast_players()
         self.log("login")
+
+    async def logout(self, session: UserSession) -> None:
+        """Forget the session's identity and drop its connection.
+
+        The browser reconnects anonymously, so the name is free to be used
+        again and is not restored by the automatic reconnect login.
+        """
+        who = session.username
+        await self.cancel_pending_challenges(session)
+        session.username = None
+        session.last_game_message = None
+        await session.send({"msgType": "loggedOut"})
+        await self.broadcast_players()
+        logger.info("logout: %s", who)
+        if session.websocket is not None:
+            await session.websocket.close()
 
     async def challenge(self, session: UserSession, target) -> None:
         me = session.username

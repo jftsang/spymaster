@@ -101,3 +101,10 @@ export const setUsername = (name: string | null) => {
     // ignore
   }
 };
+
+export const clearSession = () => {
+  setUsername(null);
+  pendingChallengeTo.value = null;
+  incomingChallenge.value = null;
+  toast.value = null;
+};
