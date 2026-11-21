@@ -168,8 +168,9 @@ Files: `src/frontend/main.html`, `src/frontend/content.html`,
 
 ## Step 3 — PWA manifest, icons and a network-only service worker
 
-Files: `src/frontend/static/manifest.json` (new),
-`src/frontend/static/icons/icon-192.png` and `icon-512.png` and
+Files: `package.json`, `package-lock.json`,
+`src/frontend/manifest.webmanifest` (new),
+`src/frontend/static/icons/icon-192.png`, `icon-512.png` and
 `apple-touch-icon.png` (new), `src/frontend/static/sw.js` (new),
 `src/frontend/static/index.tsx`, `main.html`, `content.html`,
 `src/spymaster/webserver/__init__.py`, `tests/test_webserver.py`.
@@ -177,13 +178,17 @@ Files: `src/frontend/static/manifest.json` (new),
 - Generate 192px, 512px and 180px icons from `src/frontend/static/icon.png`
   (e.g. `sips -Z 512 ... --out ...` on macOS) into
   `src/frontend/static/icons/`.
-- Add `manifest.json` served at `/static/manifest.json` with `name`,
-  `short_name: "Spymaster"`, `start_url: "/"`, `scope: "/"`,
-  `display: "standalone"`, `theme_color`/`background_color` matching the dark
-  Bootstrap theme, and 192/512 icon entries (`purpose: "any maskable"`).
-- Add to the `<head>` of `main.html` and `content.html`: manifest link,
-  `theme-color`, `apple-mobile-web-app-capable`, `apple-touch-icon`.
-- Add `sw.js` served at `/static/sw.js`:
+- Put the manifest at the HTML root (`src/frontend/manifest.webmanifest`), not
+  under `static/`, which FastAPI already mounts. Parcel emits it as
+  `/manifest.webmanifest` and rewrites its icon URLs to hashed root assets.
+  Include `name`, `short_name: "Spymaster"`, `start_url: "/"`, `scope: "/"`,
+  `display: "standalone"`, dark-theme colours and 192/512 icons with
+  `purpose: "any maskable"`. Parcel auto-adds
+  `@parcel/transformer-webmanifest` and `@parcel/packager-raw-url` dev
+  dependencies; commit those lockfile changes too.
+- Add to the `<head>` of `main.html` and `content.html`: relative manifest
+  link, `theme-color`, `apple-mobile-web-app-capable`, `apple-touch-icon`.
+- Add `src/frontend/static/sw.js`, served at `/static/sw.js`:
   - versioned cache name plus `install`/`activate` cleanup;
   - `fetch` handler that only handles same-origin GETs for static-looking
     assets (`/static/...`, or `.js`, `.css`, `.png`, `.ico`, `.json`) with
@@ -191,17 +196,17 @@ Files: `src/frontend/static/manifest.json` (new),
   - cache-first for those assets, network for everything else; explicitly
     never touch `/ws`, `/analysis`, `/api/*`, HTML navigations or cookies;
   - no offline fallback, in line with "no offline play".
-- Register the SW in `index.tsx` only on the web path, using a runtime guard
-  that does not need Capacitor types yet:
-  `const native = (window as any).Capacitor?.isNativePlatform?.() ?? false;`
-  and skip registration when `native` is true.
+- Register the SW in `index.tsx` only on the web path, using a typed runtime
+  guard (`Capacitor.isNativePlatform` via a `Window` intersection type). Keep
+  the registration URL non-literal (`"/sw" + ".js"`) so Parcel does not try to
+  bundle the worker and break the `/sw.js` route.
 - Add `GET /sw.js` in the webserver returning `FileResponse` from
   `static_dir / "sw.js"` with `Service-Worker-Allowed: /` and
   `Cache-Control: no-cache`; import `FileResponse` from `fastapi.responses`.
-  Verify it is matched as an explicit route rather than by `app.frontend`.
-- Tests: `/sw.js` returns 200, JavaScript content type and
-  `Service-Worker-Allowed: /`; manifest parses and lists both icons; SW source
-  contains no `/api`, `/analysis` or `/ws` interception.
+- Tests: `/manifest.webmanifest` parses, lists both hashed icons and is linked
+  from both HTML pages; `/sw.js` returns 200, JavaScript content type and
+  `Service-Worker-Allowed: /`; SW source contains no `/api`, `/analysis` or
+  `/ws` interception and its registration is guarded for native.
 - Verify (including a fresh `npm run build`), then commit as
   `Add PWA manifest and service worker`. **Stop and prompt.**
 

@@ -9,7 +9,7 @@ import numpy as np
 import uvicorn
 from commonmark import commonmark
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.websockets import WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
@@ -639,6 +639,15 @@ async def help_view() -> HTMLResponse:
 @app.get("/privacy")
 async def privacy_view() -> HTMLResponse:
     return HTMLResponse(_render_content_page("Privacy policy", privacy_md_path))
+
+
+@app.get("/sw.js")
+async def service_worker() -> FileResponse:
+    return FileResponse(
+        static_dir / "sw.js",
+        media_type="application/javascript",
+        headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"},
+    )
 
 
 @app.get("/weights")

@@ -386,6 +386,62 @@ class TestStaticPages(unittest.TestCase):
                 )
 
 
+class TestPwaAssets(unittest.TestCase):
+    def setUp(self):
+        self.client = TestClient(app)
+        self.frontend_dir = Path(__file__).resolve().parents[1] / "src" / "frontend"
+        self.dist_dir = self.frontend_dir.parents[1] / "dist" / "frontend"
+
+    def test_manifest_is_served(self):
+        response = self.client.get("/manifest.webmanifest")
+        self.assertEqual(response.status_code, 200)
+        manifest = response.json()
+        self.assertEqual(manifest["start_url"], "/")
+        self.assertEqual(manifest["scope"], "/")
+        self.assertEqual(manifest["display"], "standalone")
+        self.assertEqual(
+            {icon["sizes"] for icon in manifest["icons"]},
+            {"192x192", "512x512"},
+        )
+        for icon in manifest["icons"]:
+            self.assertTrue(
+                (self.dist_dir / icon["src"].lstrip("/")).is_file()
+            )
+
+    def test_icons_exist(self):
+        icons = self.frontend_dir / "static" / "icons"
+        for name in ("icon-192.png", "icon-512.png", "apple-touch-icon.png"):
+            with self.subTest(icon=name):
+                self.assertTrue((icons / name).is_file())
+
+    def test_pages_reference_pwa_metadata(self):
+        for name in ("main.html", "content.html"):
+            with self.subTest(page=name):
+                html = (self.frontend_dir / name).read_text(encoding="utf-8")
+                self.assertIn('href="manifest.webmanifest"', html)
+                self.assertIn('content="#212529"', html)
+                self.assertIn('href="static/icons/apple-touch-icon.png"', html)
+
+    def test_service_worker_has_root_scope_and_static_only_cache(self):
+        response = self.client.get("/sw.js")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("javascript", response.headers["content-type"])
+        self.assertEqual(response.headers["service-worker-allowed"], "/")
+        source = response.text
+        self.assertIn("spymaster-static-v1", source)
+        for path in ("/api/", "/analysis", "/ws"):
+            with self.subTest(path=path):
+                self.assertNotIn(path, source)
+
+    def test_service_worker_skips_native_platform(self):
+        source = (self.frontend_dir / "static" / "index.tsx").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('const swUrl = "/sw" + ".js"', source)
+        self.assertIn("register(swUrl)", source)
+        self.assertIn("isNativePlatform", source)
+
+
 class TestWeightsApi(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
