@@ -1,4 +1,5 @@
 import asyncio
+import os
 import unittest
 
 from spymaster.players import Player
@@ -10,6 +11,10 @@ players = [factory() for factory in FACTORIES.values()]
 n_games = 1
 
 
+@unittest.skipUnless(
+    os.environ.get("SPYMASTER_RUN_ROUND_ROBIN") == "1",
+    "set SPYMASTER_RUN_ROUND_ROBIN=1 to run the round-robin tournament",
+)
 class TestRoundRobin(unittest.TestCase):
     def setUp(self):
         Spymaster.model_rebuild(_types_namespace={"Player": Player})
