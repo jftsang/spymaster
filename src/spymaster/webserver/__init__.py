@@ -2,6 +2,7 @@ import asyncio
 import logging
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Self, cast
 from uuid import uuid4
 
 import numpy as np
@@ -15,9 +16,9 @@ from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 from starlette.concurrency import run_in_threadpool
 
-import spymaster.players.computer_players
 from spymaster import AgentCard, MissionCard, Position, Spymaster
 from spymaster.players import Player
+from spymaster.players.computer_players import FACTORIES, new_computer_player
 from spymaster.players.minimax.nash_players import NASH_PLAYER_NAME, NashPlayer
 from spymaster.tournament import TOURNAMENT_RESULTS_PATH, TournamentResults
 from spymaster.webserver.online_player import OnlinePlayer
@@ -59,6 +60,18 @@ class GameSide:
     name: str
     player: Player
     session: UserSession | None
+
+    @classmethod
+    def of_session(cls, session: UserSession) -> Self:
+        assert session.username is not None  # user is logged in
+        p = OnlinePlayer(name=session.username, session=session)
+        session.player = p
+        return cls(name=p.name, player=p, session=session)
+
+    @classmethod
+    def of_computer_opponent(cls, opponent_name: str) -> Self:
+        p = new_computer_player(opponent_name)
+        return cls(name=p.name, player=p, session=None)
 
 
 class ActiveGame:
@@ -171,7 +184,7 @@ class GameServer:
         self._game_id = 0
         # A single stateless Nash player is shared by every game and by the
         # analysis API so that its cached analyses are reused across games.
-        self.nash_player = NashPlayer(name=NASH_PLAYER_NAME)
+        self.nash_player: NashPlayer = cast(NashPlayer, new_computer_player(NASH_PLAYER_NAME))
 
     # -- session / connection management ----------------------------------
 
@@ -313,10 +326,10 @@ class GameServer:
                 }
             )
             return
-        if target in spymaster.players.computer_players.FACTORIES:
+        if target in FACTORIES:
             # Computer players always accept.
             logger.info("challenge: %s -> %s (computer, auto-accept)", me, target)
-            await self._start(session, computer_name=target)
+            await self._start(session, opponent=target)
             return
         target_session = self.find_session(target)
         if target_session is None or not target_session.connected:
@@ -373,7 +386,7 @@ class GameServer:
         if challenger.pending_challenge_to == session_b.username:
             challenger.pending_challenge_to = None
         logger.info("challenge accepted: %s accepts %s", session_b.username, from_name)
-        await self._start(challenger, other_session=session_b)
+        await self._start(challenger, opponent=session_b)
 
     async def decline_from(self, session_b: UserSession, from_name) -> None:
         if not from_name or session_b.pending_challenge_from != from_name:
@@ -420,32 +433,20 @@ class GameServer:
 
     # -- game setup -------------------------------------------------------
 
-    def _make_side(self, session: UserSession | None, name: str) -> GameSide:
-        if session is not None:
-            player = OnlinePlayer(name=name, session=session)
-            session.player = player
-            return GameSide(name=name, player=player, session=session)
-        player = (
-            self.nash_player
-            if name == NASH_PLAYER_NAME
-            else spymaster.players.computer_players.new_computer_player(name)
-        )
-        return GameSide(name=name, player=player, session=None)
-
     async def _start(
         self,
         session_a: UserSession,
-        other_session: UserSession | None = None,
-        computer_name: str | None = None,
+        opponent : UserSession | str,
     ) -> None:
         assert session_a.username  # user is logged in
-        side_a = self._make_side(session_a, session_a.username)
-        if computer_name is not None:
-            side_b = self._make_side(None, computer_name)
-        else:
-            assert other_session is not None
-            assert other_session.username is not None
-            side_b = self._make_side(other_session, other_session.username)
+        side_a = GameSide.of_session(session_a)
+        match opponent:
+            case str():
+                side_b = GameSide.of_computer_opponent(opponent)
+            case UserSession():
+                side_b = GameSide.of_session(opponent)
+            case _:
+                raise TypeError
         await self._launch(side_a, side_b)
 
     async def _launch(self, white: GameSide, black: GameSide) -> None:
@@ -527,7 +528,7 @@ class GameServer:
                         "isComputer": False,
                     }
                 )
-        for name in spymaster.players.computer_players.FACTORIES:
+        for name in FACTORIES:
             players.append(
                 {
                     "name": name,
