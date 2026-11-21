@@ -11,15 +11,19 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class Position:
-    """A compact view of a game state from White's perspective.
+    """A compact, immutable (and therefore hashable) view of a game
+    state from White's perspective.
 
-    History, player identities, and mission order are omitted because
-    they do not affect minimax search. Players are still presented with
-    full game states rather than positions, since they may make adaptive
-    decisions based on game history or the identity of the other player.
-    The missions include the current mission when one is set, and
-    ``current_mission`` identifies it. For evaluator leaf positions,
-    ``current_mission`` is None.
+    Players are presented with full game states (`Spymaster`), which
+    also include game history and player identities, allowing players
+    to make adaptive decisions based on them. This `Position` class is
+    used for minimax search and other evaluations that do not use such
+    information.
+
+    This class is used both during a round, when `current_mission` is
+    not None; and between rounds or at evaluator leaf positions, when
+    `current_mission` is None. The set `missions` includes the current
+    mission when one is set.
     """
 
     ours: frozenset[AgentCard]

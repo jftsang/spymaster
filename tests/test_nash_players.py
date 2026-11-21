@@ -5,7 +5,11 @@ import unittest
 from spymaster import Position
 from spymaster.players.computer_players import new_computer_player
 from spymaster.players.minimax.evaluation import Evaluator
-from spymaster.players.minimax.nash_players import NASH_PLAYER_NAME, NashPlayer
+from spymaster.players.minimax.nash_players import (
+    NASH_PLAYER_NAME,
+    NashAnalyser,
+    NashPlayer,
+)
 from spymaster.spymaster import AgentCard, MissionCard, Spymaster
 
 
@@ -55,13 +59,15 @@ class TestNashPlayer(unittest.TestCase):
         evaluator = RecordingEvaluator()
         player = NashPlayer(
             "Test",
-            evaluator=evaluator,
-            exact_rounds=0,
-            use_guarantees=False,
+            analyser=NashAnalyser(
+                evaluator=evaluator,
+                exact_rounds=0,
+                use_guarantees=False,
+            ),
         )
         state = make_state()
 
-        cards, strategy, value = player.analyse(state.position)
+        cards, strategy, value = player.analyser.analyse(state.position)
 
         self.assertEqual(cards, [AgentCard(5), AgentCard(10)])
         self.assertEqual(len(evaluator.positions), 4)
@@ -72,13 +78,15 @@ class TestNashPlayer(unittest.TestCase):
         evaluator = RecordingEvaluator()
         player = NashPlayer(
             "Test",
-            evaluator=evaluator,
-            exact_rounds=0,
-            use_guarantees=False,
+            analyser=NashAnalyser(
+                evaluator=evaluator,
+                exact_rounds=0,
+                use_guarantees=False,
+            ),
         )
         state = make_state()
 
-        player.analyse(state.position)
+        player.analyser.analyse(state.position)
 
         first = evaluator.positions[0]
         self.assertEqual(first.ours, {AgentCard(10)})
@@ -92,9 +100,11 @@ class TestNashPlayer(unittest.TestCase):
         evaluator = RecordingEvaluator()
         player = NashPlayer(
             "Test",
-            evaluator=evaluator,
-            exact_rounds=0,
-            use_guarantees=False,
+            analyser=NashAnalyser(
+                evaluator=evaluator,
+                exact_rounds=0,
+                use_guarantees=False,
+            ),
         )
         state = Spymaster(
             white_cards=[AgentCard(0), AgentCard(10)],
@@ -103,7 +113,7 @@ class TestNashPlayer(unittest.TestCase):
             remaining_missions=[],
         )
 
-        player.analyse(state.position)
+        player.analyser.analyse(state.position)
 
         assassin_children = [
             position
@@ -122,9 +132,11 @@ class TestNashPlayer(unittest.TestCase):
     def test_pure_optimal_action_is_always_picked(self):
         player = NashPlayer(
             "Test",
-            evaluator=CardEvaluator(),
-            exact_rounds=0,
-            use_guarantees=False,
+            analyser=NashAnalyser(
+                evaluator=CardEvaluator(),
+                exact_rounds=0,
+                use_guarantees=False,
+            ),
         )
         state = make_state()
 
@@ -136,12 +148,14 @@ class TestNashPlayer(unittest.TestCase):
     def test_pick_samples_from_the_equilibrium_mixture(self):
         player = NashPlayer(
             "Test",
-            evaluator=MatchingPenniesEvaluator(),
-            exact_rounds=0,
-            use_guarantees=False,
+            analyser=NashAnalyser(
+                evaluator=MatchingPenniesEvaluator(),
+                exact_rounds=0,
+                use_guarantees=False,
+            ),
         )
         state = make_state()
-        cards, strategy, value = player.analyse(state.position)
+        cards, strategy, value = player.analyser.analyse(state.position)
 
         self.assertEqual(cards, [AgentCard(5), AgentCard(10)])
         self.assertAlmostEqual(strategy[0], 0.5)
@@ -156,9 +170,11 @@ class TestNashPlayer(unittest.TestCase):
     def test_pick_returns_a_legal_card(self):
         player = NashPlayer(
             "Test",
-            evaluator=RecordingEvaluator(),
-            exact_rounds=0,
-            use_guarantees=False,
+            analyser=NashAnalyser(
+                evaluator=RecordingEvaluator(),
+                exact_rounds=0,
+                use_guarantees=False,
+            ),
         )
         state = make_state()
 
@@ -167,7 +183,7 @@ class TestNashPlayer(unittest.TestCase):
         self.assertIn(picked, state.white_cards)
 
     def test_pick_requires_a_current_mission(self):
-        player = NashPlayer("Test", evaluator=RecordingEvaluator())
+        player = NashPlayer("Test", analyser=NashAnalyser(evaluator=RecordingEvaluator()))
         state = Spymaster(remaining_missions=[])
 
         with self.assertRaises(ValueError):
@@ -175,10 +191,10 @@ class TestNashPlayer(unittest.TestCase):
 
     def test_exact_endgame_skips_evaluator(self):
         evaluator = RecordingEvaluator()
-        player = NashPlayer("Test", evaluator=evaluator)
+        player = NashPlayer("Test", analyser=NashAnalyser(evaluator=evaluator))
         state = make_state()
 
-        cards, strategy, _value = player.analyse(state.position)
+        cards, strategy, _value = player.analyser.analyse(state.position)
 
         self.assertEqual(cards, [AgentCard(5), AgentCard(10)])
         self.assertAlmostEqual(sum(strategy), 1.0)
@@ -186,7 +202,7 @@ class TestNashPlayer(unittest.TestCase):
 
     def test_pinned_guarantee_skips_search(self):
         evaluator = RecordingEvaluator()
-        player = NashPlayer("Test", evaluator=evaluator)
+        player = NashPlayer("Test", analyser=NashAnalyser(evaluator=evaluator))
         state = Spymaster(
             white_cards=[AgentCard(10), AgentCard(2), AgentCard(1)],
             black_cards=[AgentCard(5), AgentCard(4), AgentCard(3)],
@@ -196,7 +212,7 @@ class TestNashPlayer(unittest.TestCase):
             remaining_missions=[MissionCard(1), MissionCard(2)],
         )
 
-        cards, strategy, value = player.analyse(state.position)
+        cards, strategy, value = player.analyser.analyse(state.position)
 
         self.assertEqual(cards, [AgentCard(1), AgentCard(2), AgentCard(10)])
         self.assertEqual(strategy, [0.0, 0.0, 1.0])
@@ -204,7 +220,7 @@ class TestNashPlayer(unittest.TestCase):
         self.assertEqual(evaluator.positions, [])
 
     def test_guarantee_holds_on_nonrequired_mission(self):
-        player = NashPlayer("Test", evaluator=RecordingEvaluator())
+        player = NashPlayer("Test", analyser=NashAnalyser(evaluator=RecordingEvaluator()))
         state = Spymaster(
             white_cards=[AgentCard(10), AgentCard(2), AgentCard(1)],
             black_cards=[AgentCard(5), AgentCard(4), AgentCard(3)],
@@ -214,7 +230,7 @@ class TestNashPlayer(unittest.TestCase):
             remaining_missions=[MissionCard(3), MissionCard(2)],
         )
 
-        cards, strategy, value = player.analyse(state.position)
+        cards, strategy, value = player.analyser.analyse(state.position)
 
         self.assertEqual(cards, [AgentCard(1), AgentCard(2), AgentCard(10)])
         self.assertEqual(strategy, [1.0, 0.0, 0.0])

@@ -81,6 +81,7 @@ class GameHistoryStep(BaseModel):
             black_score=self.white_score,
         )
 
+
 class GameHistory(list[GameHistoryStep]):
     def to_table(self):
         header = f"{'Rnd':>3} {'Mission':>7} {'White':>5} {'Black':>5} {'W score':>7} {'B score':>7}"
@@ -90,6 +91,10 @@ class GameHistory(list[GameHistoryStep]):
             for i, s in enumerate(self, 1)
         ]
         return "\n".join([header, "-" * len(header), *rows])
+
+    def flipped(self) -> GameHistory:
+        return GameHistory([step.flipped() for step in self])
+
 
 class Spymaster(BaseModel):
     model_config = {
@@ -138,7 +143,7 @@ class Spymaster(BaseModel):
             black_score=self.white_score,
             current_mission=self.current_mission,
             remaining_missions=self.remaining_missions,
-            history=GameHistory([step.flipped() for step in self.history]),
+            history=self.history.flipped(),
         )
 
     async def play(self):

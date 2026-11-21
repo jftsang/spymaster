@@ -1,69 +1,33 @@
 """One-ply minimax player using equity evaluation of child positions."""
 
 import logging
+from functools import partial
 from random import choices
 
 from spymaster import AgentCard, Position, Spymaster
 from spymaster.players import Player
 
+from .analysis import Analyser, Analysis
 from .evaluation import CrudeEvaluator, Evaluator
 from .exact import EXACT_ROUNDS, exact_equity
 from .guarantee import Guarantee, GuaranteeKind, analyse_guarantee
 from .matrix_game import solve_matrix_game
 from .moves import child_position
 
-NASH_PLAYER_NAME = "AI (Nash, 1-ply)"
-
 logger = logging.getLogger("spymaster.players.minimax.nash_players")
 
 
-class NashPlayer(Player):
-    """Play the equilibrium mixture of the current mission's payoff matrix.
-
-    Each entry is an exact or estimated equity for the position that
-    results when both players choose the corresponding card. The
-    opponent is modelled as adversarial, so the root action is sampled
-    from the row player's equilibrium strategy.
-    """
-
+class NashAnalyser:
     def __init__(
         self,
-        name: str,
         evaluator: Evaluator | None = None,
         exact_rounds: int = EXACT_ROUNDS,
         use_guarantees: bool = True,
     ):
-        super().__init__(name=name)
         self.evaluator = evaluator if evaluator is not None else CrudeEvaluator()
         self.exact_rounds = exact_rounds
         self.use_guarantees = use_guarantees
-        self._analysis_cache: dict[
-            Position, tuple[tuple[AgentCard, ...], tuple[float, ...], float]
-        ] = {}
-        self.logger = logging.getLogger(
-            f"{__name__}.{self.__class__.__name__}.{id(self)}"
-        )
-
-    async def pick(self, state: Spymaster) -> AgentCard:
-        position = state.position
-        if position.current_mission is None:
-            raise ValueError("NashPlayer requires a current mission")
-
-        cards, strategy, _value = self.analyse(position)
-        crude_evaluation = CrudeEvaluator().evaluate(position)
-        self.logger.debug(
-            "Evaluation: %.3f; Crude Evaluation: %.3f", _value, crude_evaluation
-        )
-        self.logger.debug(
-            "Strategy: {%s}",
-            ", ".join(
-                f"{c}: {s:.3f}"
-                for c, s in sorted(
-                    zip(cards, strategy), key=lambda cs: cs[1], reverse=True
-                )
-            ),
-        )
-        return choices(cards, weights=strategy, k=1)[0]
+        self._analysis_cache: dict[Position, Analysis] = {}
 
     def analyse(self, position: Position) -> tuple[list[AgentCard], list[float], float]:
         """Return legal cards, their equilibrium probabilities, and value.
@@ -79,9 +43,13 @@ class NashPlayer(Player):
         cards, strategy, value = cached
         return list(cards), list(strategy), value
 
-    def _compute_analysis(
-        self, position: Position
-    ) -> tuple[tuple[AgentCard, ...], tuple[float, ...], float]:
+    def clear_cache(self) -> None:
+        self._analysis_cache.clear()
+
+    def cache_size(self) -> int:
+        return len(self._analysis_cache)
+
+    def _compute_analysis(self, position: Position) -> Analysis:
         if position.current_mission is None:
             raise ValueError("NashPlayer requires a current mission")
 
@@ -145,3 +113,49 @@ def _guarantee_card(position: Position, guarantee: Guarantee) -> AgentCard:
     if reserves:
         return min(reserves)
     return min(position.ours)
+
+
+class NashPlayer(Player):
+    """Play the equilibrium mixture of the current mission's payoff matrix.
+
+    Each entry is an exact or estimated equity for the position that
+    results when both players choose the corresponding card. The
+    opponent is modelled as adversarial, so the root action is sampled
+    from the row player's equilibrium strategy.
+    """
+
+    def __init__(self, name: str, analyser: Analyser):
+        super().__init__(name=name)
+        self.analyser = analyser
+        self.logger = logging.getLogger(
+            f"{__name__}.{self.__class__.__name__}.{id(self)}"
+        )
+
+    async def pick(self, state: Spymaster) -> AgentCard:
+        position = state.position
+        if position.current_mission is None:
+            raise ValueError("NashPlayer requires a current mission")
+
+        cards, strategy, _value = self.analyser.analyse(position)
+        crude_evaluation = CrudeEvaluator().evaluate(position)
+        self.logger.debug(
+            "Evaluation: %.3f; Crude Evaluation: %.3f", _value, crude_evaluation
+        )
+        self.logger.debug(
+            "Strategy: {%s}",
+            ", ".join(
+                f"{c}: {s:.3f}"
+                for c, s in sorted(
+                    zip(cards, strategy), key=lambda cs: cs[1], reverse=True
+                )
+            ),
+        )
+        return choices(cards, weights=strategy, k=1)[0]
+
+
+# Players are fresh; NASH_ANALYSER owns the shared analysis cache.
+NASH_ANALYSER = NashAnalyser()
+NASH_PLAYER_NAME = "AI (Nash, 1-ply)"
+NASH_FACTORIES = {
+    NASH_PLAYER_NAME: partial(NashPlayer, name=NASH_PLAYER_NAME, analyser=NASH_ANALYSER)
+}

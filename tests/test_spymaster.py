@@ -2,7 +2,7 @@ import unittest
 
 import spymaster.players  # noqa: F401  (resolves Spymaster's Player forward ref)
 from spymaster import GameHistoryStep, MissionCard, Spymaster
-from spymaster.spymaster import AgentCard
+from spymaster.spymaster import AgentCard, GameHistory
 
 
 def history_step(mission, white_played, black_played, white_score, black_score):
@@ -33,24 +33,32 @@ class TestFlipped(unittest.TestCase):
         self.assertEqual(flipped.black_score, 11)
         self.assertEqual(flipped.current_mission, MissionCard(9))
 
-    def test_flipped_swaps_history(self):
-        original = [
+    def test_flip_history(self):
+        original = GameHistory([
             history_step(4, 1, 2, 4, 0),
             history_step(7, 5, 6, 4, 7),
-        ]
-        game = Spymaster(history=original)
-
-        flipped = game.flipped()
-
+        ])
         self.assertEqual(
-            flipped.history,
-            [
+            original.flipped(),
+            GameHistory([
                 history_step(4, 2, 1, 0, 4),
                 history_step(7, 6, 5, 7, 4),
-            ],
+            ]),
         )
+
+
+    def test_flipped_swaps_history(self):
+        history = GameHistory([
+            history_step(4, 1, 2, 4, 0),
+            history_step(7, 5, 6, 4, 7),
+        ])
+        game = Spymaster(history=history)
+
+        self.assertEqual(game.flipped().history, history.flipped())
+
         # The original history is left untouched.
-        self.assertEqual(game.history, original)
+        self.assertEqual(game.history, history)
+
 
     def test_history_serializes_camel_case(self):
         game = Spymaster()

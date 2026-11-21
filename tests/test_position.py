@@ -7,7 +7,7 @@ from spymaster.spymaster import AgentCard, MissionCard, Spymaster
 
 class MockPlayer(Player):
     def __init__(self):
-        pass
+        self.name = "MockPlayer"
 
     async def pick(self, state: Spymaster) -> AgentCard:
         raise NotImplementedError

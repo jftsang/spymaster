@@ -2,7 +2,7 @@ import asyncio
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Self, cast
+from typing import Self
 from uuid import uuid4
 
 import numpy as np
@@ -19,7 +19,8 @@ from starlette.concurrency import run_in_threadpool
 from spymaster import AgentCard, MissionCard, Position, Spymaster
 from spymaster.players import Player
 from spymaster.players.computer_players import FACTORIES, new_computer_player
-from spymaster.players.minimax.nash_players import NASH_PLAYER_NAME, NashPlayer
+from spymaster.players.minimax.analysis import Analyser
+from spymaster.players.minimax.nash_players import NASH_ANALYSER
 from spymaster.tournament import TOURNAMENT_RESULTS_PATH, TournamentResults
 from spymaster.webserver.online_player import OnlinePlayer
 from spymaster.webserver.session import Forfeit, UserSession
@@ -182,9 +183,9 @@ class GameServer:
         self.sessions: dict[str, UserSession] = {}
         self.games: dict[int, ActiveGame] = {}
         self._game_id = 0
-        # A single stateless Nash player is shared by every game and by the
+        # A single analyser is shared by every game and by the
         # analysis API so that its cached analyses are reused across games.
-        self.nash_player: NashPlayer = cast(NashPlayer, new_computer_player(NASH_PLAYER_NAME))
+        self.analyser: Analyser = NASH_ANALYSER
 
     # -- session / connection management ----------------------------------
 
@@ -687,7 +688,7 @@ async def weights_data() -> dict:
 
 @app.post("/analysis")
 async def analysis_data(request: AnalysisRequest) -> dict:
-    """Analyse a game position with the shared Nash player.
+    """Analyse a game position.
 
     Returns the equilibrium value from the submitted player's
     perspective, together with the equilibrium strategy for both
@@ -706,8 +707,8 @@ async def analysis_data(request: AnalysisRequest) -> dict:
             their_strategy,
             _,
         ) = await asyncio.gather(
-            run_in_threadpool(gs.nash_player.analyse, position),
-            run_in_threadpool(gs.nash_player.analyse, position.flipped()),
+            run_in_threadpool(gs.analyser.analyse, position),
+            run_in_threadpool(gs.analyser.analyse, position.flipped()),
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
