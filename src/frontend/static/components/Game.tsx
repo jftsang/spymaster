@@ -213,10 +213,7 @@ export const GameView = () => {
 
   return (
     <div class={"py-4 " + (fixedSidebars ? "container" : "container-fluid px-3 px-xl-4")}>
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="mb-0">
-          Playing against <strong>{opponent}</strong>
-        </h4>
+      <div class="d-flex justify-content-end align-items-center mb-3">
         <div class="d-flex gap-2">
           {opponentIsComputer && (
             <button
@@ -272,10 +269,10 @@ export const GameView = () => {
         ) : null}
       </div>
       {!sideColumn ? (
-        <>
+        <div class={fixedSidebars ? "game-fixed-sidebars" : undefined}>
           {analysisPanel}
           {historyPanel}
-        </>
+        </div>
       ) : null}
     </div>
   );

@@ -92,12 +92,11 @@ export const Lobby = () => {
   const me = username.value;
   return (
     <div class="container py-4">
-      <h2 class="mb-3">Spymaster Lobby</h2>
+      <h2 class="mb-3">Players online</h2>
       {!me && <LoginForm />}
       {toast.value && <div class="alert alert-info">{toast.value}</div>}
       {me && (
         <div class="card bg-dark border-secondary">
-          <div class="card-header text-light">Players online</div>
           <ul class="list-group list-group-flush">
             {players.value.map((p) => (
               <PlayerRow key={p.name} player={p} me={me} />

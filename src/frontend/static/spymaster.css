@@ -202,8 +202,10 @@ button.mission {
 }
 
 @media (min-width: 1600px) {
-    .game-history {
-        display: block;
+    .game-fixed-sidebars {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
         position: fixed;
         top: 80px;
         right: 12px;
@@ -212,18 +214,13 @@ button.mission {
         overflow-y: auto;
     }
 
-    .game-analysis {
+    .game-fixed-sidebars .game-analysis,
+    .game-fixed-sidebars .game-history {
         display: block;
-        position: fixed;
-        top: 80px;
-        left: 12px;
-        width: 250px;
-        max-height: calc(100vh - 92px);
-        overflow-y: auto;
     }
 
-    .game-history .history-table {
-        max-height: none;
+    .game-fixed-sidebars .history-table {
+        max-height: 30vh;
     }
 
     .history-toggle,
