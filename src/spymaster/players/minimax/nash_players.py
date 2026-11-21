@@ -101,15 +101,18 @@ def _pinned_guarantee(
 
 def _guarantee_card(position: Position, guarantee: Guarantee) -> AgentCard:
     if guarantee.kind is GuaranteeKind.LOSS:
+        # keep chucking bad cards and pray the opponent blunders
         return min(position.ours)
 
     winners = set(guarantee.guaranteed_winners)
     if position.current_mission in guarantee.required_missions and winners:
+        # snap up the missions that we need to secure a win, don't care
+        # about anything else
         return min(winners)
 
     reserves = [card for card in position.ours if card not in winners]
     if reserves:
-        return min(reserves)
+        return min(reserves)  # chuck cards
     return min(position.ours)
 
 
