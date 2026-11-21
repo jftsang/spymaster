@@ -29,7 +29,7 @@ class NashAnalyser:
         self.use_guarantees = use_guarantees
         self._analysis_cache: dict[Position, Analysis] = {}
 
-    def analyse(self, position: Position) -> tuple[list[AgentCard], list[float], float]:
+    def analyse(self, position: Position) -> Analysis:
         """Return legal cards, their equilibrium probabilities, and value.
 
         Results are cached per player instance, so a long-lived player
@@ -40,8 +40,7 @@ class NashAnalyser:
         if cached is None:
             cached = self._compute_analysis(position)
             self._analysis_cache[position] = cached
-        cards, strategy, value = cached
-        return list(cards), list(strategy), value
+        return cached
 
     def clear_cache(self) -> None:
         self._analysis_cache.clear()
@@ -57,8 +56,7 @@ class NashAnalyser:
             guarantee = analyse_guarantee(position)
             pinned = _pinned_guarantee(position, guarantee)
             if pinned is not None:
-                cards, strategy, value = pinned
-                return tuple(cards), tuple(strategy), value
+                return pinned
 
         cards = sorted(position.ours)
         opponents = sorted(position.theirs)
@@ -70,7 +68,7 @@ class NashAnalyser:
             for card in cards
         ]
         strategy, value = solve_matrix_game(matrix)
-        return tuple(cards), tuple(strategy), value
+        return Analysis(cards, strategy, value)
 
     def _value_after_round(
         self,
@@ -91,14 +89,14 @@ class NashAnalyser:
 def _pinned_guarantee(
     position: Position,
     guarantee: Guarantee,
-) -> tuple[list[AgentCard], list[float], float] | None:
+) -> Analysis | None:
     if guarantee.equity is None:
         return None
 
     cards = sorted(position.ours)
     card = _guarantee_card(position, guarantee)
     strategy = [1.0 if candidate == card else 0.0 for candidate in cards]
-    return cards, strategy, float(guarantee.equity)
+    return Analysis(cards, strategy, float(guarantee.equity))
 
 
 def _guarantee_card(position: Position, guarantee: Guarantee) -> AgentCard:
@@ -136,21 +134,25 @@ class NashPlayer(Player):
         if position.current_mission is None:
             raise ValueError("NashPlayer requires a current mission")
 
-        cards, strategy, _value = self.analyser.analyse(position)
+        analysis = self.analyser.analyse(position)
         crude_evaluation = CrudeEvaluator().evaluate(position)
         self.logger.debug(
-            "Evaluation: %.3f; Crude Evaluation: %.3f", _value, crude_evaluation
+            "Evaluation: %.3f; Crude Evaluation: %.3f",
+            analysis.value,
+            crude_evaluation,
         )
         self.logger.debug(
             "Strategy: {%s}",
             ", ".join(
                 f"{c}: {s:.3f}"
                 for c, s in sorted(
-                    zip(cards, strategy), key=lambda cs: cs[1], reverse=True
+                    zip(analysis.cards, analysis.strategy),
+                    key=lambda cs: cs[1],
+                    reverse=True,
                 )
             ),
         )
-        return choices(cards, weights=strategy, k=1)[0]
+        return choices(analysis.cards, weights=analysis.strategy, k=1)[0]
 
 
 # Players are fresh; NASH_ANALYSER owns the shared analysis cache.

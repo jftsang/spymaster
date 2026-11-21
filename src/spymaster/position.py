@@ -23,15 +23,15 @@ class Position:
     This class is used both during a round, when `current_mission` is
     not None; and between rounds or at evaluator leaf positions, when
     `current_mission` is None. The set `missions` includes the current
-    mission when one is set.
+    mission when one is set. Only the score margin matters to analysis,
+    so `diff` stores `white_score - black_score`.
     """
 
     ours: frozenset[AgentCard]
     theirs: frozenset[AgentCard]
     missions: frozenset[MissionCard]
     current_mission: MissionCard | None
-    white_score: int
-    black_score: int
+    diff: int
 
     @classmethod
     def of(cls, game_state: Spymaster) -> Position:
@@ -44,8 +44,7 @@ class Position:
             theirs=frozenset(game_state.black_cards),
             missions=frozenset(missions),
             current_mission=game_state.current_mission,
-            white_score=game_state.white_score,
-            black_score=game_state.black_score,
+            diff=game_state.white_score - game_state.black_score,
         )
 
     def flipped(self) -> Position:
@@ -55,6 +54,5 @@ class Position:
             theirs=self.ours,
             missions=self.missions,
             current_mission=self.current_mission,
-            white_score=self.black_score,
-            black_score=self.white_score,
+            diff=-self.diff,
         )

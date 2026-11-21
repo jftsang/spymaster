@@ -59,7 +59,7 @@ def analyse_guarantee(position: Position) -> Guarantee:
         return Guarantee(GuaranteeKind.NONE)
 
     total = sum(missions)
-    diff = position.white_score - position.black_score
+    diff = position.diff
 
     if diff + total < 0:
         return Guarantee(kind=GuaranteeKind.LOSS, equity=-1)

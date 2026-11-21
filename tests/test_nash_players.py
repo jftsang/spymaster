@@ -67,14 +67,15 @@ class TestNashPlayer(unittest.TestCase):
         )
         state = make_state()
 
-        cards, strategy, value = player.analyser.analyse(state.position)
+        analysis = player.analyser.analyse(state.position)
+        cards, strategy, value = analysis.cards, analysis.strategy, analysis.value
 
-        self.assertEqual(cards, [AgentCard(5), AgentCard(10)])
+        self.assertEqual(cards, (AgentCard(5), AgentCard(10)))
         self.assertEqual(len(evaluator.positions), 4)
         self.assertAlmostEqual(sum(strategy), 1.0)
         self.assertAlmostEqual(value, 0.0)
 
-    def test_child_position_updates_cards_scores_and_missions(self):
+    def test_child_position_updates_cards_diff_and_missions(self):
         evaluator = RecordingEvaluator()
         player = NashPlayer(
             "Test",
@@ -91,8 +92,7 @@ class TestNashPlayer(unittest.TestCase):
         first = evaluator.positions[0]
         self.assertEqual(first.ours, {AgentCard(10)})
         self.assertEqual(first.theirs, {AgentCard(6)})
-        self.assertEqual(first.white_score, 7)
-        self.assertEqual(first.black_score, 5)
+        self.assertEqual(first.diff, 2)
         self.assertIsNone(first.current_mission)
         self.assertEqual(first.missions, {MissionCard(2)})
 
@@ -122,11 +122,8 @@ class TestNashPlayer(unittest.TestCase):
         ]
         self.assertEqual(len(assassin_children), 2)
         self.assertEqual(
-            sorted(situation.white_score for situation in assassin_children),
+            sorted(situation.diff for situation in assassin_children),
             [3, 4],
-        )
-        self.assertTrue(
-            all(situation.black_score == 0 for situation in assassin_children)
         )
 
     def test_pure_optimal_action_is_always_picked(self):
@@ -155,9 +152,10 @@ class TestNashPlayer(unittest.TestCase):
             ),
         )
         state = make_state()
-        cards, strategy, value = player.analyser.analyse(state.position)
+        analysis = player.analyser.analyse(state.position)
+        cards, strategy, value = analysis.cards, analysis.strategy, analysis.value
 
-        self.assertEqual(cards, [AgentCard(5), AgentCard(10)])
+        self.assertEqual(cards, (AgentCard(5), AgentCard(10)))
         self.assertAlmostEqual(strategy[0], 0.5)
         self.assertAlmostEqual(strategy[1], 0.5)
         self.assertAlmostEqual(value, 0.0)
@@ -194,10 +192,10 @@ class TestNashPlayer(unittest.TestCase):
         player = NashPlayer("Test", analyser=NashAnalyser(evaluator=evaluator))
         state = make_state()
 
-        cards, strategy, _value = player.analyser.analyse(state.position)
+        analysis = player.analyser.analyse(state.position)
 
-        self.assertEqual(cards, [AgentCard(5), AgentCard(10)])
-        self.assertAlmostEqual(sum(strategy), 1.0)
+        self.assertEqual(analysis.cards, (AgentCard(5), AgentCard(10)))
+        self.assertAlmostEqual(sum(analysis.strategy), 1.0)
         self.assertEqual(evaluator.positions, [])
 
     def test_pinned_guarantee_skips_search(self):
@@ -212,10 +210,11 @@ class TestNashPlayer(unittest.TestCase):
             remaining_missions=[MissionCard(1), MissionCard(2)],
         )
 
-        cards, strategy, value = player.analyser.analyse(state.position)
+        analysis = player.analyser.analyse(state.position)
+        cards, strategy, value = analysis.cards, analysis.strategy, analysis.value
 
-        self.assertEqual(cards, [AgentCard(1), AgentCard(2), AgentCard(10)])
-        self.assertEqual(strategy, [0.0, 0.0, 1.0])
+        self.assertEqual(cards, (AgentCard(1), AgentCard(2), AgentCard(10)))
+        self.assertEqual(strategy, (0.0, 0.0, 1.0))
         self.assertEqual(value, 1.0)
         self.assertEqual(evaluator.positions, [])
 
@@ -230,10 +229,11 @@ class TestNashPlayer(unittest.TestCase):
             remaining_missions=[MissionCard(3), MissionCard(2)],
         )
 
-        cards, strategy, value = player.analyser.analyse(state.position)
+        analysis = player.analyser.analyse(state.position)
+        cards, strategy, value = analysis.cards, analysis.strategy, analysis.value
 
-        self.assertEqual(cards, [AgentCard(1), AgentCard(2), AgentCard(10)])
-        self.assertEqual(strategy, [1.0, 0.0, 0.0])
+        self.assertEqual(cards, (AgentCard(1), AgentCard(2), AgentCard(10)))
+        self.assertEqual(strategy, (1.0, 0.0, 0.0))
         self.assertEqual(value, 1.0)
 
     def test_player_is_registered_with_the_computer_player_factory(self):

@@ -34,7 +34,7 @@ class CrudeEvaluator(Evaluator):
 
     def evaluate(self, position: Position) -> float:
         missions = sorted(position.missions)
-        diff = position.white_score - position.black_score
+        diff = position.diff
         if not missions:
             return _outcome(diff)
 

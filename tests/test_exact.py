@@ -78,7 +78,7 @@ class TestExactEquity(unittest.TestCase):
         self.assertEqual(exact_equity(situation.position), 0.0)
 
     def test_cache_is_keyed_on_score_difference(self):
-        exact._exact_equity.cache_clear()
+        exact.exact_equity.cache_clear()
         first = Spymaster(
             white_score=10,
             black_score=7,
@@ -92,7 +92,7 @@ class TestExactEquity(unittest.TestCase):
 
         self.assertEqual(exact_equity(first.position), 1.0)
         self.assertEqual(exact_equity(second.position), 1.0)
-        self.assertGreaterEqual(exact._exact_equity.cache_info().hits, 1)
+        self.assertGreaterEqual(exact.exact_equity.cache_info().hits, 1)
 
 
 if __name__ == "__main__":

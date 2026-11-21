@@ -248,46 +248,27 @@ async def head_to_head(
     player_b: PlayerSource,
     n_games: int = 100,
 ) -> tuple[int, int, int]:
-    """Play ``player_a`` against ``player_b``, ``n_games`` with each as
-    White. Returns ``(a_wins, draws, b_wins)`` from A's point of view.
+    """Play ``n_games`` with ``player_a`` as White and ``player_b`` as
+    Black. Returns ``(a_wins, draws, b_wins)`` from A's point of view.
+    The game is symmetric, so swapping seats adds no information.
 
     Each side is instantiated from its source for every game, so passing
     factories keeps stateful players isolated between games. Passing a
     single instance reuses it and is only safe for stateless players.
     """
     games = [
-        (
-            True,
-            Spymaster(
-                white=_instantiate_player(player_a),
-                black=_instantiate_player(player_b),
-            ),
-        )
-        for _ in range(n_games)
-    ] + [
-        (
-            False,
-            Spymaster(
-                white=_instantiate_player(player_b),
-                black=_instantiate_player(player_a),
-            ),
+        Spymaster(
+            white=_instantiate_player(player_a),
+            black=_instantiate_player(player_b),
         )
         for _ in range(n_games)
     ]
-    await asyncio.gather(*(game.play() for _, game in games))
+    await asyncio.gather(*(game.play() for game in games))
 
-    a_wins = draws = b_wins = 0
-    for a_is_white, game in games:
-        if a_is_white:
-            a_score, b_score = game.white_score, game.black_score
-        else:
-            a_score, b_score = game.black_score, game.white_score
-        if a_score > b_score:
-            a_wins += 1
-        elif a_score < b_score:
-            b_wins += 1
-        else:
-            draws += 1
+    points = [_points(game) for game in games]
+    a_wins = sum(point > 0 for point in points)
+    draws = sum(point == 0 for point in points)
+    b_wins = sum(point < 0 for point in points)
     return a_wins, draws, b_wins
 
 

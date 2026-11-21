@@ -21,8 +21,7 @@ def child_position(
         theirs=position.theirs - {theirs},
         missions=position.missions - {position.current_mission},
         current_mission=None,
-        white_score=position.white_score + white_score,
-        black_score=position.black_score + black_score,
+        diff=position.diff + white_score - black_score,
     )
 
 

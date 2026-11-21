@@ -1,9 +1,10 @@
 """Exact dynamic programming for small endgames."""
 
+from dataclasses import replace
 from functools import cache
 from math import fsum
 
-from spymaster import AgentCard, MissionCard, Position
+from spymaster import Position
 
 from .guarantee import analyse_guarantee
 from .matrix_game import solve_matrix_game
@@ -12,52 +13,29 @@ from .moves import child_position
 EXACT_ROUNDS = 3
 
 
+@cache
 def exact_equity(position: Position) -> float:
     """Return the exact game value of an endgame position.
 
-    The cache is keyed on the score difference rather than the two
-    individual scores, since only the remaining margin matters.
+    Results are cached on the position itself. A `Position` records only
+    the score difference, so positions that differ solely in the absolute
+    scores share a cache entry.
     """
-    diff = position.white_score - position.black_score
-    return _exact_equity(
-        position.ours,
-        position.theirs,
-        position.missions,
-        position.current_mission,
-        diff,
-    )
-
-
-@cache
-def _exact_equity(
-    ours: frozenset[AgentCard],
-    theirs: frozenset[AgentCard],
-    missions: frozenset[MissionCard],
-    current_mission: MissionCard | None,
-    diff: int,
-) -> float:
-    position = Position(
-        ours=ours,
-        theirs=theirs,
-        missions=missions,
-        current_mission=current_mission,
-        white_score=diff,
-        black_score=0,
-    )
     guarantee = analyse_guarantee(position)
     if guarantee.equity is not None:
         return float(guarantee.equity)
 
-    if current_mission is None:
-        if not missions:
-            return _outcome(diff)
+    if position.current_mission is None:
+        if not position.missions:
+            return _outcome(position.diff)
         value = fsum(
-            _exact_equity(ours, theirs, missions, mission, diff) for mission in missions
+            exact_equity(replace(position, current_mission=mission))
+            for mission in position.missions
         )
-        return value / len(missions)
+        return value / len(position.missions)
 
-    cards = sorted(ours)
-    opponents = sorted(theirs)
+    cards = sorted(position.ours)
+    opponents = sorted(position.theirs)
     matrix = [
         [
             exact_equity(child_position(position, card, opponent))

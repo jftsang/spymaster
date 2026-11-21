@@ -49,8 +49,7 @@ class AnalysisRequest(BaseModel):
             theirs=frozenset(self.theirs),
             missions=frozenset(missions),
             current_mission=self.current_mission,
-            white_score=self.white_score,
-            black_score=self.black_score,
+            diff=self.white_score - self.black_score,
         )
 
 
@@ -702,24 +701,21 @@ async def analysis_data(request: AnalysisRequest) -> dict:
             detail="Position has no current mission to analyse",
         )
     try:
-        (our_cards, our_strategy, equity), (
-            their_cards,
-            their_strategy,
-            _,
-        ) = await asyncio.gather(
+        our_analysis, their_analysis = await asyncio.gather(
             run_in_threadpool(gs.analyser.analyse, position),
             run_in_threadpool(gs.analyser.analyse, position.flipped()),
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    equity = our_analysis.value
     if abs(equity) < 1e-9:
         equity = 0.0
     return {
         "equity": equity,
-        "ourCards": our_cards,
-        "ourStrategy": our_strategy,
-        "theirCards": their_cards,
-        "theirStrategy": their_strategy,
+        "ourCards": our_analysis.cards,
+        "ourStrategy": our_analysis.strategy,
+        "theirCards": their_analysis.cards,
+        "theirStrategy": their_analysis.strategy,
     }
 
 

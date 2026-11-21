@@ -14,7 +14,7 @@ class MockPlayer(Player):
 
 
 class TestPosition(unittest.TestCase):
-    def test_property_captures_cards_scores_and_missions(self):
+    def test_property_captures_cards_diff_and_missions(self):
         situation = Spymaster(
             white_cards=[AgentCard(10), AgentCard(2)],
             black_cards=[AgentCard(5), AgentCard(1)],
@@ -33,8 +33,7 @@ class TestPosition(unittest.TestCase):
             frozenset({MissionCard(4), MissionCard(3), MissionCard(1)}),
         )
         self.assertEqual(position.current_mission, MissionCard(4))
-        self.assertEqual(position.white_score, 7)
-        self.assertEqual(position.black_score, 3)
+        self.assertEqual(position.diff, 4)
 
     def test_position_can_be_constructed_directly(self):
         situation = Spymaster(
@@ -72,7 +71,7 @@ class TestPosition(unittest.TestCase):
     def test_position_is_hashable(self):
         self.assertIsInstance(hash(Spymaster().position), int)
 
-    def test_flipped_swaps_players_and_scores(self):
+    def test_flipped_swaps_players_and_negates_diff(self):
         position = Spymaster(
             white_cards=[AgentCard(10), AgentCard(2)],
             black_cards=[AgentCard(5), AgentCard(1)],
@@ -88,8 +87,7 @@ class TestPosition(unittest.TestCase):
         self.assertEqual(flipped.theirs, position.ours)
         self.assertEqual(flipped.missions, position.missions)
         self.assertEqual(flipped.current_mission, position.current_mission)
-        self.assertEqual(flipped.white_score, position.black_score)
-        self.assertEqual(flipped.black_score, position.white_score)
+        self.assertEqual(flipped.diff, -position.diff)
         self.assertEqual(flipped.flipped(), position)
 
 
