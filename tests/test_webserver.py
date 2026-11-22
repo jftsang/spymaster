@@ -369,18 +369,29 @@ class TestStaticPages(unittest.TestCase):
         self.assertIn('src="static/content.ts"', template)
 
     def test_navigation_stays_inside_the_app(self):
+        nav = (self.frontend_dir / "nav.html").read_text(encoding="utf-8")
+        self.assertIn('<nav class="navbar', nav)
+        self.assertIn('href="/help"', nav)
+        self.assertIn('href="/privacy"', nav)
+        self.assertIn("data-bs-popper", nav)
+        self.assertNotIn('href="/help" target="_blank"', nav)
+        self.assertNotIn('href="/privacy" target="_blank"', nav)
         for name in ("main.html", "content.html"):
             with self.subTest(page=name):
                 html = (self.frontend_dir / name).read_text(encoding="utf-8")
-                self.assertIn('<nav class="navbar', html)
-                self.assertIn('href="/help"', html)
-                self.assertIn('href="/privacy"', html)
-                self.assertNotIn('href="/help" target="_blank"', html)
-                self.assertNotIn('href="/privacy" target="_blank"', html)
+                self.assertIn('<div id="site-nav"></div>', html)
+                self.assertNotIn('<nav class="navbar', html)
         lobby = self.frontend_dir / "static" / "components" / "Lobby.tsx"
         self.assertNotIn(
             'href="/help" target="_blank"', lobby.read_text(encoding="utf-8")
         )
+
+    def test_shared_nav_is_injected_into_rendered_pages(self):
+        for route in ("/", "/help", "/privacy"):
+            with self.subTest(route=route):
+                response = self.client.get(route)
+                self.assertIn('<nav class="navbar', response.text)
+                self.assertNotIn("id=site-nav", response.text)
 
     def test_tournaments_link_is_removed(self):
         main = (self.frontend_dir / "main.html").read_text(encoding="utf-8")

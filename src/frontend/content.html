@@ -9,24 +9,12 @@
   <link rel="apple-touch-icon" href="static/icons/apple-touch-icon.png">
 </head>
 <body class="bg-dark text-light d-flex flex-column min-vh-100">
-  <nav class="navbar navbar-dark bg-dark border-bottom border-secondary">
-    <div class="container d-flex flex-wrap align-items-center gap-3">
-      <a class="navbar-brand mb-0" href="/">Spymaster</a>
-      <div class="d-flex gap-3">
-        <a class="nav-link link-light" href="/">Game</a>
-        <a class="nav-link link-light" href="/help">Help</a>
-        <a class="nav-link link-light" href="/privacy">Privacy</a>
-      </div>
-    </div>
-  </nav>
+  <div id="site-nav"></div>
   <div class="container py-4 flex-grow-1">
     <p><a href="/">&larr; Back to the game</a></p>
     <div id="content"></div>
   </div>
 
-  <footer class="small text-center py-3">
-    <a href="https://github.com/jftsang/spymaster" target="_blank" rel="noopener noreferrer">GitHub</a>
-  </footer>
   <script type="module" src="static/content.ts"></script>
 </body>
 </html>

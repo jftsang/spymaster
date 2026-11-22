@@ -1,4 +1,5 @@
 import "bootstrap/dist/css/bootstrap.min.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
 import { render } from "preact";
 import { App } from "./components/App";
 import { connectWs } from "./ws";

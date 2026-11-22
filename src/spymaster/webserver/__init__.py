@@ -607,6 +607,7 @@ frontend_dir = project_dir / "dist" / "frontend"
 static_dir = source_dir / "frontend" / "static"
 weights_dir = spymaster_dir / "weights"
 content_template_path = frontend_dir / "content.html"
+nav_template_path = source_dir / "frontend" / "nav.html"
 how_to_play_path = project_dir / "HowToPlay.md"
 privacy_md_path = project_dir / "Privacy.md"
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
@@ -618,12 +619,18 @@ FAVICON_LINKS = "\n".join(  # noqa: FLY002
         '<link rel="icon" type="image/png" href="/static/icon.png">',
     ]
 )
+SITE_NAV = nav_template_path.read_text(encoding="utf-8").strip()
 
 
 def _render_page(path: Path) -> str:
-    """Read a static HTML page and inject the favicon links before its title."""
+    """Read a static HTML page and inject shared favicons and navigation."""
     page = path.read_text(encoding="utf-8")
-    return page.replace("<title>", FAVICON_LINKS + "\n<title>", 1)
+    page = page.replace("<title>", FAVICON_LINKS + "\n<title>", 1)
+    # Parcel minifies attribute quotes in the built page.
+    for marker in ('<div id="site-nav"></div>', "<div id=site-nav></div>"):
+        if marker in page:
+            return page.replace(marker, SITE_NAV, 1)
+    return page
 
 
 def _render_content_page(title: str, markdown_path: Path) -> str:

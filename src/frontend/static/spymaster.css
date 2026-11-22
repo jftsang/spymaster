@@ -343,11 +343,19 @@ button.mission {
     width: 2.5em;
 }
 
-footer.site-footer a {
-    color: #6ea8fe;
-    text-decoration: none;
+.site-nav summary {
+    list-style: none;
+    cursor: pointer;
 }
 
-footer.site-footer a:hover {
-    text-decoration: underline;
+.site-nav summary::-webkit-details-marker {
+    display: none;
+}
+
+.site-nav details > .dropdown-menu {
+    top: 100%;
+}
+
+.site-nav details[open] > .dropdown-menu {
+    display: block;
 }
