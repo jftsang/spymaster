@@ -141,12 +141,19 @@ export const Board = ({
   else if (firstMission) message = "Press Start Game to begin";
   else message = "Press Next Mission to continue";
 
-  let scoreLine = "";
-  if (showResult && result && result.gameOver) {
-    if (situation.whiteScore > situation.blackScore) scoreLine = "You won!";
-    else if (situation.whiteScore < situation.blackScore)
-      scoreLine = `${opponent} won!`;
-    else scoreLine = "Draw!";
+  let gameOverLabel = "";
+  let gameOverClass = "";
+  if (gameOverPending) {
+    if (situation.whiteScore > situation.blackScore) {
+      gameOverLabel = "You won!";
+      gameOverClass = "btn-primary";
+    } else if (situation.whiteScore < situation.blackScore) {
+      gameOverLabel = `${opponent} won!`;
+      gameOverClass = "btn-danger";
+    } else {
+      gameOverLabel = "Draw!";
+      gameOverClass = "btn-secondary";
+    }
   }
 
   return (
@@ -210,8 +217,6 @@ export const Board = ({
         ) : null}
       </div>
 
-      {scoreLine ? <p class="text-center">{scoreLine}</p> : null}
-
       {canContinue || gameOverPending ? (
         <div class="row justify-content-center">
           <div class="col-12 d-flex justify-content-center">
@@ -219,7 +224,7 @@ export const Board = ({
               class={
                 "btn w-auto text-nowrap px-4 " +
                 (gameOverPending
-                  ? "btn-danger"
+                  ? gameOverClass
                   : firstMission
                     ? "btn-warning"
                     : "btn-success")
@@ -227,7 +232,7 @@ export const Board = ({
               onClick={gameOverPending ? onGameOver : onContinue}
             >
               {gameOverPending
-                ? "Game over"
+                ? gameOverLabel
                 : firstMission
                   ? "Start Game"
                   : "Next Mission"}
