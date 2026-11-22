@@ -5,7 +5,7 @@
 - The game is a FastAPI app (`src/spymaster/webserver/__init__.py`) with a
   Preact frontend built by Parcel into `dist/frontend`. Gameplay, presence,
   session cookies, AI opponents and `/analysis` all run on the remote server
-  (deployed at `https://spymaster.fastapicloud.dev/`). `npx cap`/PWA work must
+  (deployed at `https://spymaster.jmft.dev/`). `npx cap`/PWA work must
   not move any of that logic into the client.
 - The frontend is multi-page: `main.html`, `weights.html` and
   `tournaments.html` are Parcel entries. In Step 1 the separate `help.html` and
@@ -221,7 +221,7 @@ are excluded, `README.md`, `tests/test_webserver.py` if needed.
   and dev dependency `@capacitor/assets`.
 - `npx cap init "Spymaster" com.jmftsang.spymaster --web-dir dist/frontend`.
   App id can be changed before a store submission; nothing is submitted now.
-- Configure `server.url` as `https://spymaster.fastapicloud.dev/` and
+- Configure `server.url` as `https://spymaster.jmft.dev/` and
   `server.allowNavigation` to that host so `/help` and `/privacy` stay inside
   the WebView. Define one `remoteOrigin` constant and derive the allowed host
   with `new URL(remoteOrigin).host`.

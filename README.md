@@ -4,7 +4,7 @@ J. M. F. Tsang (j.m.f.tsang@cantab.net)
 
 ---
 
-Play now: https://spymaster.fastapicloud.dev/
+Play now: https://spymaster.jmft.dev/
 
 This is a remake of Richard Bartle's game [Spymaster][bartle], rewritten
 with a Python backend, a modernized frontend, and the ability to define
@@ -38,7 +38,7 @@ python -m spymaster Russia America
 
 ### Progressive web app
 
-Open https://spymaster.fastapicloud.dev/ in a modern mobile browser and use the
+Open https://spymaster.jmft.dev/ in a modern mobile browser and use the
 browser's "Install app" or "Add to Home Screen" action. The manifest and
 service worker make the site installable; only static assets are cached, and
 gameplay always requires a network connection.
@@ -65,7 +65,7 @@ npm run cap:ios      # open the iOS project in Xcode
 
 With the SDKs configured, `npx cap run android` and `npx cap run ios` can build
 and launch on a connected device or simulator instead. `capacitor.config.ts`
-points the WebView at `https://spymaster.fastapicloud.dev/`; the copied web
+points the WebView at `https://spymaster.jmft.dev/`; the copied web
 assets under `dist/frontend/` are kept for PWA builds, but neither the PWA nor
 the native apps use them for gameplay.
 

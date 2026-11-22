@@ -1,6 +1,6 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
-const remoteOrigin = "https://spymaster.fastapicloud.dev/";
+const remoteOrigin = "https://spymaster.jmft.dev/";
 
 const config: CapacitorConfig = {
   appId: "com.jmftsang.spymaster",

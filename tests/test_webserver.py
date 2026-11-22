@@ -478,7 +478,7 @@ class TestCapacitorConfig(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertIn(
-            'const remoteOrigin = "https://spymaster.fastapicloud.dev/";', config
+            'const remoteOrigin = "https://spymaster.jmft.dev/";', config
         )
         self.assertIn("url: remoteOrigin", config)
         self.assertIn("allowNavigation: [new URL(remoteOrigin).host]", config)
