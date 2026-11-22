@@ -3,7 +3,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 const remoteOrigin = "https://spymaster.jmft.dev/";
 
 const config: CapacitorConfig = {
-  appId: "com.jmftsang.spymaster",
+  appId: "dev.jmft.spymaster",
   appName: "Spymaster",
   webDir: "dist/frontend",
   server: {

@@ -1,4 +1,4 @@
-package com.jmftsang.spymaster;
+package dev.jmft.spymaster;
 
 import com.getcapacitor.BridgeActivity;
 

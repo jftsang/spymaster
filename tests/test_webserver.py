@@ -483,6 +483,51 @@ class TestCapacitorConfig(unittest.TestCase):
         self.assertIn("url: remoteOrigin", config)
         self.assertIn("allowNavigation: [new URL(remoteOrigin).host]", config)
 
+    def test_native_app_id_matches_android_namespace(self):
+        config = (self.project_dir / "capacitor.config.ts").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('appId: "dev.jmft.spymaster"', config)
+
+        build = (self.project_dir / "android" / "app" / "build.gradle").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('namespace = "dev.jmft.spymaster"', build)
+        self.assertIn('applicationId "dev.jmft.spymaster"', build)
+
+        main = (
+            self.project_dir
+            / "android"
+            / "app"
+            / "src"
+            / "main"
+            / "java"
+            / "dev"
+            / "jmft"
+            / "spymaster"
+            / "MainActivity.java"
+        ).read_text(encoding="utf-8")
+        self.assertIn("package dev.jmft.spymaster;", main)
+
+        strings = (
+            self.project_dir
+            / "android"
+            / "app"
+            / "src"
+            / "main"
+            / "res"
+            / "values"
+            / "strings.xml"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            '<string name="package_name">dev.jmft.spymaster</string>', strings
+        )
+
+        pbxproj = (
+            self.project_dir / "ios" / "App" / "App.xcodeproj" / "project.pbxproj"
+        ).read_text(encoding="utf-8")
+        self.assertIn("PRODUCT_BUNDLE_IDENTIFIER = dev.jmft.spymaster;", pbxproj)
+
     def test_native_projects_and_source_assets_exist(self):
         expected = (
             "android/app/src/main/AndroidManifest.xml",

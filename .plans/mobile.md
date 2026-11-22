@@ -219,7 +219,7 @@ are excluded, `README.md`, `tests/test_webserver.py` if needed.
 
 - Install `@capacitor/core @capacitor/cli @capacitor/android @capacitor/ios`
   and dev dependency `@capacitor/assets`.
-- `npx cap init "Spymaster" com.jmftsang.spymaster --web-dir dist/frontend`.
+- `npx cap init "Spymaster" dev.jmft.spymaster --web-dir dist/frontend`.
   App id can be changed before a store submission; nothing is submitted now.
 - Configure `server.url` as `https://spymaster.jmft.dev/` and
   `server.allowNavigation` to that host so `/help` and `/privacy` stay inside
