@@ -3,6 +3,20 @@ apply plugin: 'com.android.application'
 android {
     namespace = "dev.jmft.spymaster"
     compileSdk = rootProject.ext.compileSdkVersion
+
+    def releaseKeystore = System.getenv("ANDROID_KEYSTORE_FILE")
+
+    signingConfigs {
+        release {
+            if (releaseKeystore) {
+                storeFile file(releaseKeystore)
+                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
     defaultConfig {
         applicationId "dev.jmft.spymaster"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -18,6 +32,9 @@ android {
     }
     buildTypes {
         release {
+            if (releaseKeystore) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
