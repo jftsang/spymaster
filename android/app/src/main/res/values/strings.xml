@@ -3,5 +3,4 @@
     <string name="app_name">Spymaster</string>
     <string name="title_activity_main">Spymaster</string>
     <string name="package_name">dev.jmft.spymaster</string>
-    <string name="custom_url_scheme">dev.jmft.spymaster</string>
 </resources>
